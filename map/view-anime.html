@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>地图 - 显示</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/dat.gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/anime.min.js'></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+        const map = new maptalks.Map("map", {
+            center: [116.45266161, 39.86656647],
+            zoom: 8,
+            baseLayer: new maptalks.TileLayer("base", {
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+                // attribution: "&copy; <a href='http://osm.org'>OpenStreetMap</a> contributors, &copy; <a href='https://carto.com/'>CARTO</a>",
+            }),
+        });
+        const baseLayer = map.getBaseLayer();
+        const view = map.getView();
+        const view2 = { "center": [116.3998677, 39.90823064], "zoom": 16.43104055693826, "pitch": 34.050000000000054, "bearing": -25.500000000000114 };
+        const view3 = { "center": [116.31025391, 40.00365302], "zoom": 16.845597386791137, "pitch": 59.45000000000008, "bearing": -9.20217134531049 };
+
+        var params = {
+            zoom: map.getZoom(),
+            pitch: 0,
+            bearing: 0,
+            animation: function () {
+                map.setView(view);
+                const origin = { ...view2 };
+                const targets = {
+                    ...view
+                };
+                anime(
+                    Object.assign(
+                        {},
+                        {
+                            targets: targets,
+                            duration: 5000,
+                            easing: "linear",
+                            complete: (anim) => { },
+                            update: () => {
+                                const { zoom, pitch, bearing } = targets;
+                                map.setView({ zoom, pitch, bearing });
+                            }
+                        },
+                        origin
+                    )
+                );
+            }
+        };
+        // function updateMapView() {
+        //     map.setView(Object.assign(map.getView(), params))
+        // }
+        var gui = new dat.GUI({ width: 350 });
+        gui.add(params, 'animation')
+        // gui.add(params, 'pitch', 0, 80).onChange(updateMapView);
+        // gui.add(params, 'bearing', -180, 180).onChange(updateMapView);
+
+    </script>
+</body>
+
+</html>
