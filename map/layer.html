@@ -42,7 +42,7 @@
             baseLayer: true,
             layer: true
         };
-        var gui = new dat.GUI({ width: 350 });
+        var gui = new dat.GUI({ width: 250 });
         gui.add(params, 'baseLayer').name('底图控制').onChange(function () {
             if (params.baseLayer) {
                 map.setBaseLayer(baseLayer);

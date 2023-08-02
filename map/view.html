@@ -44,7 +44,7 @@
         function updateMapView() {
             map.setView(Object.assign(map.getView(), params))
         }
-        var gui = new dat.GUI({ width: 350 });
+        var gui = new dat.GUI({ width: 250 });
         gui.add(params, 'zoom', 5, 18).onChange(updateMapView);
         gui.add(params, 'pitch', 0, 80).onChange(updateMapView);
         gui.add(params, 'bearing', -180, 180).onChange(updateMapView);
