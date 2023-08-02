@@ -35,16 +35,26 @@
             }),
         });
         const baseLayer = map.getBaseLayer();
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
+        const point = new maptalks.Marker(map.getCenter()).addTo(layer);
 
         var params = {
-            add: true
+            baseLayer: true,
+            layer: true
         };
         var gui = new dat.GUI({ width: 350 });
-        gui.add(params, 'add').name('图层控制').onChange(function () {
-            if (params.add) {
+        gui.add(params, 'baseLayer').name('底图控制').onChange(function () {
+            if (params.baseLayer) {
                 map.setBaseLayer(baseLayer);
             } else {
                 map.removeBaseLayer();
+            }
+        });
+        gui.add(params, 'layer').name('业务图层控制').onChange(function () {
+            if (params.layer) {
+                map.addLayer(layer);
+            } else {
+                map.removeLayer(layer);
             }
         });
     </script>
