@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const fun1 = function (exports) {
+            exports.initialize = function () {
+                console.log("tileimagebitmap init");
+            };
+            const canvas = new OffscreenCanvas(1, 1);
+            const TILESIZE = 256;
+            exports.onmessage = function (msg, postResponse) {
+                const url = msg.data.url;
+                canvas.width = TILESIZE;
+                canvas.height = TILESIZE;
+                const ctx = canvas.getContext("2d");
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                //fetch image
+                fetch(url)
+                    .then((res) => res.arrayBuffer())
+                    .then((arrayBuffer) => {
+                        const blob = new Blob([arrayBuffer]);
+                        createImageBitmap(blob).then((bitmap) => {
+                            ctx.filter = "sepia(100%) invert(90%)";
+                            ctx.drawImage(bitmap, 0, 0);
+                            const image = canvas.transferToImageBitmap();
+                            postResponse(null, { image }, [image]);
+                        });
+                    })
+                    .catch((error) => {
+                        const image = canvas.transferToImageBitmap();
+                        postResponse(null, { image }, [image]);
+                    });
+            };
+        };
+        const workerKey = "tileimagebitmap";
+        maptalks.registerWorkerAdapter(workerKey, fun1);
+        const actor = new maptalks.worker.Actor(workerKey);
+
+        var baseLayer = new maptalks.TileLayer("base", {
+            urlTemplate:
+                "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+            attribution:
+                '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+        });
+        baseLayer.on("renderercreate", function (e) {
+            //load tile image
+            //   img(Image): an Image object
+            //   url(String): the url of the tile
+            e.renderer.loadTileBitmap = function (url, tile, callback) {
+                // console.log(tile);
+                actor.send({ url }, null, (error, message) => {
+                    //    console.log(message);
+                    callback(message.image);
+                });
+            };
+        });
+
+        var map = new maptalks.Map("map", {
+            center: [116.45266161, 39.86656647],
+            zoom: 5,
+            baseLayer
+        });
+
+
+
+    </script>
+</body>
+
+</html>

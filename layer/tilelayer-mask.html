@@ -37,7 +37,7 @@
             })
         });
 
-        fetch('https://geo.datav.aliyun.com/areas_v3/bound/310000.json').then(res => res.json()).then(geojson => {
+        fetch('./../assets/data/310000.json').then(res => res.json()).then(geojson => {
             const polygons = maptalks.GeoJSON.toGeometry(geojson);
             map.getBaseLayer().setMask(polygons[0]);
         })
