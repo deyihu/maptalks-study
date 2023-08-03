@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/gcoord.js'></script>
+
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            center: [116.45266161, 39.86656647],
+            zoom: 10,
+            baseLayer: new maptalks.TileLayer('base', {
+                // debug: true,
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+                offset: function (z) {
+                    const map = this.getMap();
+                    const center = map.getCenter();
+                    const c = gcoord.transform(center.toArray(), gcoord.AMap, gcoord.WGS84);
+                    const offset = map.coordToPoint(center, z).sub(map.coordToPoint(new maptalks.Coordinate(c), z));
+                    return offset._round().toArray();
+                },
+            })
+        });
+
+        const coordinates = [
+            [
+                116.33607780651141,
+                39.89606849343474
+            ],
+            [
+                116.33887422799637,
+                39.89620964067049
+            ],
+            [
+                116.34071397897333,
+                39.89625198478447
+            ],
+            [
+                116.34133949430543,
+                39.89622375537803
+            ],
+            [
+                116.3416614507264,
+                39.896096722905185
+            ],
+            [
+                116.34193741337299,
+                39.89588500159377
+            ],
+            [
+                116.34205699718643,
+                39.895525073863354
+            ],
+            [
+                116.34202940092177,
+                39.89505222475643
+            ],
+            [
+                116.34208459345109,
+                39.892800853669286
+            ]
+        ];
+        const line = new maptalks.LineString(coordinates, {
+            symbol: {
+                lineWidth: 3,
+                lineColor: 'red'
+            }
+        });
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
+        line.addTo(layer);
+        map.fitExtent(layer.getExtent());
+
+
+    </script>
+</body>
+
+</html>

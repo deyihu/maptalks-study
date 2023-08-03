@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/gcoord.js'></script>
+
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+        //切图参数
+        const RES = 0.002749664687500373;
+        //原点
+        const ORIGIN = [-400, 400];
+        let resolutions = [];
+        let i = 0;
+        while (i <= 9) {
+            resolutions.push(RES / Math.pow(2, i));
+            i++;
+        }
+        const offsetRes = [];
+        //前面缺失的层级,一共有9级,补起来,让其切图参数尽可能的和地图一样
+        const zoomOffset = 10;
+        i = 1;
+        while (i < zoomOffset) {
+            const res = RES * Math.pow(2, zoomOffset - i);
+            offsetRes.push(res);
+            i++;
+        }
+        resolutions = offsetRes.concat(resolutions);
+        console.log(resolutions);
+        const spatialReference = {
+            projection: 'EPSG:4490',
+            resolutions: resolutions
+        }
+
+        var map = new maptalks.Map('map', {
+            center: [120.84600742, 31.14241977],
+            zoom: 10,
+            zoomControl: true,
+            //地图还是用标准的切图参数
+            spatialReference: {
+                projection: 'EPSG:4490'
+            }
+        });
+
+        function switchSp() {
+            console.log(map.getSpatialReference()._resolutions)
+
+            const tileLayer = new maptalks.TileLayer('tilelayer,', {
+                urlTemplate: "http://180.108.205.111:6080/arcgis/rest/services/CYLMap_PCZH/MapServer/tile/{z}/{y}/{x}",
+                tileSystem: [1, -1].concat(ORIGIN),
+                spatialReference,
+                debug: true
+
+            });
+            tileLayer.getTileUrl = function (x, y, z) {
+                //replace with your own
+                //e.g. return a url pointing to your sqlite database
+                z -= 9;
+                if (z < 0) {
+                    return './../assets/image/default-image1.png'
+                }
+                return maptalks.TileLayer.prototype.getTileUrl.call(this, x, y, z);
+            };
+            map.setBaseLayer(tileLayer);
+        }
+        switchSp();
+
+
+    </script>
+</body>
+
+</html>
