@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/dat.gui.min.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            center: [116.33607780651141,
+                39.89606849343474],
+            zoom: 17,
+            pitch: 60,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+            })
+        });
+        const layer = new maptalks.VectorLayer('layer', {
+            // enableAltitude: true
+        }).addTo(map);
+
+
+        const center = map.getCenter().toArray();
+        const point = new maptalks.Marker(center, {
+            symbol: {
+                markerType: 'ellipse',
+                markerWidth: 40,
+                markerHeight: 40,
+                markerFill: '#fff'
+            }
+        });
+        point.addTo(layer);
+
+        var params = {
+            zoom: map.getZoom(),
+            pitch: 0,
+            bearing: 0,
+            markerFill: point.getSymbol().markerFill
+        };
+        var gui = new dat.GUI({ width: 250 });
+        gui.addColor(params, 'markerFill').onChange(() => {
+            point.updateSymbol({ markerFill: params.markerFill })
+        })
+
+
+
+    </script>
+</body>
+
+</html>

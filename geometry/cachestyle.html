@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/dat.gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/randomColor.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            center: [114.35563083, 30.47815522],
+            zoom: 9,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+            })
+        });
+        const layer = new maptalks.VectorLayer('layer', {
+            // enableAltitude: true
+        }).addTo(map);
+
+        function mouseEventFunc(e) {
+            const polygon = e.target;
+            if (e.type === 'mouseover') {
+                if (!polygon._oldSymbol) {
+                    polygon._oldSymbol = polygon.getSymbol();
+                }
+                polygon.setSymbol({
+                    polygonFill: 'red'
+                })
+            } else if (e.type === 'mouseout') {
+                if (polygon._oldSymbol) {
+                    polygon.setSymbol(polygon._oldSymbol);
+                }
+            }
+        }
+
+        fetch('./../assets/data/area.geojson').then(res => res.json()).then(geojson => {
+            const polygons = maptalks.GeoJSON.toGeometry(geojson);
+            polygons.forEach(polygon => {
+                polygon.setSymbol({
+                    polygonFill: randomColor(),
+                    polygonOpacity: 0.7
+                });
+                polygon.on('mouseover mouseout', mouseEventFunc);
+
+            });
+            layer.addGeometry(polygons);
+        })
+
+
+
+
+
+    </script>
+</body>
+
+</html>
