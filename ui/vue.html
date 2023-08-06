@@ -68,7 +68,7 @@
             }
             return coordinates;
         }
-        const markers = randomCoordinates().map((c, index) => {
+        randomCoordinates().map((c, index) => {
             var Profile = Vue.extend({
                 template: `<div class="profile">  <el-button size="mini">默认按钮</el-button>
                             <el-button size="mini" type="danger">危险按钮</el-button>
