@@ -37,7 +37,7 @@
         background-color: white;
         border: 1px solid gray;
         padding: 10px;
-        width: 300px;
+        width: 200px;
     }
 </style>
 
@@ -72,13 +72,14 @@
             var Profile = Vue.extend({
                 template: `<div class="profile">  <el-button size="mini">默认按钮</el-button>
                             <el-button size="mini" type="danger">危险按钮</el-button>
-                            <el-input size="mini"  v-model="firstName" placeholder="请输入内容"></el-input>
+                            <el-checkbox v-model="checked">备选项</el-checkbox>
                             <p>{{firstName}} {{lastName}} aka {{alias}}</p></div>`,
                 data: function () {
                     return {
                         firstName: 'Walter' + index,
                         lastName: 'White',
-                        alias: 'Heisenberg'
+                        alias: 'Heisenberg',
+                        checked: index % 2 === 0
                     }
                 }
             })
@@ -86,7 +87,8 @@
             console.log(profile);
             var uiMarker = new maptalks.ui.UIMarker(c, {
                 content: profile.$el,
-                verticalAlignment: 'top'
+                verticalAlignment: 'top',
+                // eventsPropagation: false
             });
             uiMarker.addTo(map);
         })
