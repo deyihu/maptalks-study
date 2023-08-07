@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/dat.gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/colorin.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const height = 1000;
+        var map = new maptalks.Map('map', {
+            center: [114.13901022, 22.331163],
+            zoom: 11,
+            pitch: 60
+            // baseLayer: new maptalks.TileLayer('base', {
+            //     urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            //     subdomains: ["a", "b", "c", "d"],
+            // })
+        });
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            identifyCountOnEvent: 1,
+            animation: true
+            // forceRenderOnMoving: true,
+            // forceRenderOnRotating: true
+        });
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            scene.add(new THREE.AmbientLight('#fff', 0.3));
+            addPolygons();
+
+        };
+        // threeLayer.addTo(map);
+        // 添加到GroupGLLayer中
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true }
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [threeLayer], { sceneConfig });
+        groupLayer.addTo(map);
+
+        const layer = new maptalks.VectorLayer('layer', {
+            // enableAltitude: true
+            geometryEvents: false,
+            'collision': true,
+            'collisionDelay': 250
+        }).addTo(map);
+
+        const highMaterial = new THREE.MeshPhongMaterial({ color: '#fff', vertexColors: 2 });
+
+        function mouseEventFunc(e) {
+            const polygon = e.target;
+            if (e.type === 'mouseover') {
+                if (!polygon._oldSymbol) {
+                    polygon._oldSymbol = polygon.getObject3d().material;
+                }
+                polygon.getObject3d().material = highMaterial;
+            } else if (e.type === 'mouseout') {
+                if (polygon._oldSymbol) {
+                    polygon.getObject3d().material = polygon._oldSymbol;
+                }
+            }
+        }
+
+        const colors = [
+            [2000, 'lightskyblue'],
+            [12000, 'yellow'],
+            [30000, 'orangered']
+        ];
+        const ci = new colorin.ColorIn(colors);
+
+        function addPolygons() {
+            fetch('../assets/data/hk.json').then(res => res.json()).then(geojson => {
+                const polygons = maptalks.GeoJSON.toGeometry(geojson);
+                const extrudePolygons = polygons.map(p => {
+                    const { value } = p.getProperties();
+                    const [r, g, b] = ci.getColor(value);
+                    const color = `rgb(${r},${g},${b})`;
+                    const extrudePolygon = threeLayer.toExtrudePolygon(p, { height, altitude: -height, topColor: '#fff' }, new THREE.MeshPhongMaterial({ color }));
+                    extrudePolygon.on('mouseover mouseout', mouseEventFunc);
+                    return extrudePolygon;
+                });
+                threeLayer.addMesh(extrudePolygons);
+                addOutLines(polygons);
+                addLabels();
+            })
+        }
+
+        function addOutLines(polygons) {
+            polygons.forEach(polygon => {
+                polygon.setSymbol({
+                    polygonOpacity: 0,
+                    lineWidth: 0.6,
+                    lineColor: '#444',
+                });
+            });
+            layer.addGeometry(polygons);
+        }
+
+        function addLabels() {
+            fetch('../assets/data/hklabel.geojson').then(res => res.json()).then(geojson => {
+                const points = maptalks.GeoJSON.toGeometry(geojson);
+                points.forEach(point => {
+                    const { name } = point.getProperties();
+                    point.setSymbol({
+                        textName: name,
+                        textHaloRadius: 0.2,
+                        textHaloFill: '#fff'
+                    });
+
+                });
+                layer.addGeometry(points);
+            })
+        }
+
+
+
+
+    </script>
+</body>
+
+</html>
