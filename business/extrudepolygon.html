@@ -71,8 +71,10 @@
         const layer = new maptalks.VectorLayer('layer', {
             // enableAltitude: true
             geometryEvents: false,
+
             'collision': true,
-            'collisionDelay': 250
+            'collisionDelay': 250,
+            collisionBufferSize: 6
         }).addTo(map);
 
         const highMaterial = new THREE.MeshPhongMaterial({ color: '#fff', vertexColors: 2 });
