@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        /* background-color: black; */
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/dat.gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
+<!-- <script type='text/javascript' src='./../assets/lib/colorin.js'></script> -->
+<script type='text/javascript' src='./../assets/lib/bbox.umd.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const height = 5000;
+        const color = 'rgb(12,66,240)';
+        const lineColor = '#fff';
+
+        var map = new maptalks.Map('map', {
+            center: [116.63924403, 40.18304877],
+            zoom: 9,
+            pitch: 60,
+            baseLayer: new maptalks.TileLayer('tile', {
+                altitude: -height,
+                urlTemplate:    'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                subdomains: ['a', 'b', 'c', 'd'],
+                attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+            })
+        });
+
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            identifyCountOnEvent: 1,
+            animation: true
+            // forceRenderOnMoving: true,
+            // forceRenderOnRotating: true
+        });
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            scene.add(new THREE.AmbientLight('#fff', 0.3));
+            addAreaPlane();
+            addPolygons();
+            initGui();
+
+        };
+        // 添加到GroupGLLayer中
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true }
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [threeLayer], { sceneConfig });
+        groupLayer.addTo(map);
+
+        const layer = new maptalks.VectorLayer('layer', {
+            // enableAltitude: true
+            geometryEvents: false,
+            'collision': true,
+            'collisionDelay': 250,
+            collisionBufferSize: 6
+        }).addTo(map);
+
+        var planeMaterial = new THREE.MeshLambertMaterial({ color, transparent: true, opacity: 0.8, side: 0 });
+        function addAreaPlane() {
+            fetch('../assets/data/beijing.geojson').then(res => res.json()).then(geojson => {
+                const extent = bbox(geojson);
+                const plane = new AreaPlane(extent, { altitude: 0 }, planeMaterial, threeLayer);
+
+                const texture = new THREE.TextureLoader().load('./../assets/image/beijing.png', (texture) => {
+                    planeMaterial.map = texture;
+                    planeMaterial.needsUpdate = true;
+                    threeLayer.addMesh(plane);
+                });
+                texture.needsUpdate = true; //使用贴图时进行更新
+                texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+                // texture.repeat.set(0.002, 0.002);
+                texture.repeat.set(1, 1);
+            });
+        }
+        var material = new THREE.MeshLambertMaterial({ color, transparent: false });
+
+        function flatPolygon2Lines(geojson) {
+            const results = {
+                type: 'FeatureCollection',
+                features: []
+            };
+            geojson.features.forEach(f => {
+                const { geometry, properties } = f;
+                const { coordinates, type } = geometry;
+                let polygons = [];
+                if (type.includes('Multi')) {
+                    polygons = coordinates;
+                } else {
+                    polygons.push(coordinates);
+                }
+                polygons.forEach(p => {
+                    results.features.push({
+                        type: 'Feature',
+                        geometry: {
+                            type: 'MultiLineString',
+                            coordinates: p
+                        },
+                        properties
+                    })
+                });
+            });
+            return results;
+        }
+
+        function addPolygons() {
+            fetch('../assets/data/beijing.geojson').then(res => res.json()).then(geojson => {
+                const geojson1 = flatPolygon2Lines(geojson);
+                const lines = maptalks.GeoJSON.toGeometry(geojson1);
+                lines.forEach(line => {
+                    const extrudeLine = threeLayer.toExtrudeLine(line, { height, altitude: -height, topColor: '#fff' }, material);
+                    threeLayer.addMesh(extrudeLine);
+
+                });
+                addOutLines();
+            });
+        }
+
+
+
+        function addOutLines(polygons) {
+            fetch('../assets/data/beijingarea.json').then(res => res.json()).then(geojson => {
+                const polygons = maptalks.GeoJSON.toGeometry(geojson);
+                polygons.forEach(polygon => {
+                    polygon.setSymbol({
+                        polygonOpacity: 0,
+                        lineWidth: 1,
+                        lineColor,
+                    });
+                });
+                layer.addGeometry(polygons);
+            });
+
+
+        }
+
+        function initGui() {
+            var params = {
+                color: planeMaterial.color.getStyle(),
+                opacity: planeMaterial.opacity,
+                lineColor
+            };
+            var gui = new dat.GUI();
+
+            gui.addColor(params, 'color').name('color').onChange(function () {
+                planeMaterial.color.set(params.color);
+                material.color.set(params.color);
+            });
+            gui.add(params, 'opacity', 0, 1).onChange(function () {
+                planeMaterial.opacity = params.opacity;
+                // meshs.forEach(function (mesh) {
+                //     mesh.setSymbol(material);
+                // });
+            });
+            gui.addColor(params, 'lineColor').onChange(function () {
+                layer.getGeometries().forEach(p => {
+                    p.updateSymbol({
+                        lineColor: params.lineColor
+                    })
+                })
+            });
+        }
+
+
+        const OPTIONS = {
+            interactive: false,
+            altitude: 0
+        }
+
+        class AreaPlane extends maptalks.BaseObject {
+            constructor(extent, options, material, layer) {
+                options = maptalks.Util.extend({}, OPTIONS, options, { layer, extent });
+                if (!(extent instanceof maptalks.Extent)) {
+                    extent = new maptalks.Extent(extent);
+                }
+                const { xmin, ymin, xmax, ymax } = extent;
+                const coords = [
+                    [xmin, ymin],
+                    [xmin, ymax],
+                    [xmax, ymax],
+                    [xmax, ymin]
+                ];
+                let vxmin = Infinity, vymin = Infinity, vxmax = -Infinity, vymax = -Infinity;
+                coords.forEach(coord => {
+                    const v = layer.coordinateToVector3(coord);
+                    const { x, y } = v;
+                    vxmin = Math.min(x, vxmin);
+                    vymin = Math.min(y, vymin);
+                    vxmax = Math.max(x, vxmax);
+                    vymax = Math.max(y, vymax);
+                });
+                const { texture, image, altitude, imageHeight, imageWidth } = options;
+
+                const w = Math.abs(vxmax - vxmin), h = Math.abs(vymax - vymin);
+                // const rgbImg = generateImage(image), img = generateImage(texture);
+                // // const geometry = new THREE.PlaneBufferGeometry(w, h, imageWidth - 1, imageHeight - 1);
+                // const geometry = getPlaneGeometry(w, h, imageWidth - 1, imageHeight - 1);
+                const geometry = new THREE.PlaneBufferGeometry(w, h, 1, 1);
+                super();
+                this._initOptions(options);
+                this._createMesh(geometry, material);
+                const z = layer.altitudeToVector3(altitude, altitude).x;
+                const v = new THREE.Vector3((vxmin + vxmax) / 2, (vymin + vymax) / 2, z);
+                this.getObject3d().position.copy(v);
+            }
+        }
+
+
+
+    </script>
+</body>
+
+</html>
