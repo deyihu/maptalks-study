@@ -40,8 +40,8 @@
                         url: {
                             front: `${r}zpos.png`,
                             back: `${r}zneg.png`,
-                            left: `${r}xpos.png`,
-                            right: `${r}xneg.png`,
+                            left: `${r}xneg.png`,
+                            right: `${r}xpos.png`,
                             top: `${r}ypos.png`,
                             bottom: `${r}yneg.png`,
                         },
@@ -54,13 +54,10 @@
             },
         });
 
-        const baseLayer = new maptalks.TileLayer("base", {
-            urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
-            subdomains: ["a", "b", "c", "d"],
-
-            spatialReference: {
-                projection: 'EPSG:3857'
-            },
+        const baseLayer = new maptalks.TileLayer('tile', {
+            urlTemplate: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            subdomains: ['a', 'b', 'c', 'd'],
+            attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
         });
 
 
