@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+
+<body>
+    <script type="text/javascript" src="https://maptalks.com/api/transcoders.draco.js"></script>
+    <div id="map" class="container"></div>
+
+    <script>
+        const map = new maptalks.Map("map", {
+            center: [108.95965, 34.2189],
+            zoom: 18,
+            bearing: 0,
+            pitch: 45,
+            centerCross: true,
+            lights: {
+                directional: {
+                    direction: [-1, -1, -1],
+                    color: [1, 1, 1]
+                },
+                ambient: {
+                    // resource: {
+                    //     url: {
+                    //         front: "/resources/hdr/923/front.jpg",
+                    //         back: "/resources/hdr/923/back.jpg",
+                    //         left: "/resources/hdr/923/left.jpg",
+                    //         right: "/resources/hdr/923/right.jpg",
+                    //         top: "/resources/hdr/923/top.jpg",
+                    //         bottom: "/resources/hdr/923/bottom.jpg"
+                    //     }
+                    // },
+                    exposure: 1.426,
+                    hsv: [0, 0, 0],
+                    orientation: 302.553
+                }
+            }
+        });
+
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+        });
+
+        const layer = new maptalks.Geo3DTilesLayer("3dtiles", {
+            services: [{
+                url: "http://resource.dvgis.cn/data/3dtiles/dayanta/tileset.json",
+                maximumScreenSpaceError: 16.0,
+                heightOffset: -420
+            }]
+        });
+        layer.once("loadtileset", (e) => {
+            const extent = layer.getExtent(e.index);
+            map.fitExtent(extent, 0, {
+                animation: false
+            });
+        });
+        const pointLayer = new maptalks.PointLayer('point');
+        const lineLayer = new maptalks.LineStringLayer('line');
+        const groupGLLayer = new maptalks.GroupGLLayer("gl", [layer, lineLayer, pointLayer], {
+            sceneConfig: {
+                environment: {
+                    enable: true,
+                    mode: 1,
+                    level: 0,
+                    brightness: 0.915
+                },
+                postProcess: {
+                    enable: true
+                },
+                ground: {
+                    enable: false,
+                    renderPlugin: {
+                        type: "lit"
+                    },
+                    symbol: {
+                        polygonOpacity: 1,
+                        material: {
+                            baseColorFactor: [0.48235, 0.48235, 0.48235, 1],
+                            hsv: [0, 0, -0.532],
+                            roughnessFactor: 0.22,
+                            metallicFactor: 0.58
+                        }
+                    }
+                }
+            }
+        }).addTo(map);
+
+        function test() {
+            const data = [[108.95801231844894, 34.22096920636076]
+                , [108.96083718520276, 34.220998472774994]
+                , [108.96090437448561, 34.21954518315451]
+                , [108.96065482214453, 34.21793374844967]
+                , [108.959189624607, 34.21773138154876]
+                , [108.95795486013571, 34.21789066436642]
+                , [108.95804664166144, 34.218587955383754]
+                , [108.95876642147414, 34.21960477437969]
+                , [108.95939711689982, 34.219779971048155]
+                , [108.95943501659963, 34.21993978743964]]
+
+            const coordinates = [];
+            data.forEach(d => {
+                // const height = Math.random() * 30 + 20;
+                // d.push(height);
+                //get height from 3dtile layer
+                const result = layer.identify(new maptalks.Coordinate(d));
+                if (result && result.length) {
+                    coordinates.push(result[0].coordinate)
+                }
+            });
+
+            const lines = coordinates.map(d => {
+                const d1 = [...d];
+                d[2] += 10;
+                return new maptalks.LineString([d, d1], {
+                    symbol: {
+                        lineWidth: 4,
+                        lineColor: 'red'
+                    }
+                });
+            });
+            lineLayer.addGeometry(lines);
+
+            var url1 ='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAAXNSR0IArs4c6QAABUpJREFUaEPVWFtslEUU/s70X9rupSxlKb2AQC+BVtQGG2y9RHgyETEGXnxAfDEa1CaWhEh88BJJDCRqooga30xIow8aE33yAWIi7iYNRYVlSy+2odWk7Hbb/t1td7c7v5l212xLtzP/ZROZt/Y/5/vON+ecmbNDcGgZ3d3lyVDoBaTTjzPOm7KG0UyaFgBj00YqFad0Ogagz9C0EAuHL7mBCSeoyS5Isq3tkaymHWcu1zMA7lPCSyaBVOpCcmTkzBbgHyWfIka2BCTa28/A5eoB524rQVAmM86z2fPeGzfOWvEXPpYEzO3a9RD5/V+AsU6rxIV+RNRb2dd3nIBFs3imBSQPH+7E1NRFY2Gh0SzZuvbT0+nM8HCXH7hqBteUAB1oA/At1dffT3V1ZnjUbONxZEdGAlWAaHilZVbA9wCeE8isqQnw+5VITBnNz/d7wuF9qj7KAmaANxjwcR6YPB5QYyOwYYMql7KdEYud9Y6OnlZxUBIwB7QbwCUAK7acAgHQjh0qPKZsjERiRotEOiqAIZmjkoBZ4EMCTq4FRtu3g2pqZDzmv0ejX3nGxl6WOUoFzADVDPgTQP2aYERgLS2AzyfjMvc9kUAyEqmXXXRSAQngBAcurMdOPt9yP2iauSAl1hSNHnGPjYmDo+iSCtCBLwHIU1lTA1FOTi6anT3nHhx8064A0bwHVAJjO3cCmzermKrZJBJBTyTSZVfAJIAtSoyMge3eDbgtjUZ3UbBsdqDy2rU9dgUkAVQqCRDDVVUVqLkZIGl1SiHJ5Zp0B4Nb7QoYB9AgZSswEGMG1a99aJnBQSqV8ly/XmFLwBzwuwE8aIpYjBriVNq0yazbCntD16e8t26t21TSPOvLN7BSE69gLysDa20Fysuti5ie/s0zPPyorQzowDsA3rUSBW3cuNwPVlcs9rVndPRFWwISwNMc+MlqDKIXrI7eFIuddI+O/jdArhWDtITuAHUVwN9WBQi/pVGjqsocxPz85GI43LoRmLKVAeGsA58A6DYXQYG1poG1tQEulzIEj8c/942MvCpzkGZAACwAzRkgBKBaBljsu5l+oHRaNyKRJz2ZTL+MT0lALguWmzkfBDU0gGprZTEBnL/t6e9/X25o8lVCB64AWHc2kZEujRpeb3Ezzn92X736FBEZMizxXTkDwngW2ExAVAW4qI3LBbZ3L8DYXSaUSg3yiYmj3nhc/P5QWqYECMRpYF/ZciYs31Dk94PEo0DBomx2iEejR73j438oRZ4zMi1A+BmANgecB/CKGbIVAW/bBtqam9MymRAWF094wmFp067msyQgD2LnlhYYbM/SpHyFGcaxyoGBv6xshi0Bub44TcAHVsjhdn/mSyZft+Rrp4RWE+rLw54Y+sysgz7gshmHtWxtZyAPOgMcYsCPigE97wO+UbRd18wxAYJFB05A8oIhJlsf8J4TwQsMRwXkRIjT6bUiAV72AQedCr4kAuLATg34tchDmCN1v+I4dnI38lhzQI8BfLQK29HSyWM7XkIFd8QvAJ7I/e146ZRcQAJ4lgM/5Or0mBe4WIpslywDuUvuDgFsAKjtADL3nAAd6DWARBXwUimCd/QU6uvrC3DOj+QewcSvlsC2U6cemzlwIKYfOhTB8hh+G8AkY+y7jo4Oe2N5bkccKaFgMNhCRJ8SUaBwp6t7ewPJ/fv1haamVOH/DcOIcs57urq6btrNjJMCzhHRivf18qGhilRz88LqIA3DuM05f+t/IyAfYCgUEj83HyaiB4rsbJBzfrOzszNod+dLfow6FaAMx5ESkpGU8vs9L+BfDBB3QM16CagAAAAASUVORK5CYII=';
+            const points = coordinates.map(d => {
+                const point = new maptalks.Marker(d, {
+                    symbol: {
+                        markerFile: url1,
+                        markerWidth: 40,
+                        markerHeight: 40,
+                    }
+                });
+                point.setInfoWindow({
+                    content: 'height=' + d[2]
+                });
+                return point;
+            });
+            pointLayer.addGeometry(points);
+
+
+        }
+        setTimeout(() => {
+            test();
+        }, 5000);
+    </script>
+</body>
+
+</html>
