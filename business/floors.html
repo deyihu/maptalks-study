@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/dat.gui.min.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            center: [120.59421765, 31.27427065],
+            zoom: 16,
+            pitch: 60,
+            // baseLayer: new maptalks.TileLayer('base', {
+            //     urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            //     subdomains: ["a", "b", "c", "d"],
+            // })
+        });
+
+
+        const style = [
+            {
+                name: 'building-floors',
+                filter: ["all",
+                    ["==", "$type", "Polygon"]
+                ],
+                renderPlugin: {
+                    type: "lit",
+                    dataConfig: {
+                        type: "3d-extrusion",
+                        altitudeProperty: "height",
+                        minHeightProperty: "bottomHeight",
+                        altitudeScale: 1,
+                        defaultAltitude: 10,
+                        topThickness: 1,
+                        top: true,
+                        side: true
+                    },
+                    sceneConfig: {}
+                },
+                symbol: {
+                    polygonFill: {
+                        property: 'floor',
+                        type: 'interval',
+                        stops: (function () {
+                            let floor = 1;
+                            const result = [];
+                            while (floor < 100) {
+                                if (floor % 2 === 0) {
+                                    result.push([floor, 'white']);
+                                } else {
+                                    result.push([floor, '#0579D6'])
+                                }
+                                floor++;
+                            }
+                            return result;
+                        })(),
+                        default: '#fff'
+                    },
+                    polygonOpacity: 0.7,
+                    material: {
+                        baseColorFactor: [1, 1, 1, 1],
+                        roughnessFactor: 1,
+                        metallicFactor: 1
+                    }
+                }
+            },
+            {
+                name: 'building-floors-label',
+                filter: [
+                    "all",
+                    ["==", "$type", "Point"],
+                ],
+                renderPlugin: {
+                    dataConfig: {
+                        type: "point",
+                    },
+                    sceneConfig: {
+                        collision: true,
+                        fading: true,
+                        depthFunc: 'always'
+                    },
+                    type: "text",
+                },
+                symbol: {
+                    textFaceName: "Microsoft YaHei,sans-serif",
+                    textFill: [0, 0, 0, 1],
+                    textHaloFill: [1, 1, 1, 1],
+                    textHaloOpacity: 1,
+                    textHaloRadius: 1,
+                    textName: "{floor}楼",
+                    textSize: 12,
+                    textDy: -10
+                },
+            }
+        ];
+
+        const layer = new maptalks.GeoJSONVectorTileLayer("geo", {
+            data: "./../assets/data/floors.geojson",
+            style,
+        });
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true }
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [layer], { sceneConfig });
+        groupLayer.addTo(map);
+
+        // fetch('./../assets/data/buildingsfilter-test.geojson').then(res => res.json()).then(geojson => {
+        //     const data = {
+        //         type: 'FeatureCollection',
+        //         features: []
+        //     };
+        //     geojson.features.forEach(f => {
+        //         const { properties } = f;
+        //         const { height } = properties;
+        //         const polygon = maptalks.GeoJSON.toGeometry(f);
+        //         const center = polygon.getCoordinates()[0][0];
+
+        //         const createPointFeature = (height, properties) => {
+        //             center.z = height;
+        //             return {
+        //                 type: 'Features',
+        //                 properties,
+        //                 geometry: {
+        //                     type: 'Point',
+        //                     coordinates: center.toArray()
+        //                 }
+        //             }
+        //         }
+        //         if (height <= 4) {
+        //             properties.bottomHeight = 0;
+        //             properties.floor = 1;
+        //             properties.height = height;
+        //             data.features.push(f);
+        //             data.features.push(createPointFeature(height, properties));
+        //         } else {
+        //             const floors = Math.ceil(height / 4);
+        //             for (let floor = 1; floor <= floors; floor++) {
+        //                 const feature = JSON.parse(JSON.stringify(f));
+        //                 feature.properties.floor = floor;
+        //                 feature.properties.bottomHeight = (floor - 1) * 4;
+        //                 feature.properties.height = floor * 4;
+        //                 data.features.push(feature);
+        //                 data.features.push(createPointFeature(floor * 4,  feature.properties));
+        //             }
+        //         }
+        //     });
+        //     console.log(JSON.stringify(data));
+        // })
+
+
+
+    </script>
+</body>
+
+</html>
