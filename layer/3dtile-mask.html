@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type="text/javascript" src="https://maptalks.com/api/transcoders.draco.js"></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+        const map = new maptalks.Map("map", {
+            center: [108.95965, 34.2189],
+            zoom: 18,
+            bearing: 0,
+            pitch: 45,
+            lights: {
+                directional: {
+                    direction: [-1, -1, -1],
+                    color: [1, 1, 1]
+                },
+                ambient: {
+                    // resource: {
+                    //     url: {
+                    //         front: "/resources/hdr/923/front.jpg",
+                    //         back: "/resources/hdr/923/back.jpg",
+                    //         left: "/resources/hdr/923/left.jpg",
+                    //         right: "/resources/hdr/923/right.jpg",
+                    //         top: "/resources/hdr/923/top.jpg",
+                    //         bottom: "/resources/hdr/923/bottom.jpg"
+                    //     }
+                    // },
+                    // exposure: 1.426,
+                    // hsv: [0, 0, 0],
+                    // orientation: 302.553
+                }
+            }
+        });
+
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+        });
+
+        const circle = new maptalks.Circle([108.95938550816857, 34.219794047869385], 100);
+        const coordinates = circle.getShell();
+
+        //ClipOutsideMask 是Polygon的子类,使用方式和Polygon一样
+        const mask = new maptalks.ClipOutsideMask([coordinates]);
+
+        const layer = new maptalks.Geo3DTilesLayer("3dtiles", {
+            services: [{
+                url: "http://resource.dvgis.cn/data/3dtiles/dayanta/tileset.json",
+                maximumScreenSpaceError: 16.0,
+                heightOffset: -400
+            }]
+        });
+        layer.once("loadtileset", (e) => {
+            layer.setMask(mask);
+            const extent = layer.getExtent(e.index);
+            map.fitExtent(extent, 0, {
+                animation: false
+            });
+        });
+        const groupGLLayer = new maptalks.GroupGLLayer("gl", [layer], {
+            sceneConfig: {
+                environment: {
+                    enable: true,
+                    mode: 1,
+                    level: 0,
+                    brightness: 0.915
+                },
+                postProcess: {
+                    enable: true
+                },
+                ground: {
+                    enable: true,
+                    renderPlugin: {
+                        type: "lit"
+                    },
+                    symbol: {
+                        polygonOpacity: 1,
+                        material: {
+                            baseColorFactor: [0.48235, 0.48235, 0.48235, 1],
+                            hsv: [0, 0, -0.532],
+                            roughnessFactor: 0.22,
+                            metallicFactor: 0.58
+                        }
+                    }
+                }
+            }
+        }).addTo(map);
+    </script>
+</body>
+
+</html>
