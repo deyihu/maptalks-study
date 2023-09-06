@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            center: [116.45266161, 39.86656647],
+            zoom: 14,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+            })
+        });
+
+        var layer = new maptalks.VectorLayer('vector').addTo(map);
+
+        var drawTool = new maptalks.DrawTool({
+            mode: 'Point',
+            once: true,
+        }).addTo(map).disable();
+
+        drawTool.on('drawend', function (param) {
+            console.log(param.geometry);
+            layer.addGeometry(param.geometry);
+            //绑定信息框
+            param.geometry.setInfoWindow({
+                content: param.geometry.getType()
+            });
+            map.resetCursor();
+        });
+        drawTool.on('disable', function (param) {
+            //开启地图的图形事件
+            map.config('geometryEvents', true);
+        });
+        drawTool.on('enable', function (param) {
+            //关闭地图的图形事件
+            map.config('geometryEvents', false);
+        });
+
+        drawTool.on('drawstart', function (param) {
+            //设置绘制图形时，图形的样式
+            updateGeometrySymbol(param.tempGeometry);
+        });
+
+        function updateGeometrySymbol(geometry) {
+            const mode = drawTool.getMode();
+            if (mode === 'linestring') {
+                geometry.setSymbol({
+                    lineColor: 'red',
+                    markerType: 'ellipse',
+                    markerWidth: 10,
+                    markerHeight: 10,
+                    'markerPlacement': 'vertex',
+                })
+            }
+            if (mode === 'polygon') {
+                geometry.setSymbol({
+                    polygonFill: "white",
+                    polygonOpacity: 0.7,
+                    lineColor: 'blue',
+                    lineWidth: 2,
+                    markerType: 'ellipse',
+                    markerWidth: 10,
+                    markerHeight: 10,
+                    markerFill: "red",
+                    'markerPlacement': 'vertex',
+                })
+            }
+            if (mode === 'point') {
+                geometry.setSymbol({
+                    markerType: 'ellipse',
+                    markerWidth: 10,
+                    markerHeight: 10,
+                    markerFill: "red",
+                })
+            }
+        }
+
+        var items = ['Point', 'LineString', 'Polygon'].map(function (value) {
+            return {
+                item: value,
+                click: function () {
+                    map.setCursor('url(../assets/image/draw.png) 4 10, auto');
+                    drawTool.setMode(value).enable();
+                }
+            };
+        });
+
+        var toolbar = new maptalks.control.Toolbar({
+            items: [
+                {
+                    item: 'Shape',
+                    children: items
+                },
+                {
+                    item: 'Disable',
+                    click: function () {
+                        drawTool.disable();
+                    }
+                },
+                {
+                    item: 'Clear',
+                    click: function () {
+                        layer.clear();
+                    }
+                }
+            ]
+        }).addTo(map);
+
+    </script>
+</body>
+
+</html>
