@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>图形样式 - 线的模式填充动画</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/lz-string.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/tilebelt.js'></script>
+<script type='text/javascript' src='./../assets/lib/colorin.js'></script>
+<script type='text/javascript' src='./../assets/lib/dat.gui.min.js'></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+        const map = new maptalks.Map("map", {
+            centerCross: true,
+            "center": [120.05409411, 30.16489579], "zoom": 13.309955844160632, "pitch": 71.55000000000047, "bearing": -34.94999999999868
+        });
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+        });
+
+
+        const baseLayer = new maptalks.TileLayer('tile', {
+            // altitude: -height,
+            debug: true,
+            urlTemplate: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            subdomains: ['a', 'b', 'c', 'd'],
+            attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+        })
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            forceRenderOnMoving: true,
+            forceRenderOnRotating: true
+        });
+
+
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            addDemLines();
+            addTerrainTile();
+            testPoints();
+            animation();
+            iniGui();
+
+        }
+
+
+        var lines = [];
+        var terrains = [];
+        const altitude = -90;
+        const terrainColor = '#0a6142';
+
+        const lineLayer = new maptalks.LineStringLayer('layer');
+        const layer = new maptalks.VectorLayer('test', {
+            enableAltitude: true,
+            altitude
+        });
+
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true }
+            },
+            ground: {
+                enable: true,
+                renderPlugin: {
+                    type: "lit"
+                },
+                symbol: {
+                    polygonOpacity: 1,
+                    material: {
+                        baseColorFactor: [0.48235, 0.48235, 0.48235, 1],
+                        hsv: [0, 0, -0.532],
+                        roughnessFactor: 0.22,
+                        metallicFactor: 0.58
+                    }
+                }
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [threeLayer, lineLayer], { sceneConfig });
+        groupLayer.addTo(map);
+        layer.addTo(map);
+
+
+        function addDemLines() {
+            const colors = [
+                [0, 'white'],
+                [100, 'blue'],
+                [300, 'yellow'],
+                [400, 'red']
+            ];
+            const ci = new colorin.ColorIn(colors);
+            const lineMaterialMap = {};
+            function getLineMaterila(height) {
+                const [r, g, b] = ci.getColor(height);
+                const color = `rgb(${r},${g},${b})`;
+                if (lineMaterialMap[color]) {
+                    return lineMaterialMap[color];
+                }
+                lineMaterialMap[color] = new THREE.LineBasicMaterial({
+                    linewidth: 1,
+                    color,
+                    opacity: 0.6,
+                    transparent: true
+                });
+                return lineMaterialMap[color];
+            }
+
+            fetch('./../assets/data/hangzhoudem').then(res => res.text()).then(evadata => {
+                evadata = LZString.decompressFromBase64(evadata);
+                evadata = JSON.parse(evadata);
+                lines = evadata.map(element => {
+                    let coordinates = element.l;
+                    if (coordinates) {
+                        const elevation = element.h;
+                        const height = elevation + 45;
+                        coordinates.forEach(c => {
+                            c[2] = height;
+                        });
+                        const line = threeLayer.toLine(new maptalks.LineString(coordinates), { altitude }, getLineMaterila(height));
+                        return line;
+                    }
+                });
+                threeLayer.addMesh(lines);
+            });
+        }
+
+        function addDemLines1() {
+            const colors = [
+                [0, 'white'],
+                [100, 'blue'],
+                [300, 'yellow'],
+                [400, 'red']
+            ];
+
+            fetch('./../assets/data/hangzhoudem').then(res => res.text()).then(evadata => {
+                evadata = LZString.decompressFromBase64(evadata);
+                evadata = JSON.parse(evadata);
+                lines = evadata.map(element => {
+                    let coordinates = element.l;
+                    if (coordinates) {
+                        const elevation = element.h;
+                        const height = elevation + 45 + altitude;
+                        coordinates.forEach(c => {
+                            c[2] = height;
+                        });
+                        const line = new maptalks.LineString(coordinates, {
+                            symbol: {
+                                lineColor: {
+                                    type: 'color-interpolate',
+                                    property: 'height',
+                                    stops: colors
+                                }
+                            },
+                            properties: {
+                                height
+                            }
+                        });
+                        return line;
+                    }
+                });
+                lineLayer.addGeometry(lines);
+            });
+        }
+
+        function addTerrainTile() {
+            const minx = 6826, maxx = 6830, miny = 3372, maxy = 3377;
+            const tiles = [];
+            for (let col = minx; col <= maxx; col++) {
+                for (let row = miny; row <= maxy; row++) {
+                    tiles.push([col, row, 13]);
+                }
+            }
+            const TILESIZE = 256;
+            tiles.forEach(tile => {
+                const [x, y, z] = tile;
+                //cal tile bbox
+                const bbox = tilebelt.tileToBBOX(tile);
+                const texture = `./../assets/data/tile-image/${z}/${x}/${y}.png`;
+                // const texture = `https://a.basemaps.cartocdn.com/light_all/${z}/${x}/${y}.png`;
+                // const texture = `https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x=${x}&y=${y}&z=${z}`;
+                const image = `./../assets/data/tile-rgb/${z}/${x}/${y}.png`;
+                const terrain = threeLayer.toTerrain(bbox, {
+                    flaserBoundary: false,
+                    bufferPixel: 0.2,
+                    image,
+                    texture,
+                    imageWidth: TILESIZE,
+                    imageHeight: TILESIZE,
+                    altitude
+                }, new THREE.MeshPhongMaterial({ color: terrainColor }));
+                terrain.on('textureload', () => {
+                    //hide texture
+                    terrain._map = terrain.getObject3d().material.map;
+                    terrain.getObject3d().material.map = null;
+                    terrain.getObject3d().material.needsUpdate = true;
+                });
+                terrain.on('dataload', () => {
+                    //update normal
+                    const geometry = terrain.getObject3d().geometry;
+                    const index = geometry.index.array;
+                    const position = geometry.attributes.position.array;
+                    const normal = generateNormal(index, position);
+                    geometry.setAttribute('normal', new THREE.BufferAttribute(normal, 3));
+                });
+                threeLayer.addMesh(terrain);
+                terrains.push(terrain);
+            });
+        }
+
+
+        function testPoints() {
+            const coordinates = [
+                [120.01456037029766, 30.165785577748437, 380],
+                [120.02020512029901, 30.189324563181998, 380],
+                [120.03532742521247, 30.20363465918578, 400],
+                [120.00723025626826, 30.140722352969505, 330],
+                [120.01522412598683, 30.107399355979993, 500]
+            ];
+
+            const points = coordinates.map(c => {
+                return new maptalks.Marker(c, {
+                    symbol: {
+                        markerWidth: 35,
+                        markerHeight: 35,
+                        markerFile: './../assets/image/poi.png'
+                    }
+                })
+            });
+            layer.addGeometry(points);
+        }
+        function animation() {
+            // layer animation support Skipping frames
+            threeLayer._needsUpdate = !threeLayer._needsUpdate;
+            if (threeLayer._needsUpdate && !threeLayer.isRendering()) {
+                threeLayer.redraw();
+
+            }
+            requestAnimationFrame(animation);
+        }
+
+        function iniGui() {
+            var params = {
+                baseLayer: false,
+                altitude,
+                terrainColor,
+                texture: false
+            };
+            var gui = new dat.GUI({ width: 250 });
+            gui.add(params, 'baseLayer').name('底图控制').onChange(function () {
+                if (params.baseLayer) {
+                    baseLayer.addTo(groupLayer);
+                } else {
+                    baseLayer.remove();
+                }
+            });
+            gui.add(params, 'altitude', -1000, 1000).name('海拔').onChange(function () {
+                terrains.concat(lines).forEach(baseObject => {
+                    baseObject.setAltitude(params.altitude)
+                });
+                layer.options.altitude = params.altitude;
+                // layer.
+            });
+            gui.addColor(params, 'terrainColor').name('地形颜色').onChange(function () {
+                terrains.forEach(terrain => {
+                    terrain.getObject3d().material.color.setStyle(params.terrainColor);
+                })
+            });
+            gui.add(params, 'texture').name('地形纹理').onChange(function () {
+                terrains.forEach(terrain => {
+                    const object3d = terrain.getObject3d();
+                    object3d.material.map = params.texture ? terrain._map : null;
+                    object3d.material.needsUpdate = true;
+                })
+            });
+        }
+
+        function generateNormal(indices, position) {
+            function v3Sub(out, v1, v2) {
+                out[0] = v1[0] - v2[0];
+                out[1] = v1[1] - v2[1];
+                out[2] = v1[2] - v2[2];
+                return out;
+            }
+
+            function v3Normalize(out, v) {
+                const x = v[0];
+                const y = v[1];
+                const z = v[2];
+                const d = Math.sqrt(x * x + y * y + z * z) || 1;
+                out[0] = x / d;
+                out[1] = y / d;
+                out[2] = z / d;
+                return out;
+            }
+
+            function v3Cross(out, v1, v2) {
+                const ax = v1[0], ay = v1[1], az = v1[2],
+                    bx = v2[0], by = v2[1], bz = v2[2];
+
+                out[0] = ay * bz - az * by;
+                out[1] = az * bx - ax * bz;
+                out[2] = ax * by - ay * bx;
+                return out;
+            }
+
+            function v3Set(p, a, b, c) {
+                p[0] = a; p[1] = b; p[2] = c;
+            }
+
+            const p1 = [];
+            const p2 = [];
+            const p3 = [];
+
+            const v21 = [];
+            const v32 = [];
+
+            const n = [];
+
+            const len = indices.length;
+            const normals = new Float32Array(position.length);
+            let f = 0;
+            while (f < len) {
+
+                // const i1 = indices[f++] * 3;
+                // const i2 = indices[f++] * 3;
+                // const i3 = indices[f++] * 3;
+                // const i1 = indices[f];
+                // const i2 = indices[f + 1];
+                // const i3 = indices[f + 2];
+                const a = indices[f], b = indices[f + 1], c = indices[f + 2];
+                const i1 = a * 3, i2 = b * 3, i3 = c * 3;
+
+                v3Set(p1, position[i1], position[i1 + 1], position[i1 + 2]);
+                v3Set(p2, position[i2], position[i2 + 1], position[i2 + 2]);
+                v3Set(p3, position[i3], position[i3 + 1], position[i3 + 2]);
+
+                v3Sub(v32, p3, p2);
+                v3Sub(v21, p1, p2);
+                v3Cross(n, v32, v21);
+                // Already be weighted by the triangle area
+                for (let i = 0; i < 3; i++) {
+                    normals[i1 + i] += n[i];
+                    normals[i2 + i] += n[i];
+                    normals[i3 + i] += n[i];
+                }
+                f += 3;
+            }
+
+            let i = 0;
+            const l = normals.length;
+            while (i < l) {
+                v3Set(n, normals[i], normals[i + 1], normals[i + 2]);
+                v3Normalize(n, n);
+                normals[i] = n[0] || 0;
+                normals[i + 1] = n[1] || 0;
+                normals[i + 2] = n[2] || 0;
+                i += 3;
+            }
+
+            return normals;
+        }
+
+
+
+
+
+    </script>
+</body>
+
+</html>
