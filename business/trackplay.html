@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        background-color: black;
+    }
+
+    .control {
+        position: absolute;
+        z-index: 1;
+        top: 0;
+        display: flex;
+        background-color: white;
+        padding: 14px;
+    }
+
+    .control a {
+        margin-right: 15px;
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.routeplayer.js'></script>
+<script type='text/javascript' src='./../assets/lib/dat.gui.min.js'></script>
+
+<body>
+    <div class="control">
+        <a href="javascript:play();">Play</a><br />
+        <a href="javascript:pause();">Pause</a><br />
+        <a href="javascript:cancel();">Cancel</a><br />
+        <a href="javascript:finish();">Finish</a><br />
+        <a href="javascript:speed(0.5);">0.5X</a><br />
+        <a href="javascript:speed(1);">1X</a><br />
+        <a href="javascript:speed(2);">2X</a><br />
+        <a href="javascript:speed(4);">4X</a><br />
+        <span id="info">current info: </span><br />
+        <label>
+            <input type="checkbox" id="showRoute" />
+            showRoutes
+        </label><br />
+        <label>
+            <input type="checkbox" id="showTrail" />
+            showTrail
+        </label>
+    </div>
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const $ = (selector) => {
+            return document.querySelector(selector)
+        }
+
+        const on = maptalks.DomUtil.on;
+
+        const lineWidth = 5;
+
+        var map = new maptalks.Map('map', {
+            center: [116.44400819, 39.9039055],
+            zoom: 12,
+            pitch: 60,
+            baseLayer: new maptalks.TileLayer('base', {
+                maxAvailableZoom: 18,
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+            })
+        });
+
+
+        // 添加到GroupGLLayer中
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true },
+                bloom: {
+                    enable: true,
+                    threshold: 0,
+                    factor: 1,
+                    radius: 0.02,
+                },
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [], { sceneConfig });
+        groupLayer.addTo(map);
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
+        let player, unitTime;
+
+        //简单的经纬度数据处理
+        function formatLngLats(str) {
+            if (str.indexOf(';') === -1) {
+                const lnglat = str.split(',').map(v => {
+                    return parseFloat(v);
+                });
+                lnglat.push(0);
+                return lnglat;
+            }
+            const array = str.split(';');
+            return array.map(c => {
+                return formatLngLats(c);
+            })
+        }
+
+
+        function getColor(status) {
+            if (status === '畅通') return;
+            if (status === '缓行') return '#FFA700';
+            if (status === '拥堵') return '#E94B37';
+        }
+
+
+        //整条路线的坐标数据
+        function getWholeCoordinates(route) {
+            let str = '';
+            const { origin, destination, paths } = route;
+            str += origin;
+            const path = paths[0];
+            const steps = path.steps;
+            steps.forEach(step => {
+                const { polyline } = step;
+                str += ';';
+                str += polyline;
+            });
+            str += ';';
+            str += destination;
+            return formatLngLats(str);
+        }
+
+        //添加基本的路线
+        function addBaseLine(route) {
+            const line = new maptalks.LineString(getWholeCoordinates(route), {
+                symbol: {
+                    lineColor: 'green',
+                    lineWidth
+                }
+            }).addTo(layer);
+        }
+
+
+        //分段路线数据
+        function addLines(path) {
+            const steps = path.steps;
+            steps.forEach(step => {
+                const tmcs = step.tmcs || [];
+                tmcs.forEach(tmc => {
+                    const { polyline, status } = tmc;
+                    const lineColor = getColor(status);
+                    if (!lineColor) {
+                        return;
+                    }
+                    const coordinates = formatLngLats(polyline);
+                    const line = new maptalks.LineString(coordinates, {
+                        symbol: {
+                            lineColor,
+                            lineWidth
+                        }
+                    });
+                    line.addTo(layer);
+                });
+            });
+        }
+
+        //起始点
+        function addPoints(route) {
+            const { origin, destination } = route;
+            const point = new maptalks.Marker(formatLngLats(origin), {
+                symbol: {
+                    markerFile: './../assets/image/start.png'
+                }
+            }).addTo(layer);
+            const point1 = new maptalks.Marker(formatLngLats(destination), {
+                symbol: {
+                    markerFile: './../assets/image/end.png'
+                }
+            }).addTo(layer);
+
+        }
+
+
+        //轨迹播放
+        function addRouterLine(route) {
+            const coordinates = getWholeCoordinates(route).map(c => {
+                return new maptalks.Coordinate(c);
+            })
+            const coords = [];
+            //相邻点重复的去重,如果你的业务不需要可以省去改步骤
+            for (let i = 0, len = coordinates.length; i < len; i++) {
+                const c = coordinates[i];
+                const lastC = coords[coords.length - 1];
+                if (!lastC || !c.equals(lastC)) {
+                    coords.push(c);
+                }
+            }
+            //给坐标点赋值时间戳,这个值正常应该坐标数据里就携带,这里只是模拟下的
+            let time = new Date().getTime();
+            const path = [];
+            const speed = 1 * 1000 / 3600;
+            for (let i = 0, len = coords.length; i < len; i++) {
+                if (i === 0) {
+                    const lnglat = coords[i].toArray();
+                    lnglat.push(time);
+                    path.push(lnglat);
+                } else {
+                    const c2 = coords[i], c1 = coords[i - 1];
+                    //两点之间的距离
+                    const distance = map.computeLength(c2, c1);
+                    //时间差
+                    const offsetTime = distance / speed * 1000;
+                    time += offsetTime;
+                    const lnglat = c2.toArray();
+                    lnglat.push(time);
+                    path.push(lnglat);
+                }
+            }
+            player = new maptalks.RoutePlayer({ path }, map, {
+                maxTrailLine: 100,
+                showTrail: false,
+                //不显示线路
+                showRoutes: false,
+                // showMarker: false,
+                lineSymbol: {
+                    lineColor: '#f0f',
+                    lineWidth: lineWidth + 2
+                },
+                markerSymbol: {
+                    markerFile: './../assets/image/car.svg',
+                    markerWidth: 40,
+                    markerHeight: 40
+                }
+            });
+            unitTime = player.getUnitTime();
+        }
+
+        function loadData() {
+            fetch('./../assets/data/tripline.json').then(res => res.json()).then(json => {
+                const route = json.route;
+                const path = route.paths[0];
+                addBaseLine(route);
+                addLines(path);
+                addPoints(route);
+                addRouterLine(route);
+            })
+        }
+        loadData();
+
+        // player.play();
+        //for debug
+
+        function play() {
+            player.play();
+        }
+
+        function pause() {
+            player.pause();
+        }
+
+        function finish() {
+            player.finish();
+        }
+
+        function cancel() {
+            player.cancel();
+        }
+
+        function speed(t) {
+            player.setUnitTime(unitTime * t * 1);
+        }
+
+        on($("#showRoute"), 'change', function () {
+            var flag = this.checked;
+            if (flag) {
+                player.showRoute();
+            } else {
+                player.hideRoute();
+            }
+        });
+
+        on($("#showTrail"), 'change', function () {
+            var flag = this.checked;
+            if (flag) {
+                player.showTrail();
+            } else {
+                player.hideTrail();
+            }
+        });
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
