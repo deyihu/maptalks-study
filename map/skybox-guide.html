@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>线数据三维样式 - 设置纹理</title>
+<style type='text/css'>
+    html,
+    body {
+        width: 100%;
+        height: 100%;
+        margin: 0px;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/dat.gui.min.js'></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+        var r = "./../assets/image/dawnmountain-";
+        const map = new maptalks.Map("map", {
+            center: [0, 0],
+            zoom: 4.2,
+            bearing: 0,
+            pitch: 70.8,
+            lights: {
+                directional: {
+                    direction: [1, 0, -1],
+                    color: [1, 1, 1]
+                },
+                ambient: {
+                    resource: {
+                        url: {
+                            front: `${r}zpos.png`,
+                            back: `${r}zneg.png`,
+                            left: `${r}xneg.png`,
+                            right: `${r}xpos.png`,
+                            top: `${r}ypos.png`,
+                            bottom: `${r}yneg.png`,
+                        },
+                        prefilterCubeSize: 256
+                    },
+                    exposure: 0.8,
+                    hsv: [0, 0.34, 0],
+                    orientation: 1
+                }
+            },
+        });
+
+        const baseLayer = new maptalks.TileLayer('tile', {
+            altitude: 0,
+            urlTemplate: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            subdomains: ['a', 'b', 'c', 'd'],
+            attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+        });
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            identifyCountOnEvent: 1
+            // forceRenderOnMoving: true,
+            // forceRenderOnRotating: true
+        });
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            scene.add(new THREE.AmbientLight('#fff', 0.3));
+            addAxesHelper();
+            addBottom();
+            addTop();
+            addBack();
+            addFront();
+            addLeft();
+            addRight();
+            iniGui();
+        };
+
+        const layer = new maptalks.VectorLayer('layer', {
+            enableAltitude: true
+        });
+
+        const groupLayer = new maptalks.GroupGLLayer("group", [threeLayer], {
+            sceneConfig: {
+                environment: {
+                    enable: true,
+                    mode: 1,
+                    level: 0,
+                    brightness: 0
+                },
+                shadow: {
+                    type: "esm",
+                    enable: true,
+                    quality: "high",
+                    opacity: 0.11,
+                    color: [0, 0, 0],
+                    blurOffset: 1
+                },
+                postProcess: {
+                    enable: true,
+                    antialias: {
+                        enable: true,
+                        taa: true,
+                        jitterRatio: 0.25
+                    },
+                    ssr: {
+                        enable: true
+                    },
+                    bloom: {
+                        enable: false,
+                        threshold: 0,
+                        factor: 0.2,
+                        radius: 0.105
+                    },
+                    ssao: {
+                        enable: true,
+                        bias: 0.08,
+                        radius: 0.08,
+                        intensity: 1.5
+                    },
+                    sharpen: {
+                        enable: false,
+                        factor: 0.2
+                    }
+                },
+                ground: {
+                    enable: false,
+                    renderPlugin: {
+                        type: "fill"
+                    },
+                    symbol: {
+                        polygonFill: [0.517647, 0.517647, 0.517647, 1]
+                    }
+                }
+            }
+        });
+        groupLayer.addTo(map);
+        layer.addTo(map);
+
+
+        const height = 1000000, offset = 25;
+        const textureLoader = new THREE.TextureLoader();
+        const canvas = document.createElement('canvas');
+
+
+        function loadImage(name, text) {
+            return new Promise((reslove) => {
+                const image = new Image();
+                image.onload = () => {
+                    canvas.width = image.width;
+                    canvas.height = image.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.font = "98px serif";
+                    ctx.fillStyle = 'white';
+                    ctx.textAlign = 'center';
+                    ctx.drawImage(image, 0, 0);
+                    ctx.fillText(text, image.width / 2, image.height / 2);
+                    reslove(canvas.toDataURL());
+                };
+                image.src = `${r}${name}`
+            });
+        }
+
+        function getMaterial() {
+            return new THREE.MeshLambertMaterial({
+                side: 2
+            });
+        }
+
+        function addAxesHelper() {
+            const axesHelper = new THREE.AxesHelper(50000000);
+            threeLayer.addMesh(axesHelper);
+
+
+            const center = map.getCenter();
+            const c1 = center.add(offset * 2, 0);
+            const p1 = new maptalks.Marker(c1, {
+                symbol: {
+                    textSize: 22,
+                    textName: 'X轴',
+                    textFill: "red"
+                }
+            }).addTo(layer);
+
+            const c2 = center.add(0, offset * 2);
+            const p2 = new maptalks.Marker(c2, {
+                symbol: {
+                    textSize: 22,
+                    textName: 'Y轴',
+                    textFill: "green"
+                }
+            }).addTo(layer);
+
+            const c3 = center.copy();
+            c3.z = height * 2;
+            const p3 = new maptalks.Marker(c3, {
+                symbol: {
+                    textSize: 22,
+                    textName: 'Z轴',
+                    textFill: "blue"
+                }
+            }).addTo(layer);
+        }
+
+        function addBottom() {
+            const center = map.getCenter();
+            var planeMaterial = getMaterial();
+            const plane = new Plane(center, { altitude: -height }, planeMaterial, threeLayer);
+
+            loadImage('yneg.png', 'bottom').then(url => {
+                const texture = textureLoader.load(url, (texture) => {
+                    planeMaterial.map = texture;
+                    planeMaterial.needsUpdate = true;
+                    threeLayer.addMesh(plane);
+                });
+                texture.needsUpdate = true; //使用贴图时进行更新
+                texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+                // texture.repeat.set(0.002, 0.002);
+                texture.repeat.set(1, 1);
+            })
+        }
+
+        function addTop() {
+            const center = map.getCenter();
+            var planeMaterial = getMaterial();
+            const plane = new Plane(center, { altitude: height }, planeMaterial, threeLayer);
+
+            loadImage('ypos.png', 'top').then(url => {
+                const texture = textureLoader.load(url, (texture) => {
+                    planeMaterial.map = texture;
+                    planeMaterial.needsUpdate = true;
+                    threeLayer.addMesh(plane);
+                });
+                texture.needsUpdate = true; //使用贴图时进行更新
+                texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+                // texture.repeat.set(0.002, 0.002);
+                texture.repeat.set(1, 1);
+            })
+        }
+
+        function addBack() {
+            const center = map.getCenter().add(0, offset);
+            var planeMaterial = getMaterial();
+            const plane = new Plane(center, { altitude: 0 }, planeMaterial, threeLayer);
+            plane.getObject3d().rotation.x = Math.PI / 2;
+
+            loadImage('zneg.png', 'back').then(url => {
+                const texture = textureLoader.load(url, (texture) => {
+                    planeMaterial.map = texture;
+                    planeMaterial.needsUpdate = true;
+                    threeLayer.addMesh(plane);
+                });
+                texture.needsUpdate = true; //使用贴图时进行更新
+                texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+                // texture.repeat.set(0.002, 0.002);
+                texture.repeat.set(1, 1);
+            })
+        }
+
+
+        function addFront() {
+            const center = map.getCenter().add(0, -offset);
+            var planeMaterial = getMaterial();
+            const plane = new Plane(center, { altitude: 0 }, planeMaterial, threeLayer);
+            plane.getObject3d().rotation.x = Math.PI / 2;
+
+            loadImage('zpos.png', 'front').then(url => {
+                const texture = textureLoader.load(url, (texture) => {
+                    planeMaterial.map = texture;
+                    planeMaterial.needsUpdate = true;
+                    threeLayer.addMesh(plane);
+                });
+                texture.needsUpdate = true; //使用贴图时进行更新
+                texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+                // texture.repeat.set(0.002, 0.002);
+                texture.repeat.set(1, 1);
+            })
+        }
+
+        function addLeft() {
+            const center = map.getCenter().add(offset, 0);
+            var planeMaterial = getMaterial();
+            const plane = new Plane(center, { altitude: 0 }, planeMaterial, threeLayer);
+            plane.getObject3d().children[0].rotation.z = -Math.PI / 2;
+            plane.getObject3d().rotation.y = -Math.PI / 2;
+
+
+            loadImage('xneg.png', 'left').then(url => {
+                const texture = textureLoader.load(url, (texture) => {
+                    planeMaterial.map = texture;
+                    planeMaterial.needsUpdate = true;
+                    threeLayer.addMesh(plane);
+                });
+                texture.needsUpdate = true; //使用贴图时进行更新
+                texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+                // texture.repeat.set(0.002, 0.002);
+                texture.repeat.set(1, 1);
+            })
+        }
+
+
+        function addRight() {
+            const center = map.getCenter().add(-offset, 0);
+            var planeMaterial = getMaterial();
+            const plane = new Plane(center, { altitude: 0 }, planeMaterial, threeLayer);
+            plane.getObject3d().children[0].rotation.z = -Math.PI / 2;
+            plane.getObject3d().rotation.y = -Math.PI / 2;
+
+
+            loadImage('xpos.png', 'right').then(url => {
+                const texture = textureLoader.load(url, (texture) => {
+                    planeMaterial.map = texture;
+                    planeMaterial.needsUpdate = true;
+                    threeLayer.addMesh(plane);
+                });
+                texture.needsUpdate = true; //使用贴图时进行更新
+                texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+                // texture.repeat.set(0.002, 0.002);
+                texture.repeat.set(1, 1);
+            })
+        }
+
+
+        // function add
+
+
+        function iniGui() {
+            var params = {
+                baseLayer: false
+            };
+            var gui = new dat.GUI({ width: 250 });
+            gui.add(params, 'baseLayer').name('底图控制').onChange(function () {
+                if (params.baseLayer) {
+                    baseLayer.addTo(groupLayer);
+                } else {
+                    baseLayer.remove();
+                }
+            });
+        }
+
+
+
+        const OPTIONS = {
+            interactive: false,
+            altitude: 0,
+            width: 3000000,
+            height: 3000000
+        }
+
+        class Plane extends maptalks.BaseObject {
+            constructor(coordinate, options, material, layer) {
+                options = maptalks.Util.extend({}, OPTIONS, options, { layer, coordinate });
+
+                const { width, height, altitude } = options;
+
+                const w = layer.distanceToVector3(width, width).x;
+                const h = layer.distanceToVector3(height, height).x;
+                const geometry = new THREE.PlaneBufferGeometry(w, h, 1, 1);
+                super();
+                this._initOptions(options);
+                this._createGroup(geometry, material);
+                const mesh = new THREE.Mesh(geometry, material);
+                this.getObject3d().add(mesh);
+                const z = layer.altitudeToVector3(altitude, altitude).x;
+                const v = layer.coordinateToVector3(coordinate);
+                v.z = z;
+                this.getObject3d().position.copy(v);
+            }
+        }
+    </script>
+</body>
+
+</html>
