@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+
+<body>
+    <script type="text/javascript" src="https://maptalks.com/api/transcoders.draco.js"></script>
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const map = new maptalks.Map("map", {
+            center: [120.58443009853363, 31.077306186678225],
+            zoom: 4,
+            bearing: 0,
+            pitch: 0,
+            centerCross: true,
+            // spatialReference: {
+            //     projection: 'EPSG:4326'
+            // },
+            baseLayer: new maptalks.TileLayer("base", {
+                // debug: true,
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+
+                spatialReference: {
+                    projection: 'EPSG:3857'
+                },
+            }),
+        });
+
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+        });
+
+        const groupGLLayer = new maptalks.GroupGLLayer("gl", [], {
+
+        }).addTo(map);
+
+
+        function test4326() {
+            map.setSpatialReference({
+                projection: 'EPSG:4326'
+            });
+            const RES = 0.703125;
+            const ORIGIN = [-180, 90];
+            const resolutions = [];
+            let i = 0;
+            while (i <= 18) {
+                resolutions.push(RES / Math.pow(2, i));
+                i++;
+            }
+
+            const spatialReference = {
+                projection: 'EPSG:4326',
+                resolutions: resolutions
+            }
+
+            const url = `
+                http://localhost/geoserver/deyihu/gwc/service/wmts?REQUEST=GetTile&SERVICE=WMTS&VERSION=1.0.0&LAYER=deyihu:jiangsu-area&STYLE=&TILEMATRIX=EPSG:4326:{z}&TILEMATRIXSET=EPSG:4326&FORMAT=image%2Fpng&TILECOL={x}&TILEROW={y}
+                `;
+
+            const vtLayer = new maptalks.TileLayer("vt", {
+                debug: true,
+                urlTemplate: url,
+                tileSystem: [1, -1].concat(ORIGIN),
+                spatialReference
+            });
+            groupGLLayer.addLayer(vtLayer);
+        }
+
+        function test3857() {
+            const url = `
+                http://localhost/geoserver/deyihu/gwc/service/wmts?REQUEST=GetTile&SERVICE=WMTS&VERSION=1.0.0&LAYER=deyihu:jiangsu-area&STYLE=&TILEMATRIX=EPSG:900913:{z}&TILEMATRIXSET=EPSG:900913&format=image%2Fpng&TILECOL={x}&TILEROW={y}
+                `;
+
+            const vtLayer = new maptalks.TileLayer("vt", {
+                debug: true,
+                urlTemplate: url
+            });
+            groupGLLayer.addLayer(vtLayer);
+        }
+
+        test4326();
+
+    </script>
+</body>
+
+</html>
