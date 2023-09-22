@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D - Draw line&#x27;s altitude wall</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/dat.gui.min.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+        var map = new maptalks.Map('map', {
+            center: [120.6366964, 31.14279364],
+            zoom: 15,
+            pitch: 56,
+            bearing: 0,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+                attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+            })
+        });
+
+        const layer = new maptalks.VectorLayer('layer', {
+            enableAltitude: true
+        });
+
+        const center = map.getCenter();
+
+        var line = new maptalks.LineString([[120.62348387097506, 31.142198841629664], [120.6262983959648, 31.142374035192944], [120.62878882413759, 31.14205284674634], [120.63441787411705, 31.141644059877166], [120.63892111410064, 31.14107467522976], [120.64417489408152, 31.140665884143715], [120.64833697952099, 31.140709683272945], [120.64837109497535, 31.140709683272945]], {
+            symbol: {
+                'lineColor': '#1bbc9b',
+                'lineWidth': 3
+            },
+        }).addTo(layer);
+
+        layer.addTo(map);
+
+        function randomAltitude() {
+            const coordinates = line.getCoordinates();
+            coordinates.forEach(c => {
+                c.z = Math.random() * 100 + 100;
+            });
+            line.setCoordinates(coordinates);
+        }
+
+        function iniGui() {
+            var params = {
+                baseLayer: false,
+                texture: false,
+                randomAltitude
+            };
+            var gui = new dat.GUI({ width: 250 });
+            gui.add(params, 'randomAltitude')
+        }
+        iniGui();
+
+
+    </script>
+</body>
+
+</html>
