@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>地图 - 显示</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+
+    #map {
+        height: 500px;
+    }
+
+    table,
+    td {
+        border: 1px solid #333;
+    }
+
+    thead,
+    tfoot {
+        background-color: #333;
+        color: #fff;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' crossorigin="anonymous" />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/dat.gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/html-to-image.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/FileSaver.min.js'></script>
+
+<body>
+    <div class="container" id="container">
+        <div class="panel">
+            <button>hello</button>
+            <button>hello</button>
+            <button>hello</button>
+            <button>hello</button>
+            <button>hello</button>
+            <button>hello</button>
+            <button>hello</button>
+            <button>hello</button>
+        </div>
+        <div id="map"></div>
+        <div>
+            <table>
+                <thead>
+                    <tr>
+                        <th colspan="2">The table header</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>The table body</td>
+                        <td>with two columns</td>
+                    </tr>
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+
+    <script>
+        const map = new maptalks.Map("map", {
+            center: [116.45266161, 39.86656647],
+            zoom: 8,
+            zoomControl: true,
+            scaleControl: {
+                'position': 'bottom-left',
+                'maxWidth': 100,
+                'metric': true,
+                'imperial': true
+            },
+            baseLayer: new maptalks.TileLayer("base", {
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+                // attribution: "&copy; <a href='http://osm.org'>OpenStreetMap</a> contributors, &copy; <a href='https://carto.com/'>CARTO</a>",
+            }),
+        });
+
+        var layer = new maptalks.VectorLayer('vector').addTo(map);
+        var marker = new maptalks.Marker(map.getCenter()).addTo(layer);
+
+        marker.setInfoWindow({
+            'title': 'Marker\'s InfoWindow',
+            'content': 'Click on marker to open.'
+
+            // 'autoPan': true,
+            // 'width': 300,
+            // 'minHeight': 120,
+            // 'custom': false,
+            //'autoOpenOn' : 'click',  //set to null if not to open when clicking on marker
+            //'autoCloseOn' : 'click'
+        });
+
+        marker.openInfoWindow();
+
+        function saveFile(blob) {
+            saveAs(blob, `${new Date().getTime()}.png`);
+        }
+
+        var params = {
+            zoom: map.getZoom(),
+            pitch: 0,
+            bearing: 0,
+            exportmap: function () {
+                map.toDataURL({ save: true })
+            },
+            exportdom: function () {
+                const size = map.getSize();
+                const { width, height } = size;
+                htmlToImage.toBlob(map.getContainer(), { width, height: height + 100 })
+                    .then(function (blob) {
+                        saveFile(blob);
+                    });
+            },
+            exportpage: function () {
+                htmlToImage.toBlob(document.getElementById('container'), {})
+                    .then(function (blob) {
+                        saveFile(blob);
+                    });
+            }
+        };
+        var gui = new dat.GUI({ width: 450 });
+        gui.add(params, 'exportmap').name('only export map');
+        gui.add(params, 'exportdom').name('export map and mapui');
+        gui.add(params, 'exportpage').name('export dom node');
+    </script>
+</body>
+
+</html>
