@@ -95,16 +95,16 @@
         //需要高亮的业务数据ID
         const osm_ids = ['53511131', '461440696'];
         //已经高亮的数据缓存
-        const hightLightMap = new Map();
+        // const hightLightMap = new Map();
 
         layer.on('tileload', e => {
             const layer = e.target;
             //获取当前的所有的加载和渲染的要素集合
             const tiles = layer.getRenderedFeatures();
             osm_ids.forEach(osmid => {
-                if (hightLightMap.has(osmid)) {
-                    return;
-                }
+                // if (hightLightMap.has(osmid)) {
+                //     return;
+                // }
                 for (let i = 0, len = tiles.length; i < len; i++) {
                     const features = tiles[i].features;
                     let isHit = false;
@@ -113,7 +113,6 @@
                         if (feature.properties.osm_id === osmid) {
                             isHit = true;
                             hightLightFeature(feature.id);
-                            hightLightMap.set(osmid, true);
                             break;
                         }
                     }
