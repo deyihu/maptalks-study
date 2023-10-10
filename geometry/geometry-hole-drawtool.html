@@ -15,6 +15,15 @@
         width: 100%;
         height: 100%
     }
+
+    .panel {
+        z-index: 1;
+        position: absolute;
+        right: 200px;
+        top: 20px;
+        background-color: white;
+        padding: 10px;
+    }
 </style>
 <link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
 <script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
@@ -23,7 +32,9 @@
 <script type='text/javascript' src='./../assets/lib/jsts.min.js'></script>
 
 <body>
-
+    <div class="panel">
+        <input id="holemodel" type="checkbox" checked /><label>绘制洞模式</label>
+    </div>
     <div id="map" class="container"></div>
 
     <script>
@@ -66,8 +77,13 @@
             map.fitExtent(layer.getExtent());
         });
 
+        let holeModel = true;
 
+        document.querySelector('#holemodel').addEventListener('change', e => {
+            holeModel = e.target.checked;
+        })
         let hitGeometry;
+
         //挖洞
         function holes(tempGeometry) {
             const coordinates = tempGeometry.getCoordinates();
@@ -109,7 +125,7 @@
         drawTool.on('drawend', function (param) {
             //当绘制的图形不是任何图形的洞时
             if (!hitGeometry) {
-                const geometry = param.geometry.copy();
+                const geometry = param.geometry;
                 geometry.setId(maptalks.Util.GUID())
                 geometry.setSymbol(fillSymbol);
                 layer.addGeometry(geometry);
@@ -117,7 +133,9 @@
             hitGeometry = null;
         });
         drawTool.on('mousemove', function (param) {
-            holes(param.tempGeometry);
+            if (holeModel) {
+                holes(param.tempGeometry);
+            }
         });
         drawTool.on('drawprepare', function (param) {
             // drawTool.clear();
