@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D - Draw line&#x27;s altitude wall</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/dat.gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/jsts.min.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const geoJSONRender = new jsts.io.GeoJSONReader();
+
+        var map = new maptalks.Map('map', {
+            center: [120.6366964, 31.14279364],
+            zoom: 15,
+            pitch: 0,
+            bearing: 0,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+                attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+            })
+        });
+
+        const layer = new maptalks.VectorLayer('layer', {
+            enableAltitude: false
+        }).addTo(map);
+
+        const lineSymbol = {
+            lineColor: '#2EA2F0',
+            lineWidth: 4
+        };
+
+        const fillSymbol = Object.assign({}, lineSymbol, {
+            polygonFill: '#1791FC',
+            polygonOpacity: 0.3,
+            lineWidth: 3
+        });
+
+        fetch('./../assets/data/polygons.geojson').then(res => res.json()).then(geojson => {
+            const polygons = maptalks.GeoJSON.toGeometry(geojson);
+            polygons.forEach(p => {
+                p.setSymbol(fillSymbol);
+            });
+            layer.addGeometry(polygons);
+            map.fitExtent(layer.getExtent());
+        });
+
+
+        let hitGeometry;
+        //挖洞
+        function holes(tempGeometry) {
+            const coordinates = tempGeometry.getCoordinates();
+            if (coordinates.length < 3) {
+                return;
+            }
+            if (!hitGeometry) {
+                //判断绘制的图形属于哪个图形的洞
+                const geo = geoJSONRender.read(tempGeometry.toGeoJSON());
+                const filterGeo = layer.getGeometries().filter(g => {
+                    return g.getHoles().length === 0;
+                });
+                const geos = filterGeo.map(g => {
+                    return geoJSONRender.read(g.toGeoJSON());
+                });
+                for (let i = 0, len = geos.length; i < len; i++) {
+                    if (geos[i].geometry.contains(geo.geometry)) {
+                        hitGeometry = filterGeo[i];
+                        break;
+                    }
+                }
+            }
+            if (!hitGeometry) {
+                return;
+            }
+            // console.log(hitGeometry.getId());
+            const polygonCoordinates = hitGeometry.getCoordinates();
+            polygonCoordinates[1] = coordinates.map(c => {
+                return c.copy();
+            });
+            hitGeometry.setCoordinates(polygonCoordinates);
+
+        }
+
+        var drawTool = new maptalks.DrawTool({
+            mode: 'Polygon'
+        }).addTo(map).disable();
+
+        drawTool.on('drawend', function (param) {
+            //当绘制的图形不是任何图形的洞时
+            if (!hitGeometry) {
+                const geometry = param.geometry.copy();
+                geometry.setId(maptalks.Util.GUID())
+                geometry.setSymbol(fillSymbol);
+                layer.addGeometry(geometry);
+            }
+            hitGeometry = null;
+        });
+        drawTool.on('mousemove', function (param) {
+            holes(param.tempGeometry);
+        });
+        drawTool.on('drawprepare', function (param) {
+            // drawTool.clear();
+        });
+
+        var items = ['Polygon'].map(function (value) {
+            return {
+                item: value,
+                click: function () {
+                    drawTool.setMode(value).enable();
+                }
+            };
+        });
+
+        var toolbar = new maptalks.control.Toolbar({
+            items: [
+                {
+                    item: 'Shape',
+                    children: items
+                },
+                {
+                    item: 'Disable',
+                    click: function () {
+                        drawTool.disable();
+                    }
+                },
+                // {
+                //     item: 'Clear',
+                //     click: function () {
+                //         // layer.clear();
+                //     }
+                // }
+            ]
+        }).addTo(map);
+
+    </script>
+</body>
+
+</html>
