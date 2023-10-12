@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/colorin.js'></script>
+
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const baseLayer = new maptalks.TileLayer('base', {
+            // debug: true,
+            urlTemplate: "./../assets/data/tile-rgb/{z}/{x}/{y}.png",
+            subdomains: ["a", "b", "c", "d"],
+        })
+
+
+        baseLayer.on('renderercreate', function (e) {
+            //load tile image
+            //   img(Image): an Image object
+            //   url(String): the url of the tile
+            e.renderer.loadTileImage = function (img, url) {
+                //mocking getting image's base64
+                //replace it by your own, e.g. load from sqlite database
+                var remoteImage = new Image();
+                remoteImage.crossOrigin = 'anonymous';
+                remoteImage.onload = function () {
+                    var base64 = getBase64Image(remoteImage);
+                    img.src = base64;
+                };
+                remoteImage.onerror = function () {
+                    img.src = get404Image();
+                }
+                remoteImage.src = url;
+            };
+        });
+
+        const colors1 = [
+            [0, '#267300'],
+            [100, '#428501'],
+            [150, '#6CA102'],
+            [200, '#9FC100'],
+            [250, '#ACCC00'],
+            [300, '#E0ED04'],
+            [350, '#FBE100'],
+            [400, '#FCB600'],
+            [450, '#FF8D03'],
+            [500, '#FE2200']
+        ];
+
+        const ci = new colorin.ColorIn(colors1);
+
+        var canvas;
+        var tempCanvas;
+        var notfindImage;
+        const TILESIZE = 256;
+        function get404Image() {
+            if (notfindImage) {
+                return notfindImage;
+            }
+            if (!notfindImage) {
+                canvas = createCanvas();
+                canvas.width = TILESIZE;
+                canvas.height = TILESIZE;
+
+            }
+            var ctx = canvas.getContext('2d');
+            ctx.font = "bold 48px serif";
+            ctx.strokeStyle = 'gray';
+            ctx.textAlign = 'center';
+            ctx.fillText('404', canvas.width / 2, canvas.height / 2);
+            ctx.rect(0, 0, canvas.width, canvas.height);
+            ctx.stroke();
+            notfindImage = canvas.toDataURL();
+            return notfindImage;
+        }
+
+        function createCanvas() {
+            return document.createElement('canvas');
+        }
+
+        function clearCanvas(ctx) {
+            const canvas = ctx.canvas;
+            const { width, height } = canvas;
+            ctx.clearRect(0, 0, width, height);
+        }
+
+        function colorTerrain(imgdata) {
+            const data = imgdata.data;
+            for (let i = 0, len = data.length; i < len; i += 4) {
+                const R = data[i], G = data[i + 1], B = data[i + 2], A = data[i + 3];
+                let height = 0;
+
+                //地形解码
+                height = -10000 + ((R * 256 * 256 + G * 256 + B) * 0.1);
+                height = Math.max(height, 0);
+                const [r, g, b] = ci.getColor(height);
+
+                //根据不同的高度设置不同的颜色
+                data[i] = r;
+                data[i + 1] = g;
+                data[i + 2] = b;
+                data[i + 3] = 255;
+            }
+        }
+
+        function getBase64Image(img) {
+            const { width, height } = img;
+            tempCanvas = tempCanvas || createCanvas();
+            tempCanvas.width = width;
+            tempCanvas.height = height;
+
+            var tempCtx = tempCanvas.getContext('2d');
+            clearCanvas(tempCtx);
+            tempCtx.drawImage(img, 0, 0);
+
+
+            canvas = canvas || createCanvas();
+            canvas.width = width;
+            canvas.height = height;
+            const imgdata = tempCtx.getImageData(0, 0, width, height);
+            colorTerrain(imgdata);
+            var ctx = canvas.getContext('2d');
+            clearCanvas(ctx);
+            ctx.putImageData(imgdata, 0, 0);
+            var dataURL = canvas.toDataURL('image/jpg', 0.7);
+            return dataURL;
+        }
+
+
+        var map = new maptalks.Map('map', {
+            "center": [120.05409411, 30.16489579], "zoom": 12.809955844160632, "pitch": 0, "bearing": 0,
+            baseLayer
+        });
+
+
+    </script>
+</body>
+
+</html>
