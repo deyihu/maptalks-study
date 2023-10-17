@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/dat.gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/randomColor.js'></script>
+
+<body>
+    <div>
+        <button onclick="play()">play</button>
+        <button onclick="pause()">pause</button>
+        <button onclick="cancel()">cancel</button>
+        <button onclick="finish()">finish</button>
+    </div>
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            center: [114.35563083, 30.47815522],
+            zoom: 9,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+            })
+        });
+        const layer = new maptalks.VectorLayer('layer', {
+            // enableAltitude: true
+        }).addTo(map);
+
+
+        var marker = new maptalks.Marker(map.getCenter(), {
+            'symbol': {
+                'markerType': 'ellipse',
+                'markerWidth': 50,
+                'markerHeight': 50,
+                'markerFill': 'rgb(216,115,149)',
+                'markerFillOpacity': 0.8,
+                'markerLineColor': '#fff',
+                'markerLineWidth': 3
+            }
+        }).addTo(layer);
+
+        var targetStyles = {
+            'symbol': {
+                'markerWidth': 200,
+                'markerHeight': 200
+            }
+        };
+
+        // animate by maptalks.animation.Animation
+        var player = maptalks.animate(targetStyles, {
+            duration: 1000,
+            easing: 'out',
+            repeat: true
+        },
+            // callback of each frame
+            function step(frame) {
+                // if (frame.state.playState === 'running') {
+                marker.updateSymbol(frame.styles.symbol);
+                // }
+            }
+        );
+
+        function play() {
+            player.play();
+
+        }
+
+        function pause() {
+            player.pause();
+        }
+        function cancel() {
+            player.cancel();
+        }
+        function finish() {
+            player.finish();
+        }
+
+        // setTimeout(function () {
+        //     player.play();
+        // }, 600);
+
+
+
+
+
+    </script>
+</body>
+
+</html>
