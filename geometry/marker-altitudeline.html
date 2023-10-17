@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/dat.gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/randomColor.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            center: [121.47400292, 31.22976969],
+            zoom: 15,
+            pitch: 55,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+            })
+        });
+        const layer = new maptalks.VectorLayer('layer', {
+            enableAltitude: true
+        }).addTo(map);
+
+        const data = { "type": "FeatureCollection", "features": [{ "type": "Feature", "geometry": { "type": "Point", "coordinates": [121.4544954185094, 31.24506340339812] }, "properties": { "name": "1-f22ee95", "_color": "", "center": [121.4544954185094, 31.24506340339812, 0] } }, { "type": "Feature", "geometry": { "type": "Point", "coordinates": [121.4877408110251, 31.2226117072004] }, "properties": { "name": "10-7d3f70d5", "_color": "", "center": [121.4877408110251, 31.2226117072004, 0] } }, { "type": "Feature", "geometry": { "type": "Point", "coordinates": [121.48096468006645, 31.2213441136565] }, "properties": { "name": "11-24208b1", "_color": "", "center": [121.48096468006645, 31.2213441136565, 0] } }, { "type": "Feature", "geometry": { "type": "Point", "coordinates": [121.45915400854335, 31.2202575913752] }, "properties": { "name": "12-81e6fbb", "_color": "", "center": [121.45915400854335, 31.2202575913752, 0] } }, { "type": "Feature", "geometry": { "type": "Point", "coordinates": [121.4532248939546, 31.231484386017968] }, "properties": { "name": "13-75a9e30", "_color": "", "center": [121.4532248939546, 31.231484386017968, 0] } }, { "type": "Feature", "geometry": { "type": "Point", "coordinates": [121.4449664843487, 31.220981940950395] }, "properties": { "name": "14-4828a706", "_color": "", "center": [121.4449664843487, 31.220981940950395, 0] } }, { "type": "Feature", "geometry": { "type": "Point", "coordinates": [121.47249451636822, 31.234019284100242] }, "properties": { "name": "15-ed145c2", "_color": "", "center": [121.47249451636822, 31.234019284100242, 0] } }, { "type": "Feature", "geometry": { "type": "Point", "coordinates": [121.47948240141932, 31.245606523490864] }, "properties": { "name": "2-efec644", "_color": "", "center": [121.47948240141932, 31.245606523490864, 0] } }, { "type": "Feature", "geometry": { "type": "Point", "coordinates": [121.50425763023668, 31.23492458836219] }, "properties": { "name": "3-39471f7e", "_color": "", "center": [121.50425763023668, 31.23492458836219, 0] } }, { "type": "Feature", "geometry": { "type": "Point", "coordinates": [121.44348420570157, 31.234019284100242] }, "properties": { "name": "4-71567b9", "_color": "", "center": [121.44348420570157, 31.234019284100242, 0] } }, { "type": "Feature", "geometry": { "type": "Point", "coordinates": [121.47207100818332, 31.224241445350373] }, "properties": { "name": "5-8ae4c6", "_color": "", "center": [121.47207100818332, 31.224241445350373, 0] } }, { "type": "Feature", "geometry": { "type": "Point", "coordinates": [121.46338909039252, 31.235467766755363] }, "properties": { "name": "6-40aa506", "_color": "", "center": [121.46338909039252, 31.235467766755363, 0] } }, { "type": "Feature", "geometry": { "type": "Point", "coordinates": [121.48498800782318, 31.234381406845927] }, "properties": { "name": "7-5f457da5", "_color": "", "center": [121.48498800782318, 31.234381406845927, 0] } }, { "type": "Feature", "geometry": { "type": "Point", "coordinates": [121.47969415551165, 31.23818361187645] }, "properties": { "name": "8-ee114f9", "_color": "", "center": [121.47969415551165, 31.23818361187645, 0] } }, { "type": "Feature", "geometry": { "type": "Point", "coordinates": [121.49684623700068, 31.2452444437761] }, "properties": { "name": "9-b18f10f", "_color": "", "center": [121.49684623700068, 31.2452444437761, 0] } }] }
+
+
+        function addMarkers() {
+            data.features.forEach(f => {
+                //随机海拔值
+                f.geometry.coordinates.push(Math.random() * 200 + 200);
+            })
+            const markers = maptalks.GeoJSON.toGeometry(data);
+            layer.addGeometry(markers);
+        }
+
+        function addLines() {
+            const lines = data.features.map(f => {
+                //顶部坐标
+                const coordinates = f.geometry.coordinates;
+                //底部坐标
+                const bottomCoordinates = [...coordinates].slice(0, 2);
+                const line = new maptalks.LineString([bottomCoordinates, coordinates], {
+                    //海拔线只是个效果,我们默认关闭事件交互可以有更好的性能
+                    interactive: false
+                });
+                return line;
+            });
+            layer.addGeometry(lines);
+        }
+
+        addMarkers();
+        addLines();
+
+
+
+
+
+    </script>
+</body>
+
+</html>
