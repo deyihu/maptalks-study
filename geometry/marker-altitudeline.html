@@ -47,7 +47,7 @@
         function addMarkers() {
             data.features.forEach(f => {
                 //随机海拔值
-                f.geometry.coordinates.push(Math.random() * 200 + 200);
+                f.geometry.coordinates.push(Math.random() * 200 + 400);
             })
             const markers = maptalks.GeoJSON.toGeometry(data);
             layer.addGeometry(markers);
@@ -60,6 +60,9 @@
                 //底部坐标
                 const bottomCoordinates = [...coordinates].slice(0, 2);
                 const line = new maptalks.LineString([bottomCoordinates, coordinates], {
+                    symbol: {
+                        lineColor: randomColor()
+                    },
                     //海拔线只是个效果,我们默认关闭事件交互可以有更好的性能
                     interactive: false
                 });
