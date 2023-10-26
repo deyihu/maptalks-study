@@ -52,7 +52,7 @@
             light.position.set(0, -10, 10).normalize();
             scene.add(light);
             scene.add(new THREE.AmbientLight('#fff', 0.3));
-            addAreas();
+            loadTexture();
             animation();
             initGui();
 
@@ -92,15 +92,19 @@
 
 
         const material = new THREE.MeshPhongMaterial({ color: '#fff' });
-        const textureLoader = new THREE.TextureLoader();
-        textureLoader.load('./../assets/image/beijing-texture.png', (texture) => {
-            texture.needsUpdate = true; //使用贴图时进行更新
-            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-            // texture.repeat.set(0.002, 0.002);
-            texture.repeat.set(1, 1);
-            material.map = texture;
-            material.needsUpdate = true;
-        });
+
+        function loadTexture() {
+            const textureLoader = new THREE.TextureLoader();
+            textureLoader.load('./../assets/image/beijing-texture.png', (texture) => {
+                texture.needsUpdate = true; //使用贴图时进行更新
+                texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+                // texture.repeat.set(0.002, 0.002);
+                texture.repeat.set(1, 1);
+                material.map = texture;
+                material.needsUpdate = true;
+                addAreas();
+            });
+        }
 
 
         function resetTopUV(extrudePolygons) {
@@ -264,7 +268,7 @@
             var gui = new dat.GUI();
             gui.addColor(params, 'color').name('line color').onChange(function () {
                 linematerial.color.set(params.color);
-             
+
             });
         }
 
