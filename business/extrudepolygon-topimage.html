@@ -54,6 +54,7 @@
             scene.add(new THREE.AmbientLight('#fff', 0.3));
             addAreas();
             animation();
+            initGui();
 
         };
 
@@ -77,7 +78,7 @@
 
         //https://threejs.org/examples/#webgl_lines_fat
         var linematerial = new THREE.LineMaterial({
-            color: 'yellow',
+            color: 0xf2f2f2,
             // transparent: true,
             // vertexColors: THREE.VertexColors,
             // side: THREE.BackSide,
@@ -248,6 +249,21 @@
                 threeLayer.redraw();
             }
             requestAnimationFrame(animation);
+        }
+
+        function initGui() {
+            var params = {
+                add: true,
+                color: linematerial.color.getStyle(),
+                show: true,
+                opacity: 1,
+                altitude: 0
+            };
+            var gui = new dat.GUI();
+            gui.addColor(params, 'color').name('line color').onChange(function () {
+                linematerial.color.set(params.color);
+             
+            });
         }
 
 
