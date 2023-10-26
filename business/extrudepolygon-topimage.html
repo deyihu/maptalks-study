@@ -105,6 +105,7 @@
 
         function resetTopUV(extrudePolygons) {
             // console.log(geometries);
+            //计算所有区域的总的包围盒
             let minx = Infinity, miny = Infinity, maxx = -Infinity, maxy = -Infinity, maxZ = -Infinity;
             extrudePolygons.forEach(extrudePolygon => {
                 const geometry = extrudePolygon.getObject3d().geometry;
@@ -121,6 +122,7 @@
                 }
             });
             console.log(minx, miny, maxx, maxy);
+            //计算每个子区域的每个轮廓坐标点的在这个包围盒的百分比
             const dx = maxx - minx, dy = maxy - miny;
             extrudePolygons.forEach(extrudePolygon => {
                 const geometry = extrudePolygon.getObject3d().geometry;
