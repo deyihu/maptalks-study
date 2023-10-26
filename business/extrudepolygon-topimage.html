@@ -149,12 +149,12 @@
             });
         }
 
-        const height = 10000;
+        const height = 10000, offset = 100;
         const polygonLinkLine = new Map();
 
         function syncAltitude(id, altitude) {
             const line = polygonLinkLine.get(id);
-            line.setAltitude(altitude + height);
+            line.setAltitude(altitude + height + offset);
         }
 
         function polygonUp(e) {
@@ -220,7 +220,7 @@
                 const geojsonLines = polygonToLine(geojson);
                 const lines = maptalks.GeoJSON.toGeometry(geojsonLines);
                 const fatlines = lines.map(line => {
-                    return threeLayer.toFatLine(line, { altitude: height, bloom: true }, linematerial);
+                    return threeLayer.toFatLine(line, { altitude: height + offset, bloom: true }, linematerial);
                 });
 
                 const extrudePolygons = polygons.map((p, index) => {
