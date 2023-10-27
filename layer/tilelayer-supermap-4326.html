@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+
+<body>
+    <script type="text/javascript" src="https://maptalks.com/api/transcoders.draco.js"></script>
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const map = new maptalks.Map("map", {
+            center: [120.58443009853363, 31.077306186678225],
+            zoom: 3,
+            bearing: 0,
+            pitch: 0,
+            centerCross: true,
+            spatialReference: {
+                projection: 'EPSG:4326'
+            },
+        });
+
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+        });
+
+        const layer = new maptalks.VectorLayer('layer', {
+            zIndex: 2
+        }).addTo(map);
+        const point = new maptalks.Marker([120, 31]).addTo(layer);
+
+        const groupGLLayer = new maptalks.GroupGLLayer("gl", [], {
+
+        }).addTo(map);
+
+        function test4326() {
+            // A complete customized TileLayer
+            // Radius of the earth
+            var earchRadiusInMeters = 6378137;
+            var inchPerMeter = 1 / 0.0254;
+            var meterPerMapUnit = (Math.PI * 2 * earchRadiusInMeters) / 360;
+
+            function replaceURL(url, x, y, scale) {
+                var str = ['x', x, 'y', y, 'scale', scale];
+                for (var i = 0, len = str.length; i < len; i += 2) {
+                    url = url.replace('{' + str[i] + '}', str[i + 1]);
+                }
+                return url;
+            }
+
+            function resolutionToScale(resolution, dpi) {
+                var scale = resolution * dpi * inchPerMeter * meterPerMapUnit;
+                scale = 1 / scale;
+                return scale;
+            }
+
+
+            //切图参数
+            var parmas = {
+                zooms: 18,
+                //第一个比例尺
+                // http://support.supermap.com.cn:8090/iserver/services/map-world/rest/maps/World.leaflet
+                firstRes: 1.4062499999999996,
+                origin: [-180, 90],
+                maxBounds: [
+                    [-180, -90],
+                    [180, 90]
+                ]
+            };
+
+            var url =
+                'http://support.supermap.com.cn:8090/iserver/services/map-world/rest/maps/World/tileImage.png?scale={scale}&x={x}&y={y}&width=256&height=256&layersID=&tileversion=&transparent=false&prjCoordSys=%7B%22epsgCode%22%3A4326%7D';
+            var res = [];
+            for (var i = 0; i <= parmas.zooms; i++) {
+                res.push(parmas.firstRes / Math.pow(2, i));
+            }
+            var crs = {
+                projection: 'EPSG:4326',
+                resolutions: res,
+                // fullExtent: {
+                //     top: 42.31,
+                //     left: 114.59,
+                //     bottom: 37.44232891378436,
+                //     right: 119.45767108621564
+                // }
+            };
+
+            var tileLayer = new maptalks.TileLayer('base', {
+                debug: true,
+                repeatWorld: true,
+                urlTemplate: url,
+                spatialReference: crs,
+                subdomains: ['a', 'b', 'c', 'd'],
+                attribution:
+                    '&copy; <a href="https://www.supermap.com/cn/">supermap</a> contributors',
+                tileSystem: [1, -1].concat(parmas.origin) // tile system
+            });
+
+            // 重写瓦片获取的方法
+            tileLayer.getTileUrl = function (x, y, z) {
+                this.scales = this.scales || {};
+                if (this.scales[z]) {
+                    return replaceURL(this.options.urlTemplate, x, y, this.scales[z]);
+                }
+                var crs = this.getMap().getSpatialReference().getProjection();
+                var bounds = this._getTileExtent(x, y, z);
+                var min = bounds.getMin(),
+                    max = bounds.getMax();
+                var ne = crs.project(max);
+                var sw = crs.project(min);
+                var tileSize = this.options.tileSize[0];
+                var resolution = Math.max(
+                    Math.abs(ne.x - sw.x) / tileSize,
+                    Math.abs(ne.y - sw.y) / tileSize
+                );
+                var scale = resolutionToScale(resolution, 96);
+                this.scales[z] = scale;
+                return replaceURL(this.options.urlTemplate, x, y, this.scales[z]);
+            };
+
+            //获取瓦片的bbox
+            tileLayer._getTileExtent = function (x, y, z) {
+                var map = this.getMap(),
+                    res = map._getResolution(z),
+                    tileConfig = this._getTileConfig(),
+                    tileExtent = tileConfig.getTilePrjExtent(x, y, res);
+                return tileExtent;
+            };
+
+            tileLayer.addTo(groupGLLayer);
+        }
+
+        test4326();
+
+
+    </script>
+</body>
+
+</html>
