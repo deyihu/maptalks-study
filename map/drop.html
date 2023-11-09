@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 模型单体化</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 600px;
+        /* background-color: gray; */
+    }
+
+    .tools{
+        /* position: absolute; */
+        z-index: 1;
+        background: white;
+        width: 100%;
+    }
+    .dragimage {
+        width: 40px;
+        height: 40px;
+        cursor: grab;
+        border: 1px solid gray;
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://unpkg.com/maptalks@1.0.0-rc.28/dist/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+
+<body>
+    <div class="tools">
+        <img class="dragimage" src="./../assets/image/star.png" draggable="true" data-url="./../assets/image/star.png" />
+        <img class="dragimage" src="./../assets/image/alien.png" draggable="true" data-url="./../assets/data/alien.gltf">
+    </div>
+    <div id="map" class="container"></div>
+
+    <script>
+        const map = new maptalks.Map("map", {
+            center: [108.95965, 34.2189],
+            zoom: 18,
+            bearing: 0,
+            pitch: 0,
+            lights: {
+                directional: {
+                    direction: [-1, -1, -1],
+                    color: [1, 1, 1]
+                },
+                ambient: {
+                    resource: {
+                        // url: {
+                        //     front: "/resources/hdr/923/front.jpg",
+                        //     back: "/resources/hdr/923/back.jpg",
+                        //     left: "/resources/hdr/923/left.jpg",
+                        //     right: "/resources/hdr/923/right.jpg",
+                        //     top: "/resources/hdr/923/top.jpg",
+                        //     bottom: "/resources/hdr/923/bottom.jpg"
+                        // }
+                    },
+                    exposure: 1.426,
+                    hsv: [0, 0, 0],
+                    orientation: 302.553
+                }
+            }
+        });
+
+        const baseLayer = new maptalks.TileLayer('base', {
+            urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+            attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+        });
+
+        const layer = new maptalks.PointLayer("layer", {
+
+        });
+        const gltfLayer = new maptalks.GLTFLayer('gltflayer');
+
+        const groupGLLayer = new maptalks.GroupGLLayer("gl", [baseLayer, gltfLayer, layer], {
+            sceneConfig: {
+                environment: {
+                    enable: true,
+                    mode: 1,
+                    level: 0,
+                    brightness: 0.915
+                },
+                postProcess: {
+                    enable: true
+                },
+                ground: {
+                    enable: false,
+                    renderPlugin: {
+                        type: "lit"
+                    },
+                    symbol: {
+                        polygonOpacity: 1,
+                        material: {
+                            baseColorFactor: [0.48235, 0.48235, 0.48235, 1],
+                            hsv: [0, 0, -0.532],
+                            roughnessFactor: 0.22,
+                            metallicFactor: 0.58
+                        }
+                    }
+                }
+            }
+        }).addTo(map);
+
+        map.on('drop', e => {
+            const { coordinate, dataTransfer } = e;
+            const url = dataTransfer.getData('data');
+            if (!url) {
+                return;
+            }
+            const isModel = url.includes('.gltf') || url.includes('.glb');
+            if (isModel) {
+                const model = new maptalks.GLTFMarker(coordinate, {
+                    symbol: {
+                        url,
+                        modelHeight: 34,
+                        rotationZ: 180
+                    }
+                });
+                model.addTo(gltfLayer);
+            } else {
+                const marker = new maptalks.Marker(coordinate, {
+                    symbol: {
+                        markerFile: url,
+                        markerVerticalAlignment: 'middle'
+
+                    }
+                }).addTo(layer);
+            }
+        })
+
+        const imgs = document.querySelectorAll('.dragimage');
+        imgs.forEach(img => {
+            img.addEventListener('dragstart', e => {
+                e.dataTransfer.setData('data', e.target.dataset.url);
+            })
+        });
+    </script>
+</body>
+
+</html>
