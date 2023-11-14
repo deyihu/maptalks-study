@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>geometry update altitude by terrain</title>
+    <style type="text/css">
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0px;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <link rel="stylesheet" href="https://maptalks.com/api/maptalks.css" />
+    <script type='text/javascript' src='https://unpkg.com/maptalks@1.0.0-rc.28/dist/maptalks.min.js'></script>
+    <script type="text/javascript" src="https://maptalks.com/api/maptalks-gl-layers.js"></script>
+    <script type="text/javascript" src="https://maptalks.com/api/dat.gui.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/three@0.138.0/build/three.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/maptalks.three@latest/dist/maptalks.three.js"></script>
+</head>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+        const map = new maptalks.Map("map", {
+            center: [119.40307165, 30.37671886, 436],
+            zoom: 11,
+            pitch: 60,
+            // cameraInfiniteFar: true,
+            heightFactor: 1.2,
+            zoomControl: true
+        });
+
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+            // const result = group.queryTerrain(e.coordinate);
+            // console.log(result);
+            // e.coordinate.z = result[0];
+            // const point = new maptalks.Marker(e.coordinate).addTo(layer);
+        });
+
+
+        const coordinates = [
+            [119.26945017383241, 30.376871910976178]
+            , [119.41899273004572, 30.377746042120833]
+            , [119.51608471650138, 30.37726503747328]
+            , [119.46354801648795, 30.31694687527127]
+            , [119.60562937352347, 30.37820924055947]
+            , [119.59045825643739, 30.430436461050107]
+            , [119.584406756833, 30.487931288984754]
+            , [119.51453485707066, 30.49039516064832]
+            , [119.45440953161744, 30.48646614394201]
+            , [119.69247157405653, 30.486815730590678]
+            , [119.80953084691987, 30.472457196921]
+            , [119.89535951684763, 30.47496435491533]
+            , [119.84708685095575, 30.36586547405281]
+            , [119.67054883716764, 30.303609976340255]
+            , [119.65234867735501, 30.363784873871822]
+            , [119.54423459602981, 30.480024325865287]
+            , [119.47395594040563, 30.56338903320065]
+            , [119.39707374359091, 30.53546677150925]
+            , [119.57396685725621, 30.574315977713553]
+            , [119.6401686202828, 30.569305689523247]
+        ];
+
+        const data = coordinates.map(c => {
+            return {
+                id: maptalks.Util.GUID(),
+                coordinates: c
+            }
+        });
+
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: {
+                    enable: true,
+                },
+            },
+        };
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            identifyCountOnEvent: 1,
+            animation: true
+            // forceRenderOnMoving: true,
+            // forceRenderOnRotating: true
+        });
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            scene.add(new THREE.AmbientLight('#fff', 0.3));
+            addBars();
+            threeLayer.inited = true;
+        };
+
+        const barHeight = 1000;
+        function addBars() {
+            const material = new THREE.MeshLambertMaterial({ color: 'red' });
+            const bars = data.map(d => {
+                const bar = threeLayer.toBar(d.coordinates, { height: barHeight, radius: 100, topColor: '#fff' }, material);
+                bar.setId(d.id);
+                return bar;
+            })
+            threeLayer.addMesh(bars);
+        }
+
+        function findBar(id) {
+            const bars = threeLayer.getBaseObjects();
+            for (let i = 0, len = bars.length; i < len; i++) {
+                const bar = bars[i];
+                if (bar.getId() === id) {
+                    return bar;
+                }
+            }
+        }
+
+        const pointLayer = new maptalks.VectorLayer('layer1', {
+            enableAltitude: true,
+            zIndex: 1
+        }).addTo(map);
+
+        const points = data.map(d => {
+            const { id, coordinates } = d;
+            const point = new maptalks.Marker(coordinates, {
+            });
+            point.setId(id);
+            return point;
+        });
+        pointLayer.addGeometry(points);
+
+        const skinLayers = [
+            // baseLayer,
+            threeLayer,
+            // lineLayer,
+            // pointLayer
+        ];
+        const terrain = {
+            type: 'mapbox',
+            tileSize: 256,
+            maxAvailableZoom: 14,
+            // zoomOffset: -1,
+            // spatialReference: 'preset-vt-3857',
+            requireSkuToken: false,
+            // urlTemplate: `https://{s}.tiles.mapbox.com/v4/mapbox.terrain-rgb/{z}/{x}/{y}.pngraw?access_token=${token}`,
+            subdomains: ['a', 'b', 'c', 'd'],
+            shader: "lit",
+            material: {
+                baseColorFactor: [1, 1, 1, 1],
+                outputSRGB: 1,
+                roughnessFactor: 0.69,
+                metallicFactor: 0
+            }
+        };
+        const group = new maptalks.GroupGLLayer('group', skinLayers, {
+            terrain
+        });
+        group.addTo(map);
+
+        let needUpdateGeos = [];
+
+        group.getTerrainLayer().on('tileload', e => {
+            const zoom = map.getZoom();
+            if (zoom < 10) {
+                return;
+            }
+            //计算当前的瓦片内的点，加入到更新队列
+            const { res, extent2d } = e.tile;
+            const points = pointLayer.getGeometries();
+            points.forEach(point => {
+                const coordinate = point.getCoordinates();
+                const glpoint = map.coordinateToPointAtRes(coordinate, res);
+                if (extent2d.contains(glpoint)) {
+                    const height = group.queryTerrain(coordinate);
+                    if (height && Array.isArray(height)) {
+                        needUpdateGeos.push({
+                            geometry: point,
+                            height: height[0]
+                        })
+                    }
+                }
+            });
+        })
+
+        const cache = new Map();
+        function animtion() {
+            if (needUpdateGeos.length && threeLayer.inited) {
+                for (let len = needUpdateGeos.length, i = len - 1; i >= 0; i--) {
+                    const data = needUpdateGeos[i];
+                    const { geometry, height } = data;
+                    if (cache.has(geometry)) {
+                        return;
+                    }
+                    const altitude = height;
+                    geometry.setAltitude(altitude + barHeight);
+                    const id = geometry.getId();
+                    const bar = findBar(id);
+                    if (bar) {
+                        bar.setAltitude(altitude);
+                    }
+                    cache.set(geometry, 1);
+                }
+                cache.clear();
+                needUpdateGeos = [];
+            }
+            requestAnimationFrame(animtion);
+        }
+
+        animtion();
+
+    </script>
+</body>
+
+</html>
