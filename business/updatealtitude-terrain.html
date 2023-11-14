@@ -88,7 +88,6 @@
         // the ThreeLayer to draw buildings
         var threeLayer = new maptalks.ThreeLayer('t', {
             identifyCountOnEvent: 1,
-            animation: true
             // forceRenderOnMoving: true,
             // forceRenderOnRotating: true
         });
@@ -193,6 +192,12 @@
 
         const cache = new Map();
         function animtion() {
+            // layer animation support Skipping frames
+            threeLayer._needsUpdate = !threeLayer._needsUpdate;
+            if (threeLayer._needsUpdate) {
+                threeLayer.redraw();
+            }
+
             if (needUpdateGeos.length && threeLayer.inited) {
                 for (let len = needUpdateGeos.length, i = len - 1; i >= 0; i--) {
                     const data = needUpdateGeos[i];
