@@ -203,7 +203,7 @@
                     const data = needUpdateGeos[i];
                     const { geometry, height } = data;
                     if (cache.has(geometry)) {
-                        return;
+                        continue;
                     }
                     const altitude = height;
                     geometry.setAltitude(altitude + barHeight);
