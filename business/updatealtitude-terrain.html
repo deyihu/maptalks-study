@@ -17,11 +17,11 @@
         }
     </style>
     <link rel="stylesheet" href="https://maptalks.com/api/maptalks.css" />
-    <script type='text/javascript' src='https://unpkg.com/maptalks@1.0.0-rc.28/dist/maptalks.min.js'></script>
+    <script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
     <script type="text/javascript" src="https://maptalks.com/api/maptalks-gl-layers.js"></script>
     <script type="text/javascript" src="https://maptalks.com/api/dat.gui.min.js"></script>
-    <script type="text/javascript" src="https://unpkg.com/three@0.138.0/build/three.min.js"></script>
-    <script type="text/javascript" src="https://unpkg.com/maptalks.three@latest/dist/maptalks.three.js"></script>
+    <script type='text/javascript' src='./../assets/lib/three.min.js'></script>
+    <script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
 </head>
 
 <body>
@@ -149,7 +149,7 @@
             // zoomOffset: -1,
             // spatialReference: 'preset-vt-3857',
             requireSkuToken: false,
-            // urlTemplate: `https://{s}.tiles.mapbox.com/v4/mapbox.terrain-rgb/{z}/{x}/{y}.pngraw?access_token=${token}`,
+            urlTemplate: `https://{s}.tiles.mapbox.com/v4/mapbox.terrain-rgb/{z}/{x}/{y}.pngraw?access_token=${token}`,
             subdomains: ['a', 'b', 'c', 'd'],
             shader: "lit",
             material: {
