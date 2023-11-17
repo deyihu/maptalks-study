@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+
+    .marker {
+        background-color: black;
+        color: white;
+        padding: 2px 10px;
+        text-align: center;
+        font-size: 16px;
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/dat.gui.min.js'></script>
+
+<body>
+     <div class="tools">
+        <button onclick="javascript:layer.addMarker(markers1);">添加集合1</button>
+        <button onclick="javascript:layer.addMarker(markers2);">添加集合2</button>
+        <button onclick="javascript:layer.removeMarker(markers1);">移除集合1</button>
+        <button onclick="javascript:layer.removeMarker(markers2);">移除集合2</button>
+        <button onclick="javascript:layer.remove();">从地图上移除</button>
+        <button onclick="javascript:layer.addTo(map);">添加到地图</button>
+        <button onclick="javascript:layer.clear();">清空</button>
+        <button onclick="javascript:layer.show();">显示</button>
+        <button onclick="javascript:layer.hide();">隐藏</button>
+        <button onclick="javascript:layer.setOpacity(0.5);">透明</button>
+        <button onclick="javascript:layer.setOpacity(1);">恢复透明</button>
+     </div>
+    <div id="map" class="container"></div>
+
+
+
+    <script>
+
+        class UIMarkerLayer {
+
+            constructor() {
+                this.markers = [];
+                this.map = null;
+                this.zIndex = null;
+                this.maxZoom = null;
+                this.minZoom = null;
+                this.opacity = 1;
+            }
+
+            _checkMarkers() {
+                if (!this.map) {
+                    return this;
+                }
+                this.markers.forEach(marker => {
+                    if (!marker.getMap) {
+                        return;
+                    }
+                    if (!marker.getMap()) {
+                        marker.addTo(this.map);
+                    }
+                });
+                return this;
+            }
+
+            _removeMarkers(markers) {
+                markers.forEach(marker => {
+                    if (this.markers.indexOf(marker) > -1) {
+                        marker.remove();
+                    }
+                });
+                return this;
+            }
+
+            getMap() {
+                return this.map;
+            }
+
+            addTo(map) {
+                if (this.map) {
+                    console.warn('has add to map');
+                    return this;
+                }
+                this.map = map;
+                this._checkMarkers();
+                return this;
+            }
+
+            remove() {
+                this._removeMarkers(this.markers);
+                this.map = null;
+                return this;
+            }
+
+            clear() {
+                this._removeMarkers(this.markers);
+                this.markers = [];
+                return this;
+            }
+
+            show() {
+                this.markers.forEach(marker => {
+                    marker.options.visible = true;
+                });
+                return this;
+            }
+
+            hide() {
+                this.markers.forEach(marker => {
+                    marker.options.visible = false;
+                });
+                return this;
+            }
+
+            _markersArrayJudge(markers) {
+                markers = Array.isArray(markers) ? markers : [markers];
+                return markers.filter(marker => {
+                    return !!(marker && marker.getMap);
+                });
+            }
+
+            addMarker(markers) {
+                markers = this._markersArrayJudge(markers);
+                markers.forEach(marker => {
+                    if (this.markers.indexOf(marker) === -1) {
+                        this.markers.push(marker);
+                    }
+                });
+                this._checkMarkers();
+                return this;
+            }
+
+            removeMarker(markers) {
+                markers = this._markersArrayJudge(markers);
+                this._removeMarkers(markers);
+                this.markers = this.markers.filter(marker => {
+                    return markers.indexOf(marker) === -1;
+                });
+                return this;
+            }
+
+            getMarkers() {
+                return this.markers.map(marker => {
+                    return marker;
+                });
+            }
+
+            setZIndex(zIndex) {
+                if (!maptalks.Util.isNumber(zIndex)) {
+                    return this;
+                }
+                this.markers.forEach(marker => {
+                    marker.setZIndex(zIndex);
+                });
+                this.zIndex = zIndex;
+                return this;
+            }
+
+            getZIndex() {
+                return this.zIndex;
+            }
+
+            setMinZoom(minZoom) {
+                if (!maptalks.Util.isNumber(minZoom)) {
+                    return this;
+                }
+                this.markers.forEach(marker => {
+                    marker.options.minZoom = minZoom;
+                });
+                this.minZoom = minZoom;
+                return this;
+            }
+
+            getMinZoom() {
+                return this.minZoom;
+            }
+
+            setMaxZoom(maxZoom) {
+                if (!maptalks.Util.isNumber(maxZoom)) {
+                    return this;
+                }
+                this.markers.forEach(marker => {
+                    marker.options.maxZoom = maxZoom;
+                });
+                this.maxZoom = maxZoom;
+                return this;
+            }
+
+
+            getMaxZoom() {
+                return this.maxZoom;
+            }
+
+            setOpacity(opacity) {
+                if (!maptalks.Util.isNumber(opacity)) {
+                    return this;
+                }
+                opacity = Math.min(1, opacity);
+                opacity = Math.max(0, opacity);
+                this.markers.forEach(marker => {
+                    const dom = marker.getDOM();
+                    if (dom) {
+                        dom.style.opacity = opacity;
+                    }
+                });
+                this.opacity = opacity;
+                return this;
+            }
+
+            getOpacity() {
+                return this.opacity;
+            }
+
+        }
+
+        var map = new maptalks.Map('map', {
+            center: [119.47201791, 30.12828901],
+            zoom: 11,
+            pitch: 60,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+            })
+        });
+
+
+
+        const layer = new UIMarkerLayer().addTo(map);
+
+        const coordinates = [
+            [119.26945017383241, 30.376871910976178]
+            , [119.41899273004572, 30.377746042120833]
+            , [119.51608471650138, 30.37726503747328]
+            , [119.46354801648795, 30.31694687527127]
+            , [119.60562937352347, 30.37820924055947]
+            , [119.59045825643739, 30.430436461050107]
+            , [119.584406756833, 30.487931288984754]
+            , [119.51453485707066, 30.49039516064832]
+            , [119.45440953161744, 30.48646614394201]
+            , [119.69247157405653, 30.486815730590678]
+            , [119.80953084691987, 30.472457196921]
+            , [119.89535951684763, 30.47496435491533]
+            , [119.84708685095575, 30.36586547405281]
+            , [119.67054883716764, 30.303609976340255]
+            , [119.65234867735501, 30.363784873871822]
+            , [119.54423459602981, 30.480024325865287]
+            , [119.47395594040563, 30.56338903320065]
+            , [119.39707374359091, 30.53546677150925]
+            , [119.57396685725621, 30.574315977713553]
+            , [119.6401686202828, 30.569305689523247]
+        ];
+
+        const markers = coordinates.map((c, index) => {
+            return new maptalks.ui.UIMarker(c, {
+                content: `<div class="marker">${index}</div>`
+            })
+        });
+
+        const markers1 = markers.slice(0, 5);
+        const markers2 = markers.slice(5, Infinity);
+
+        layer.addMarker(markers1);
+
+    </script>
+</body>
+
+</html>
