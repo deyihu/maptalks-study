@@ -27,15 +27,7 @@
     <div id="map" class="container"></div>
 
     <script>
-
-        const tileLayer = new maptalks.TileLayer('base', {
-            // debug: true,
-            urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
-            subdomains: ["a", "b", "c", "d"],
-            debug: true
-        });
-
-        tileLayer._getTilePrjExtent = function (x, y, z) {
+        maptalks.TileLayer.prototype._getTilePrjExtent = function (x, y, z) {
             const map = this.getMap(),
                 res = map._getResolution(z),
                 tileConfig = this._getTileConfig(),
@@ -43,7 +35,7 @@
             return tileExtent;
         };
 
-        tileLayer._getTileExtent = function (x, y, z) {
+        maptalks.TileLayer.prototype._getTileExtent = function (x, y, z) {
             const prjExtent = this._getTilePrjExtent(x, y, z);
             const map = this.getMap();
             const { xmin, ymin, xmax, ymax } = prjExtent;
@@ -52,6 +44,13 @@
             const min = projection.unproject(pmin), max = projection.unproject(pmax);
             return new maptalks.Extent(min, max);
         }
+        
+        const tileLayer = new maptalks.TileLayer('base', {
+            // debug: true,
+            urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+            debug: true
+        });
 
         tileLayer.getTileUrl = function (x, y, z) {
             // replace with your own
