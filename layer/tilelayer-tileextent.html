@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/gcoord.js'></script>
+
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const tileLayer = new maptalks.TileLayer('base', {
+            // debug: true,
+            urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+            debug: true
+        });
+
+        tileLayer._getTilePrjExtent = function (x, y, z) {
+            const map = this.getMap(),
+                res = map._getResolution(z),
+                tileConfig = this._getTileConfig(),
+                tileExtent = tileConfig.getTilePrjExtent(x, y, res);
+            return tileExtent;
+        };
+
+        tileLayer._getTileExtent = function (x, y, z) {
+            const prjExtent = this._getTilePrjExtent(x, y, z);
+            const map = this.getMap();
+            const { xmin, ymin, xmax, ymax } = prjExtent;
+            const pmin = new maptalks.Point(xmin, ymin), pmax = new maptalks.Point(xmax, ymax);
+            const projection = map.getProjection();
+            const min = projection.unproject(pmin), max = projection.unproject(pmax);
+            return new maptalks.Extent(min, max);
+        }
+
+        tileLayer.getTileUrl = function (x, y, z) {
+            // replace with your own
+            // e.g. return a url pointing to your sqlite database
+            if (z === Math.round(map.getZoom())) {
+                addLabels(this._getTileExtent(x, y, z));
+            }
+            return maptalks.TileLayer.prototype.getTileUrl.call(this, x, y, z);
+        };
+
+        var map = new maptalks.Map('map', {
+            center: [0, 0],
+            zoom: 10,
+            // pitch:55
+        });
+        tileLayer.addTo(map);
+
+        function addLabels(extent) {
+            const geos = layer.getGeometries();
+            if (geos.length > 100) {
+                const removeGeos = geos.slice(0, geos.length - 100);
+                layer.removeGeometry(removeGeos);
+            }
+            const { xmin, ymin, xmax, ymax } = extent;
+            const text = `xmin:${xmin}\nymin:${ymin}\nxmax:${xmax}\nymax:${ymax}`;
+            const label = new maptalks.Marker(extent.getCenter(), {
+                symbol: {
+                    textName: text,
+                    textHorizontalAlignment: 'right',
+                    textFill: 'red'
+                }
+            });
+            label.addTo(layer);
+        }
+
+
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
+        // line.addTo(layer);
+
+
+    </script>
+</body>
+
+</html>
