@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D - Draw line&#x27;s altitude wall</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/dat.gui.min.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+        var map = new maptalks.Map('map', {
+            center: [120.61099849, 31.32931976],
+            zoom: 16,
+            pitch: 56,
+            bearing: 0,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+                attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+            })
+        });
+
+        const pointLayer = new maptalks.PointLayer('PointLayer', {
+            enableAltitude: true
+        });
+        const lineLaayer = new maptalks.LineStringLayer('LineStringLayer', {
+            enableAltitude: true
+        });
+        const polygonLayer = new maptalks.PolygonLayer('PolygonLayer', {
+            enableAltitude: true
+        });
+
+        const layers = [polygonLayer, lineLaayer, pointLayer];
+
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true },
+                bloom: {
+                    enable: true,
+                    threshold: 0,
+                    factor: 1,
+                    radius: 0.02,
+                },
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', layers, { sceneConfig });
+        groupLayer.addTo(map);
+
+        function addGeometry(layer, geos, type) {
+            const filterGeos = geos.filter(geo => {
+                return geo.type.includes(type);
+            });
+            layer.addGeometry(filterGeos);
+        }
+
+        fetch('./../assets/data/geometrycollection.geojson').then(res => res.json()).then(geojson => {
+            const geos = maptalks.GeoJSON.toGeometry(geojson);
+            addGeometry(polygonLayer, geos, 'Polygon');
+            addGeometry(lineLaayer, geos, 'LineString');
+            addGeometry(pointLayer, geos, 'Point');
+        })
+
+
+        function iniGui() {
+            var params = {
+                baseLayer: false,
+                texture: false,
+                altitude: 0
+                // randomAltitude
+            };
+            var gui = new dat.GUI({ width: 250 });
+            gui.add(params, 'altitude', 0, 200).onChange(() => {
+                layers.forEach(layer => {
+                    const geos = layer.getGeometries();
+                    geos.forEach(geo => {
+                        geo.setAltitude(params.altitude);
+                    });
+                });
+            })
+        }
+        iniGui();
+
+
+    </script>
+</body>
+
+</html>
