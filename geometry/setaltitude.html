@@ -19,7 +19,7 @@
 <link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
 <script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
 <script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
-<script type='text/javascript' src='./../assets/lib/dat.gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
 
 <body>
 
@@ -87,7 +87,7 @@
                 altitude: 0
                 // randomAltitude
             };
-            var gui = new dat.GUI({ width: 250 });
+            var gui = new lil.GUI({ width: 250 });
             gui.add(params, 'altitude', 0, 200).onChange(() => {
                 layers.forEach(layer => {
                     const geos = layer.getGeometries();

@@ -34,7 +34,7 @@
 <link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' crossorigin="anonymous" />
 <script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
 <script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
-<script type='text/javascript' src='./../assets/lib/dat.gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
 <script type='text/javascript' src='./../assets/lib/html-to-image.min.js'></script>
 <script type='text/javascript' src='./../assets/lib/FileSaver.min.js'></script>
 
@@ -130,7 +130,7 @@
                     });
             }
         };
-        var gui = new dat.GUI({ width: 450 });
+        var gui = new lil.GUI({ width: 450 });
         gui.add(params, 'exportmap').name('only export map');
         gui.add(params, 'exportdom').name('export map and mapui');
         gui.add(params, 'exportpage').name('export dom node');

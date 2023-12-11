@@ -21,7 +21,7 @@
 <script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
 <script type='text/javascript' src='./../assets/lib/three.min.js'></script>
 <script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
-<script type='text/javascript' src='./../assets/lib/dat.gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
 
 <body>
     <div id="map" class="container"></div>
@@ -340,7 +340,7 @@
             var params = {
                 baseLayer: false
             };
-            var gui = new dat.GUI({ width: 250 });
+            var gui = new lil.GUI({ width: 250 });
             gui.add(params, 'baseLayer').name('底图控制').onChange(function () {
                 if (params.baseLayer) {
                     baseLayer.addTo(groupLayer);

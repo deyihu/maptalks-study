@@ -20,7 +20,7 @@
 <link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
 <script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
 <script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
-<script type='text/javascript' src='./../assets/lib/dat.gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
 <script type='text/javascript' src='./../assets/lib/three.min.js'></script>
 <script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
 <script type='text/javascript' src='./../assets/lib/LineMaterial.js'></script>
@@ -265,7 +265,7 @@
                 opacity: 1,
                 altitude: 0
             };
-            var gui = new dat.GUI();
+            var gui = new lil.GUI();
             gui.addColor(params, 'color').name('line color').onChange(function () {
                 linematerial.color.set(params.color);
 

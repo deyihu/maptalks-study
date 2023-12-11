@@ -19,7 +19,7 @@
 <link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
 <script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
 <script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
-<script type='text/javascript' src='./../assets/lib/dat.gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
 
 <body>
     <div id="map" class="container"></div>
@@ -65,7 +65,7 @@
         // function updateMapView() {
         //     map.setView(Object.assign(map.getView(), params))
         // }
-        var gui = new dat.GUI({ width: 250 });
+        var gui = new lil.GUI({ width: 250 });
         gui.add(params, 'animation')
         // gui.add(params, 'pitch', 0, 80).onChange(updateMapView);
         // gui.add(params, 'bearing', -180, 180).onChange(updateMapView);
