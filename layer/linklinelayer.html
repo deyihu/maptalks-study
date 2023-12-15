@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/randomColor.js'></script>
+
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+        // import OverlayLayer from './OverlayLayer';
+        const VectorLayer = maptalks.VectorLayer;
+
+        const options = {
+            'geometryEvents': false,
+            'hitDetect': false,
+            'enableAltitude': true,
+            'forceRenderOnMoving': true,
+            'forceRenderOnZooming': true,
+            'forceRenderOnRotating': true,
+        };
+
+        class LinkLineLayer extends VectorLayer {
+
+        }
+        LinkLineLayer.mergeOptions(options);
+
+
+        const OverlayLayerCanvasRenderer = maptalks.renderer.OverlayLayerCanvasRenderer;
+
+        const LineString = maptalks.LineString;
+
+        class LinkLineLayerCanvasRenderer extends OverlayLayerCanvasRenderer {
+
+            draw() {
+                this._drawLines();
+                return this;
+
+            }
+
+
+            drawOnInteracting() {
+                this._drawLines();
+                return this;
+            }
+
+            _drawLines() {
+                const layer = this.layer;
+                if (!layer) {
+                    return this;
+                }
+                const map = this.layer.getMap();
+                if (!map) {
+                    return this;
+                }
+                this.prepareCanvas();
+                if (!this.context) {
+                    return this;
+                }
+                const lines = this.layer._geoList.filter(g => {
+                    if (g instanceof LineString) {
+                        g._getPainter();
+                        return true;
+                    }
+                    return false;
+                });
+                lines.forEach(line => {
+                    this._drawLinkLine(line);
+                });
+                this.completeRender();
+                return this;
+            }
+
+            _drawLinkLine(line) {
+                const map = this.layer.getMap();
+                const coords = line.getCoordinates();
+                if (!coords || !coords.length) {
+                    return this;
+                }
+                if (!line._painter) {
+                    return this;
+                }
+                const symbolizer = line._painter.symbolizers;
+                const lineSymbol = symbolizer[0];
+                if (!lineSymbol) {
+                    return this;
+                }
+                const altitude = line._painter.getAltitude();
+                const { lineColor, lineWidth, shadowBlur, shadowColor, vertexs, offsetX, offsetY } = lineSymbol.symbol || {};
+                const renderPoints = line._painter.getRenderPoints()[0][0];
+                const glRes = map.getGLRes();
+                const pixel = map._pointAtResToContainerPoint(renderPoints, glRes, altitude);
+                const ctx = this.context;
+                ctx.strokeStyle = lineColor || '#000';
+                ctx.lineWidth = lineWidth || 1;
+                if (shadowBlur) {
+                    ctx.shadowBlur = shadowBlur;
+                    ctx.shadowColor = shadowColor || '#fff';
+                } else {
+                    ctx.shadowBlur = 0;
+                    // delete ctx.shadowColor;
+                }
+                // ctx.shadowColor = shadowColor;
+                ctx.beginPath();
+                ctx.moveTo(pixel.x + (offsetX || 0), pixel.y + (offsetY || 0));
+                if (Array.isArray(vertexs)) {
+                    for (let i = vertexs.length - 1; i >= 0; i--) {
+                        const vertex = vertexs[i];
+                        if (Array.isArray(vertex)) {
+                            const [x, y] = vertex;
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                }
+                ctx.stroke();
+                return this;
+
+            }
+        }
+
+        LinkLineLayer.registerRenderer('canvas', LinkLineLayerCanvasRenderer);
+
+        var map = new maptalks.Map('map', {
+            center: [116.45266161, 39.86656647],
+            zoom: 14,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+            })
+        });
+
+        const layer = new maptalks.VectorLayer('layer', {
+            enableAltitude: true
+        }).addTo(map);
+        const center = map.getCenter();
+        const altitude = 100;
+        center.z = altitude;
+
+        const point = new maptalks.Marker(center.copy()).addTo(layer);
+
+        const linkLayer = new LinkLineLayer('link').addTo(map);
+
+
+        const width = window.innerWidth, height = window.innerHeight;
+
+        function addLines() {
+            const rows = Math.floor(height / 100);
+            const cx = center.x, cy = center.y;
+            for (let i = 1; i <= rows; i++) {
+                const y = i * 100;
+                const x1 = 100, y1 = y;
+                const x2 = x1 + 100, y2 = y;
+                const x3 = x2 + 100, y3 = y2 + Math.random() * 100;
+                const vs = [[x1, y1], [x2, y2], [x3, y3]];
+                const line = new maptalks.LineString([center.copy()], {
+                    symbol: {
+                        lineColor: '#000',
+                        lineWidth: 2,
+                        vertexs: vs
+                    }
+                });
+                line.addTo(linkLayer)
+            }
+
+            for (let i = 1; i <= rows; i++) {
+                const y = i * 100;
+                const x1 = width - 100, y1 = y;
+                const x2 = x1 - 100, y2 = y;
+                const x3 = x2 - 100, y3 = y2 + Math.random() * 100;
+                const vs = [[x1, y1], [x2, y2], [x3, y3]];
+                const line = new maptalks.LineString([center.copy()], {
+                    symbol: {
+                        lineColor: '#000',
+                        lineWidth: 2,
+                        vertexs: vs
+                    }
+                });
+                line.addTo(linkLayer)
+            }
+        }
+
+        addLines();
+
+
+
+
+
+    </script>
+</body>
+
+</html>
