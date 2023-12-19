@@ -94,18 +94,6 @@
 
     <script>
 
-        var map = new maptalks.Map('map', {
-            center: [121.52413252, 31.14154476],
-            zoom: 11,
-            pitch: 0,
-            zoomControl: true,
-            baseLayer: new maptalks.TileLayer('base', {
-                urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
-                subdomains: ["a", "b", "c", "d"],
-                maxAvailableZoom: 18,
-            })
-        });
-
         const { Eventable, Class } = maptalks;
 
         const OPTIONS = {
@@ -251,6 +239,21 @@
         }
 
         MarkerClusterLayer.mergeOptions(OPTIONS);
+
+
+        var map = new maptalks.Map('map', {
+            center: [121.52413252, 31.14154476],
+            zoom: 11,
+            pitch: 0,
+            zoomControl: true,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+                maxAvailableZoom: 18,
+            })
+        });
+
+
 
         const markerClick = (e) => {
             console.log(e.target);
