@@ -86,23 +86,73 @@
         }).addTo(map);
 
         var planeMaterial = new THREE.MeshLambertMaterial({ color, transparent: true, opacity: 0.8, side: 0 });
+
+        function resetTopUV(extrudePolygons) {
+            // console.log(geometries);
+            //计算所有区域的总的包围盒
+            let minx = Infinity, miny = Infinity, maxx = -Infinity, maxy = -Infinity, maxZ = -Infinity;
+            extrudePolygons.forEach(extrudePolygon => {
+                const geometry = extrudePolygon.getObject3d().geometry;
+                const center = extrudePolygon.getObject3d().position;
+                const px = center.x, py = center.y;
+                const position = geometry.attributes.position.array;
+                for (let i = 0, len = position.length; i < len; i += 3) {
+                    const x = position[i] + px, y = position[i + 1] + py, z = position[i + 2];
+                    minx = Math.min(minx, x);
+                    miny = Math.min(miny, y);
+                    maxx = Math.max(maxx, x);
+                    maxy = Math.max(maxy, y);
+                    maxZ = Math.max(maxZ, z);
+                }
+            });
+            console.log(minx, miny, maxx, maxy);
+            //计算每个子区域的每个轮廓坐标点的在这个包围盒的百分比
+            const dx = maxx - minx, dy = maxy - miny;
+            extrudePolygons.forEach(extrudePolygon => {
+                const geometry = extrudePolygon.getObject3d().geometry;
+                const position = geometry.attributes.position.array;
+                const center = extrudePolygon.getObject3d().position;
+                const px = center.x, py = center.y;
+                const uv = geometry.attributes.uv.array;
+                let idx = 0;
+                for (let i = 0, len = position.length; i < len; i += 3) {
+                    const x = position[i] + px, y = position[i + 1] + py, z = position[i + 2];
+                    if (z === maxZ) {
+                        const u = (x - minx) / dx;
+                        const v = (y - miny) / dy;
+                        const index = idx * 2;
+                        uv[index] = u;
+                        uv[index + 1] = v;
+                    }
+                    idx++;
+                }
+            });
+        }
+
+
         function addAreaPlane() {
             fetch('../assets/data/beijing.geojson').then(res => res.json()).then(geojson => {
-                const extent = bbox(geojson);
-                const plane = new AreaPlane(extent, { altitude: 0 }, planeMaterial, threeLayer);
-
+                // const extent = bbox(geojson);
+                // const plane = new AreaPlane(extent, { altitude: 0 }, planeMaterial, threeLayer);
+                const extrudePolygons = geojson.features.map(feature => {
+                    return threeLayer.toExtrudePolygon(feature, { height: 1 }, planeMaterial)
+                });
+                resetTopUV(extrudePolygons);
                 const texture = new THREE.TextureLoader().load('./../assets/image/beijing.png', (texture) => {
                     planeMaterial.map = texture;
                     planeMaterial.needsUpdate = true;
-                    threeLayer.addMesh(plane);
+                    threeLayer.addMesh(extrudePolygons);
+                    // threeLayer.addMesh(plane);
                 });
                 texture.needsUpdate = true; //使用贴图时进行更新
                 texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
                 // texture.repeat.set(0.002, 0.002);
                 texture.repeat.set(1, 1);
             });
+
+
         }
-        var material = new THREE.MeshLambertMaterial({ color, transparent: false });
+        var material = new THREE.MeshLambertMaterial({ color, transparent: true, opacity: 0.8 });
 
         function flatPolygon2Lines(geojson) {
             const results = {
@@ -167,6 +217,7 @@
             var params = {
                 color: planeMaterial.color.getStyle(),
                 opacity: planeMaterial.opacity,
+                wallColor: material.color.getStyle(),
                 lineColor
             };
             var gui = new lil.GUI();
@@ -177,10 +228,13 @@
             });
             gui.add(params, 'opacity', 0, 1).onChange(function () {
                 planeMaterial.opacity = params.opacity;
-                // meshs.forEach(function (mesh) {
-                //     mesh.setSymbol(material);
-                // });
+                material.opacity = params.opacity;
+  
             });
+            // gui.addColor(params, 'wallColor').name('wallColor').onChange(function () {
+            //     planeMaterial.color.set(params.color);
+            //     material.color.set(params.color);
+            // });
             gui.addColor(params, 'lineColor').onChange(function () {
                 layer.getGeometries().forEach(p => {
                     p.updateSymbol({
