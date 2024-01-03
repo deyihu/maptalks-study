@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/randomColor.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            center: [121.47400292, 31.22976969],
+            zoom: 11,
+            pitch: 55,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+            })
+        });
+        const layer = new maptalks.VectorLayer('layer', {
+            enableAltitude: true
+        }).addTo(map);
+
+        const canvas = document.createElement('canvas');
+        function measureTextWidth(name, fontSize = 14) {
+            const ctx = canvas.getContext('2d');
+            ctx.font = `${fontSize}px serif`;
+            return ctx.measureText(name).width;
+
+        }
+
+        const point = new maptalks.Marker(map.getCenter(), {
+            properties: {
+                name: 0701,
+                type: '城镇住宅用地'
+            },
+            // symbol: [
+            //     {
+            //         markerType: 'rectangle'
+            //     },
+            //     {
+            //         textSize: 22,
+            //         textName: '{name}'
+            //     }
+            // ]
+        }).addTo(layer);
+
+        const fontSize = 22;
+        const properties = point.getProperties();
+        const { name, type } = properties;
+        const nameWidth = measureTextWidth(type, fontSize);
+        const symbol = [
+            {
+                markerType: 'rectangle',
+                markerWidth: nameWidth + 30,
+                markerHeight: fontSize * 4,
+                markerHorizontalAlignment: 'middle',
+                markerVerticalAlignment: 'top',
+                markerLineWidth: 0,
+                markerFill: '#CBE7F5'
+            },
+            {
+                markerType: 'rectangle',
+                markerWidth: nameWidth + 20,
+                markerHeight: fontSize * 2,
+                markerHorizontalAlignment: 'middle',
+                markerVerticalAlignment: 'top',
+                markerLineWidth: 2,
+                markerFill: '#CBE7F5'
+            },
+            {
+                markerType: 'rectangle',
+                markerWidth: nameWidth + 30,
+                markerHeight: fontSize * 2,
+                markerHorizontalAlignment: 'middle',
+                markerVerticalAlignment: 'top',
+                markerLineColor: '#CBE7F5',
+                markerLineWidth: 0,
+                markerFill: '#CBE7F5',
+            },
+            {
+                textSize: fontSize,
+                textName: '{name}',
+                textDy: -fontSize * 3
+            },
+            {
+                textDy: -fontSize,
+                textSize: fontSize,
+                textName: '{type}'
+            },
+            {
+                markerType: 'ellipse',
+                markerFill: 'red',
+                markerWidth: 4,
+                markerHeight: 4
+            }
+        ];
+        point.setSymbol(symbol);
+
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
