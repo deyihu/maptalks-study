@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        /* background-color: black; */
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/colorin.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            center: [120.59421765, 31.27427065],
+            zoom: 18,
+            pitch: 60,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+                maxAvailableZoom: 18,
+            })
+        });
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            identifyCountOnEvent: 1
+            // forceRenderOnMoving: true,
+            // forceRenderOnRotating: true
+        });
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            scene.add(new THREE.AmbientLight('#fff', 0.3));
+            addBuildings();
+            addTree();
+            addPaths();
+            animation();
+
+        };
+        // threeLayer.addTo(map);
+        // 添加到GroupGLLayer中
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true },
+                bloom: {
+                    enable: true,
+                    threshold: 0,
+                    factor: 1,
+                    radius: 0.02,
+                },
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [threeLayer], { sceneConfig });
+        groupLayer.addTo(map);
+
+        function addTree() {
+            const style = {
+                style: [{
+                    filter: true,
+                    renderPlugin: {
+                        type: "gltf-lit",
+                        dataConfig: {
+                            type: "native-point",
+                        },
+                        sceneConfig: {
+                            gltfAnimation: {
+                                enable: true,
+                            },
+                        },
+                    },
+                    symbol: {
+                        // markerFill: "#0f0",
+                        // markerRotationAlignment: "line",
+                        url: "./../assets/data/tree/tree.gltf",
+                        // markerPlacement: "vertex-last",
+                        // rotationZ: 90,
+                        // anchorZ: "middle",
+                        // translationX: -120,
+                        scaleX: 0.5,
+                        scaleY: 0.5,
+                        scaleZ: 0.6,
+                    },
+                }
+                ],
+            };
+
+            const vt = new maptalks.GeoJSONVectorTileLayer("vt", {
+                data: "./../assets/data/trees.geojson",
+                style,
+            });
+            groupLayer.addLayer(vt);
+        }
+
+        const highMaterial = new THREE.MeshBasicMaterial({ color: '#fff', transparent: true });
+
+
+        const material = new THREE.MeshPhongMaterial({ color: '#fff' });
+
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.load('./../assets/image/building1.jpg', (texture) => {
+            // texture.needsUpdate = true; //使用贴图时进行更新
+            // texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            // // texture.repeat.set(0.002, 0.002);
+            // texture.repeat.set(1, 1);
+            // material.map = texture;
+            // material.needsUpdate = true;
+        });
+
+        textureLoader.load('./../assets/image/road.jpg', (texture) => {
+            texture.needsUpdate = true; //使用贴图时进行更新
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            // texture.repeat.set(0.002, 0.002);
+            texture.repeat.set(1, 1);
+            highMaterial.map = texture;
+            highMaterial.needsUpdate = true;
+        });
+
+
+        function addBuildings() {
+            fetch('../assets/data/buildingsfilter-test.geojson').then(res => res.json()).then(geojson => {
+                const polygons = maptalks.GeoJSON.toGeometry(geojson);
+                const extrudePolygons = polygons.map(p => {
+                    const height = p.getProperties().height;
+                    const extrudePolygon = threeLayer.toExtrudePolygon(p, { height, topColor: '#fff', asynchronous: true }, material);
+                    return extrudePolygon;
+                });
+                threeLayer.addMesh(extrudePolygons);
+            })
+        }
+
+
+        function addPaths(polygons) {
+            fetch('../assets/data/briges.geojson').then(res => res.json()).then(geojson => {
+                geojson.features = geojson.features.filter(f => {
+                    return f.geometry.type.includes('LineString');
+                })
+                const lines = maptalks.GeoJSON.toGeometry(geojson);
+                const paths = lines.map(p => {
+                    const path = threeLayer.toPath(p, { width: 6, bloom: false }, highMaterial);
+                    return path;
+                });
+                threeLayer.addMesh(paths);
+            })
+        }
+
+
+
+
+
+        function animation() {
+            // layer animation support Skipping frames
+            threeLayer._needsUpdate = !threeLayer._needsUpdate;
+            if (threeLayer._needsUpdate) {
+                threeLayer.redraw();
+            }
+            if (highMaterial.map) {
+                highMaterial.map.offset.x -= 0.002;
+            }
+            requestAnimationFrame(animation);
+        }
+
+
+
+
+
+    </script>
+</body>
+
+</html>
