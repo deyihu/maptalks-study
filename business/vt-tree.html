@@ -35,6 +35,7 @@
             center: [120.59421765, 31.27427065],
             zoom: 18,
             pitch: 60,
+            zoomControl: true,
             baseLayer: new maptalks.TileLayer('base', {
                 urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
                 subdomains: ["a", "b", "c", "d"],
@@ -87,6 +88,7 @@
                             type: "native-point",
                         },
                         sceneConfig: {
+                            minZoom: 17,
                             gltfAnimation: {
                                 enable: true,
                             },
