@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            center: [116.45266161, 39.86656647],
+            zoom: 14,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+            })
+        });
+
+        function formatLabelContent(value) {
+            let m = value / 666.67;
+            m = Math.round(m * 100);
+            m = m / 100;
+            return m + '亩'
+        }
+
+        const areaTool = new maptalks.AreaTool({
+            formatLabelContent,
+            symbol: {
+                lineColor: "#1bbc9b",
+                lineWidth: 2,
+                polygonFill: "#fff",
+                polygonOpacity: 0.3,
+            },
+            vertexSymbol: {
+                markerType: "ellipse",
+                markerFill: "#34495e",
+                markerLineColor: "#1bbc9b",
+                markerLineWidth: 3,
+                markerWidth: 10,
+                markerHeight: 10,
+            },
+            labelOptions: {
+                textSymbol: {
+                    textFaceName: "monospace",
+                    textFill: "#fff",
+                    textLineSpacing: 1,
+                    textHorizontalAlignment: "right",
+                    textDx: 15,
+                },
+                boxStyle: {
+                    padding: [6, 2],
+                    symbol: {
+                        markerType: "square",
+                        markerFill: "#000",
+                        markerFillOpacity: 0.9,
+                        markerLineColor: "#b4b3b3",
+                    },
+                },
+            },
+            clearButtonSymbol: [{
+                markerType: "square",
+                markerFill: "#000",
+                markerLineColor: "#b4b3b3",
+                markerLineWidth: 2,
+                markerWidth: 15,
+                markerHeight: 15,
+                markerDx: 22,
+            },
+            {
+                markerType: "x",
+                markerWidth: 10,
+                markerHeight: 10,
+                markerLineColor: "#fff",
+                markerDx: 22,
+            },
+            ],
+            language: "",
+        }).addTo(map);
+
+    </script>
+</body>
+
+</html>
