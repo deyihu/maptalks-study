@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>图形样式 - 颜色插值</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+
+    .panel {
+        width: 100px;
+        height: 100px;
+        background-color: black;
+        /* position: absolute; */
+    }
+</style>
+<link rel="stylesheet" href="https://maptalks.com/api/maptalks.css" />
+<script type="text/javascript" src="https://maptalks.com/api/maptalks.min.js"></script>
+<script type="text/javascript" src="https://maptalks.com/api/maptalks-gl-layers.js"></script>
+<script type="text/javascript" src="./../assets/lib/lil-gui.min.js"></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+        const map = new maptalks.Map("map", {
+            center: [0, 0],
+            zoom: 2,
+            baseLayer: new maptalks.TileLayer("tile", {
+                urlTemplate: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+                subdomains: ["a", "b", "c", "d"],
+                attribution: "&copy; <a href='http://osm.org'>OpenStreetMap</a> contributors, &copy; <a href='https://carto.com/'>CARTO</a>",
+            }),
+        });
+
+        const layer = new maptalks.VectorLayer("v", {
+            'forceRenderOnMoving': true,
+            'forceRenderOnZooming': true,
+            'forceRenderOnRotating': true,
+            progressiveRender: true,
+            progressiveRenderCount: 1000,
+            progressiveRenderDebug: false,
+        }).addTo(map);
+        fetch("./../assets/data/population.json")
+            .then((res) => {
+                return res.json();
+            })
+            .then((json) => {
+                const points = [];
+                let max = -Infinity;
+                json.forEach((d, index) => {
+                    const x = d[0],
+                        y = d[1],
+                        value = d[2];
+                    max = Math.max(value, max);
+                    const point = new maptalks.Marker([x, y], {
+                        cursor: 'zoom-in',
+                        id: index,
+                        properties: {
+                            value: value,
+                        },
+                        symbol: {
+                            markerWidth: 2,
+                            markerHeight: 2,
+                            markerType: "ellipse",
+                            markerFill: {
+                                type: "color-interpolate",
+                                property: "value",
+                                stops: [
+                                    [0, "green"],
+                                    [50, "yellow"],
+                                    [360, "red"],
+                                ],
+                            },
+                            markerLineWidth: 0,
+                        },
+                    });
+                    points.push(point);
+                    point.on('mousemove', e => {
+                        console.log(e.target.getId());
+                    })
+                });
+                layer.addGeometry(points);
+            });
+
+        var params = {
+            progressiveRender: layer.options.progressiveRender,
+            pitch: 0,
+            bearing: 0,
+
+        };
+        var gui = new lil.GUI({ width: 250 });
+        gui.add(params, 'progressiveRender').onChange(() => {
+            layer.options.progressiveRender = params.progressiveRender;
+        })
+
+    </script>
+</body>
+
+</html>
