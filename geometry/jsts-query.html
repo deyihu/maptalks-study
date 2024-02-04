@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+
+    .panel {
+        width: 100px;
+        height: 100px;
+        background-color: black;
+        position: absolute;
+        z-index: 1;
+    }
+
+    .deyihu-loading-container {
+        width: 100%;
+        height: 100%;
+        background-color: #000000c2;
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        text-align: center;
+        z-index: 1000000;
+    }
+
+    .deyihu-loading-message {
+        position: absolute;
+        color: white;
+        font-size: 15px;
+        width: 100px;
+        text-align: center;
+        height: 40px;
+        left: 50%;
+        /* right: 50%; */
+        top: 50%;
+        margin-left: -50px;
+        margin-top: -55px;
+    }
+
+    .deyihu-loading {
+        width: 30px;
+        height: 30px;
+        border: 5px solid #fff;
+        border-top-color: transparent;
+        border-radius: 100%;
+        position: absolute;
+        left: 50%;
+        /* right: 50%; */
+        top: 50%;
+        margin-left: -15px;
+        margin-top: -15px;
+
+        animation: loading-circle infinite 0.75s linear;
+    }
+
+    @keyframes loading-circle {
+        0% {
+            transform: rotate(0);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/jsts.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+
+<body>
+    <div class="panel"></div>
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const geoJSONRender = new jsts.io.GeoJSONReader();
+
+
+        const LOADING_ID = 'deyihu-loading-container';
+
+        function createDom(tagName) {
+            return document.createElement(tagName);
+        }
+
+        function showLoading(message = 'loading') {
+            const dom = document.getElementById(LOADING_ID);
+            if (dom) {
+                return;
+            }
+            const div = createDom('div');
+            div.id = LOADING_ID;
+            div.className = LOADING_ID;
+            let html;
+            if (message) {
+                html = `<div class="deyihu-loading-message" id="deyihu-loading-message">${message}</div> `;
+            }
+            html += ' <div class="deyihu-loading"></div> ';
+            div.innerHTML = html;
+            document.body.appendChild(div);
+        }
+
+        function hideLoading() {
+            const dom = document.getElementById(LOADING_ID);
+            if (!dom) {
+                return;
+            }
+            document.body.removeChild(dom);
+        }
+
+        function updateLoadingMessage(message) {
+            const dom = document.getElementById('deyihu-loading-message');
+            if (!dom) {
+                return;
+            }
+            dom.innerHTML = message;
+        }
+
+
+
+        var map = new maptalks.Map('map', {
+            "center": [116.32180643, 40.07052937], "zoom": 9.247956995600642, "pitch": 0, "bearing": 0,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+            })
+        });
+
+        const { runTaskAsync } = maptalks.MicroTask;
+
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
+        const debugLayer = new maptalks.VectorLayer('debugLayer', {
+            progressiveRender: true
+        }).addTo(map);
+
+        const minx = 73.66, maxx = 135.05, miny = 3.85, maxy = 53.55;
+
+        const TENK = 10000;
+        function randomFeatures(callback) {
+            const dx = maxx - minx, dy = maxy - miny;
+            const data = [];
+            const total = 1000 * TENK;
+            const pageSize = 10 * TENK;
+            const count = Math.ceil(total / pageSize);
+            const run = () => {
+                for (let i = 0, len = pageSize; i < len; i++) {
+                    const x = Math.random() * dx + minx;
+                    const y = Math.random() * dy + miny;
+                    data.push({
+                        type: 'Feature',
+                        geometry: {
+                            coordinates: [x, y],
+                            type: 'Point'
+                        }
+                    })
+                }
+            };
+            runTaskAsync({ count, run }).then(() => {
+                callback(data);
+            })
+        }
+
+        let beijingGeo;
+        function loadBeiJingData() {
+            fetch('./../assets/data/beijing.geojson').then(res => res.json()).then(geojson => {
+                const polygons = maptalks.GeoJSON.toGeometry(geojson);
+                layer.addGeometry(polygons);
+                beijingGeo = geoJSONRender.read(geojson.features[0]);
+            });
+        }
+        loadBeiJingData();
+
+        function query() {
+            showLoading('计算ing...');
+            debugLayer.clear();
+            const time = 'randomFeatures';
+            console.time(time);
+            randomFeatures((data) => {
+                console.timeEnd(time);
+                const time1 = 'sp query';
+                console.time(time1);
+                const pageSize = 2 * TENK;
+                const count = Math.ceil(data.length / pageSize);
+                let page = 1;
+                const run = () => {
+                    const start = (page - 1) * pageSize, end = page * pageSize;
+                    const list = data.slice(start, end);
+                    const geos = list.filter(feature => {
+                        const geo = geoJSONRender.read(feature);
+                        return beijingGeo.geometry.intersects(geo.geometry);
+                    });
+                    page++;
+                    return geos;
+                };
+                runTaskAsync({ count, run }).then(result => {
+                    console.timeEnd(time1);
+                    const features = [];
+                    result.forEach(f => {
+                        for (let i = 0, len = f.length; i < len; i++) {
+                            features.push(f[i]);
+                        }
+                    });
+                    const points = maptalks.GeoJSON.toGeometry(features, (geo) => {
+                        geo.setSymbol({
+                            markerType: "ellipse",
+                            markerWidth: 6,
+                            markerHeight: 6
+                        });
+                    });
+                    console.log(points);
+                    debugLayer.addGeometry(points);
+                    hideLoading();
+                })
+            })
+
+        }
+
+        let left = 0;
+        function animation() {
+            left += 1;
+            document.querySelector(".panel").style.marginLeft = `${left}px`;
+            if (left > 500) {
+                left = 0;
+            }
+            requestAnimationFrame(animation);
+        }
+
+        animation();
+
+        var params = {
+            query,
+            zoom: map.getZoom(),
+            pitch: 0,
+            bearing: 0,
+        };
+        var gui = new lil.GUI({ width: 250 });
+        gui.add(params, 'query').name('开始计算');
+
+
+
+
+    </script>
+</body>
+
+</html>
