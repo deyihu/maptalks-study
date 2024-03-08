@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/randomColor.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            center: [121.47400292, 31.22976969],
+            zoom: 17,
+            pitch: 55,
+            zoomControl: true,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+            })
+        });
+
+        const gltfLayer = new maptalks.GLTFLayer('layer1');
+
+        const groupLayer = new maptalks.GroupGLLayer('group', [gltfLayer]).addTo(map);
+
+        const center = map.getCenter().toArray();
+        const point = new maptalks.GLTFMarker(center, {
+            symbol: {
+                url: "./../assets/data/alien.gltf",
+                modelHeight: 50, //model height,Unit is meters
+                scaleX: 1,
+                scaleY: 1,
+                scaleZ: 1,
+                rotationZ: 180,
+                visible: {
+                    //mock minZoom=15,maxZoom=18
+                    stops: [
+                        [1, false],
+                        [15.0, true],
+                        [18.01, false],
+                        [30, false],
+                    ],
+                    type: "interval",
+                }
+            }
+        });
+        point.addTo(gltfLayer);
+
+
+
+        const layer = new maptalks.VectorLayer('layer', {
+            // enableAltitude: true
+        }).addTo(map);
+
+        const marrker = new maptalks.Marker(map.getCenter(), {
+            symbol: {
+                markerWidth: 20,
+                markerHeight: 20,
+                markerType: 'ellipse',
+                opacity: {
+                    stops: [
+                        [1, 0],
+                        [15, 1],
+                        [18.1, 0],
+                        [30, 0],
+                    ],
+                    type: "interval",
+                }
+            }
+        }).addTo(layer);
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
