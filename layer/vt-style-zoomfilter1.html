@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        /* background-color: black; */
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const map = new maptalks.Map("map", {
+            "center": [114.24099989, 30.59529571], "zoom": 13.000468649269873, "pitch": 0, "bearing": 0,
+            zoomControl: true
+            // centerCross: true,
+            // baseLayer: new maptalks.TileLayer("base", {
+            //     // debug: true,
+            //     urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            //     subdomains: ["a", "b", "c", "d"],
+
+            //     spatialReference: {
+            //         projection: 'EPSG:3857'
+            //     },
+            // }),
+        });
+
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+        });
+        const style = {
+            style: [
+                {
+                    filter: ['all',
+                        ['contains', 'name', '江']
+                    ],
+                    renderPlugin: {
+                        dataConfig: {
+                            type: "fill",
+                        },
+                        sceneConfig: {
+                            minZoom: 0,
+                            maxZoom: 11.01
+                        },
+                        type: "fill",
+                    },
+                    symbol: {
+                        polygonFill: "#89c2be",
+                        polygonOpacity: 1,
+                    },
+                },
+                {
+                    filter: ['all',
+                        ['contains', 'name', '江']
+                    ],
+                    renderPlugin: {
+                        type: "lit",
+                        dataConfig: {
+                            type: "3d-extrusion",
+                            altitudeProperty: "height",
+                            minHeightProperty: "min_height",
+                            altitudeScale: 1,
+                            defaultAltitude: 1000,
+                            topThickness: 0,
+                            top: true,
+                            side: true
+                        },
+                        sceneConfig: {
+                            minZoom: 11.02,
+                            maxZoom: 30
+                        }
+                    },
+                    symbol: {
+                        polygonFill: "red",
+                        polygonOpacity: 1,
+                    },
+                },
+            ],
+
+        };
+
+        const layer = new maptalks.GeoJSONVectorTileLayer("geo", {
+            data: "./../assets/data/area.geojson",
+            style,
+        });
+
+        layer.on("dataload", (e) => {
+            // map.fitExtent(e.extent);
+        });
+
+        const groupGLLayer = new maptalks.GroupGLLayer("gl", [layer], {
+            sceneConfig: {
+                environment: {
+                    enable: true,
+                    mode: 1,
+                    level: 0,
+                    brightness: 0
+                },
+                postProcess: {
+                    enable: true,
+                    bloom: {
+                        enable: true,
+                        threshold: 0,
+                        factor: 0.6,
+                        radius: 1,
+                    },
+                }
+            }
+        }).addTo(map);
+
+
+
+    </script>
+</body>
+
+</html>
