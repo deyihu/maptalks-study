@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<!-- <script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script> -->
+<script type='text/javascript' src='./../assets/lib/colorin.js'></script>
+
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const fun1 = function (exports) {
+
+
+            exports.initialize = function () {
+                console.log("tileimagebitmap init");
+            };
+
+            var canvas;
+            var tempCanvas;
+            var notfindImage;
+
+            const TILESIZE = 256;
+
+            function get404Image() {
+                if (notfindImage) {
+                    return notfindImage;
+                }
+                if (!notfindImage) {
+                    canvas = createCanvas();
+                    canvas.width = TILESIZE;
+                    canvas.height = TILESIZE;
+
+                }
+                var ctx = canvas.getContext('2d');
+                ctx.font = "bold 48px serif";
+                ctx.textAlign = 'center';
+                ctx.strokeStyle = 'gray';
+                ctx.fillText('404', canvas.width / 2, canvas.height / 2);
+                ctx.rect(0, 0, canvas.width, canvas.height);
+                ctx.stroke();
+                notfindImage = canvas.transferToImageBitmap();
+                return notfindImage;
+            }
+
+            function createCanvas() {
+                return new OffscreenCanvas(1, 1);
+            }
+
+            function clearCanvas(ctx) {
+                const canvas = ctx.canvas;
+                const { width, height } = canvas;
+                ctx.clearRect(0, 0, width, height);
+            }
+
+            // https://juejin.cn/post/7119893640264024071
+            function custom(imgdata) {
+                const data = imgdata.data;
+                for (let i = 0, len = data.length; i < len; i += 4) {
+                    const grayscale = data[i] * 0.3 + data[i + 1] * 0.6 + data[i + 2] * 0.1
+                    data[i + 0] = grayscale // r，红通道
+                    data[i + 1] = grayscale // g，绿通道
+                    data[i + 2] = grayscale // b，蓝通道
+                }
+            }
+
+            exports.onmessage = function (msg, postResponse) {
+                const url = msg.data.url;
+                tempCanvas = tempCanvas || createCanvas();
+                tempCanvas.width = TILESIZE;
+                tempCanvas.height = TILESIZE;
+                const tempCtx = tempCanvas.getContext("2d");
+                clearCanvas(tempCtx);
+                //fetch image
+                fetch(url)
+                    .then((res) => res.arrayBuffer())
+                    .then((arrayBuffer) => {
+                        const blob = new Blob([arrayBuffer]);
+                        createImageBitmap(blob).then((bitmap) => {
+                            const { width, height } = bitmap;
+                            tempCtx.drawImage(bitmap, 0, 0);
+                            const imgdata = tempCtx.getImageData(0, 0, width, height);
+                            custom(imgdata);
+                            canvas = canvas || createCanvas();
+                            canvas.width = width;
+                            canvas.height = height;
+                            var ctx = canvas.getContext('2d');
+                            clearCanvas(ctx);
+                            ctx.putImageData(imgdata, 0, 0);
+                            const image = canvas.transferToImageBitmap();
+                            postResponse(null, { image }, [image]);
+                        }).catch(error => {
+                            createImageBitmap(get404Image()).then(image => {
+                                postResponse(null, { image }, [image]);
+                            })
+                        })
+                    })
+                    .catch((error) => {
+                        createImageBitmap(get404Image()).then(image => {
+                            postResponse(null, { image }, [image]);
+                        })
+                    });
+            };
+        };
+        const workerKey = "tileimagebitmap";
+        maptalks.registerWorkerAdapter(workerKey, fun1);
+        const actor = new maptalks.worker.Actor(workerKey);
+
+        const baseLayer = new maptalks.TileLayer('base', {
+            urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+            bufferPixel: 1
+        })
+
+
+        baseLayer.on('renderercreate', function (e) {
+            //load tile image
+            //   img(Image): an Image object
+            //   url(String): the url of the tile
+            e.renderer.loadTileBitmap = function (url, tile, callback) {
+                actor.send({ url: maptalks.Util.getAbsoluteURL(url) }, null, (error, message) => {
+                    callback(message.image);
+                });
+            };
+        });
+
+        var map = new maptalks.Map('map', {
+            "center": [120.05409411, 30.16489579], "zoom": 12.809955844160632, "pitch": 0, "bearing": 0,
+            baseLayer
+        });
+
+
+    </script>
+</body>
+
+</html>
