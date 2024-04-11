@@ -145,6 +145,9 @@
 
         const layer = new maptalks.VectorLayer('layer').addTo(map);
         const debugLayer = new maptalks.VectorLayer('debugLayer', {
+            forceRenderOnMoving: true,
+            forceRenderOnZooming: true,
+            forceRenderOnRotating: true,
             progressiveRender: true
         }).addTo(map);
 
