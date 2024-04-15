@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type='text/javascript' src='./../assets/lib/gcoord.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            center: [116.33607780651141,
+                39.89606849343474],
+            zoom: 17,
+            pitch: 60,
+        });
+
+        const layer1 = new maptalks.TileLayer('base', {
+            urlTemplate: "https://wprd04.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scl=1&style=8&ltype=11",
+            subdomains: ["a", "b", "c", "d"],
+        });
+
+        const layer2 = new maptalks.TileLayer('base1', {
+            urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+            attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+        });
+
+        const groupGLLayer = new maptalks.GroupGLLayer("gl", [layer1, layer2], {
+
+        }).addTo(map);
+
+        var params = {
+            sorted: false,
+            sortLayer: () => {
+                if (params.sorted) {
+                    layer1.setZIndex(-1);
+                    layer2.setZIndex(1);
+                } else {
+                    layer1.setZIndex(1);
+                    layer2.setZIndex(-1);
+                }
+                params.sorted = !params.sorted;
+            }
+        };
+        var gui = new lil.GUI({ width: 250 });
+        gui.add(params, 'sortLayer');
+
+
+
+    </script>
+</body>
+
+</html>
