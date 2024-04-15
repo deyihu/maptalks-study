@@ -114,9 +114,7 @@ function getPolygons(geometry) {
     const mGeometry = gcoord.transform(geometry, gcoord.WGS84, gcoord.WebMercator);
     const { type, coordinates } = mGeometry;
     if (type === 'MultiPolygon') {
-        return coordinates.map(c => {
-            return c[0];
-        })
+        return coordinates;
     }
     return [coordinates];
 }
@@ -126,34 +124,37 @@ function polygonPixels(tiles, geometry, width, height) {
     const polygons = getPolygons(geometry);
     const [minx, miny, maxx, maxy] = tilesBBOX(tiles);
     const dx = (maxx - minx), dy = (maxy - miny);
-    return polygons.map(p => {
-        return p.map(c => {
-            const [mx, my] = c;
-            const x = (mx - minx) / dx * width;
-            const y = height - (my - miny) / dy * height;
-            return [x, y];
+    return polygons.map(polygon => {
+        return polygon.map(ring => {
+            return ring.map(c => {
+                const [mx, my] = c;
+                const x = (mx - minx) / dx * width;
+                const y = height - (my - miny) / dy * height;
+                return [x, y];
+            });
         });
     })
-
 }
 
-function clipCanvas(ctx, xys) {
+function clipCanvas(ctx, polygons) {
     // ctx.lineWidth = 0;
     let minx = Infinity, miny = Infinity, maxx = -Infinity, maxy = -Infinity;
-    xys.forEach(xy => {
-        ctx.beginPath();
-        for (let i = 0, len = xy.length; i < len; i++) {
-            const [x, y] = xy[i];
-            minx = Math.min(minx, x);
-            miny = Math.min(miny, y);
-            maxx = Math.max(maxx, x);
-            maxy = Math.max(maxy, y);
-            if (i === 0) {
-                ctx.moveTo(x, y);
-            } else {
-                ctx.lineTo(x, y);
+    ctx.beginPath();
+    polygons.forEach(polygon => {
+        polygon.forEach(ring => {
+            for (let i = 0, len = ring.length; i < len; i++) {
+                const [x, y] = ring[i];
+                minx = Math.min(minx, x);
+                miny = Math.min(miny, y);
+                maxx = Math.max(maxx, x);
+                maxy = Math.max(maxy, y);
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
             }
-        }
+        });
     });
     // ctx.stroke();
     ctx.clip();
