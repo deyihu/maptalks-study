@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='https://maptalks.com/api/maptalks.min.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            "center": [121.44224697, 31.12893667], "zoom": 9.309009504457512, "pitch": 0, "bearing": 0,
+            // seamlessZoom: false,
+            // cameraInfiniteFar: true,
+            zoomControl: true,
+            // debugSky: true
+        });
+
+        const layer = new maptalks.TileLayer('base', {
+            //other server url
+            //https://github.com/digidem/leaflet-bing-layer
+            urlTemplate: "https://ecn.{subdomain}.tiles.virtualearth.net/tiles/a{quadkey}.jpeg?g=14583",
+            subdomains: ["t0", "t1", "t2", "t3"],
+            maxAvailableZoom: 18,
+            maskClip: true,
+        });
+
+        function toQuadKey(x, y, z) {
+            var index = ''
+            for (var i = z; i > 0; i--) {
+                var b = 0
+                var mask = 1 << (i - 1)
+                if ((x & mask) !== 0) b++
+                if ((y & mask) !== 0) b += 2
+                index += b.toString()
+            }
+            return index
+        }
+
+        layer.getTileUrl = function (x, y, z) {
+            var quadkey = toQuadKey(x, y, z);
+            const urlTemplate = this.options.urlTemplate;
+            let domain = '';
+            if (this.options['subdomains']) {
+                const subdomains = this.options['subdomains'];
+                if (Array.isArray(subdomains)) {
+                    const length = subdomains.length;
+                    let s = (x + y) % length;
+                    if (s < 0) {
+                        s = 0;
+                    }
+                    domain = subdomains[s];
+                }
+            }
+            return urlTemplate.replace('{quadkey}', quadkey).replace('{subdomain}', domain);
+        }
+
+        layer.addTo(map);
+
+
+    </script>
+</body>
+
+</html>
