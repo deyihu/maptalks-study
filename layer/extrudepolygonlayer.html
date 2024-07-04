@@ -83,8 +83,9 @@
             const polygons = maptalks.GeoJSON.toGeometry(geojson);
             polygons.forEach(polygon => {
                 polygon.setSymbol({
+                    polygonOpacity: 0.5,
                     topPolygonFill: '#fff',
-                    bottomPolygonFill: '#000',
+                    bottomPolygonFill: 'red',
                 });
                 polygon.setProperties({
                     height: 1000
