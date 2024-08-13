@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Geometry - Marker</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+        var map = new maptalks.Map('map', {
+            center: [120, 31.498568],
+            zoom: 11,
+            limitExtentOnMaxExtent: true,
+            zoomControl: true,
+        });
+
+        map.on('click', e => {
+            // console.log(e);
+        })
+        const baseLayer = new maptalks.TileLayer('base', {
+            //other server url
+            //https://github.com/digidem/leaflet-bing-layer
+            urlTemplate: "https://ecn.{subdomain}.tiles.virtualearth.net/tiles/a{quadkey}.jpeg?g=14583",
+            subdomains: ["t0", "t1", "t2", "t3"],
+            maxAvailableZoom: 18,
+            maskClip: true,
+        });
+
+        function toQuadKey(x, y, z) {
+            var index = ''
+            for (var i = z; i > 0; i--) {
+                var b = 0
+                var mask = 1 << (i - 1)
+                if ((x & mask) !== 0) b++
+                if ((y & mask) !== 0) b += 2
+                index += b.toString()
+            }
+            return index
+        }
+
+        baseLayer.getTileUrl = function (x, y, z) {
+            var quadkey = toQuadKey(x, y, z);
+            const urlTemplate = this.options.urlTemplate;
+            let domain = '';
+            if (this.options['subdomains']) {
+                const subdomains = this.options['subdomains'];
+                if (Array.isArray(subdomains)) {
+                    const length = subdomains.length;
+                    let s = (x + y) % length;
+                    if (s < 0) {
+                        s = 0;
+                    }
+                    domain = subdomains[s];
+                }
+            }
+            return urlTemplate.replace('{quadkey}', quadkey).replace('{subdomain}', domain);
+        }
+
+        baseLayer.addTo(map);
+
+
+
+
+        var bbox = [118.681640625, 30.929531859423406, 121.318359375, 32.06416211965538];
+        // var bbox = [-180, -85, 180, 85];
+        map.setMaxExtent(bbox);
+
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
+
+        const debugBBOX = bbox.map((v, index) => {
+            const offset = 0.01;
+            if (index < 2) {
+                return v + offset;
+            }
+            return v - offset;
+        })
+
+        const line = new maptalks.LineString(new maptalks.Extent(debugBBOX).toArray(), {
+            symbol: {
+                lineDasharray: [5, 5],
+                lineColor: 'red'
+            }
+        }).addTo(layer);
+
+        const polygon = new maptalks.Polygon([map.getMaxExtent().toArray()]);
+        baseLayer.setMask(polygon);
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>

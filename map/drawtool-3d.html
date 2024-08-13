@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+<script type="text/javascript" src="https://maptalks.com/api/transcoders.draco.js"></script>
+
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+
+        var map = new maptalks.Map('map', {
+         "center":[108.95939933,34.21960059],"zoom":18,"pitch":67.65000000000006,"bearing":1.3316772253048157,
+            // maxFPS: 30,
+            // baseLayer: new maptalks.TileLayer('base', {
+            //     repeatWorld: false,
+            //     urlTemplate: "/autonavi/appmaptile?style=6&x={x}&y={y}&z={z}",
+            //     // urlTemplate: "/arcgisonline/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+            //     subdomains: ["a", "b", "c", "d"],
+            //     attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>',
+            // })
+        });
+
+        const layer = new maptalks.VectorLayer('layer', { collision: false, collisionDelay: 250, enableAltitude: true })
+
+        const layer1 = new maptalks.Geo3DTilesLayer("3dtiles", {
+            geometryEvents: true,
+            services: [{
+                url: "http://resource.dvgis.cn/data/3dtiles/dayanta/tileset.json",
+                maximumScreenSpaceError: 16.0,
+                heightOffset: -400
+            }]
+        });
+        layer1.once("loadtileset", (e) => {
+            const extent = layer1.getExtent(e.index);
+            map.fitExtent(extent, 0, {
+                animation: false
+            });
+        });
+        /**end**/
+        const groupGLLayer = new maptalks.GroupGLLayer("gl", [layer1], {
+            sceneConfig: {
+                environment: {
+                    enable: true,
+                    mode: 1,
+                    level: 0,
+                    brightness: 0.915
+                },
+                postProcess: {
+                    enable: true
+                },
+                ground: {
+                    enable: true,
+                    renderPlugin: {
+                        type: "lit"
+                    },
+                    symbol: {
+                        polygonOpacity: 1,
+                        material: {
+                            baseColorFactor: [0.48235, 0.48235, 0.48235, 1],
+                            hsv: [0, 0, -0.532],
+                            roughnessFactor: 0.22,
+                            metallicFactor: 0.58
+                        }
+                    }
+                }
+            }
+        }).addTo(map);
+
+        layer.addTo(map);
+
+        const drawTool = new maptalks.DrawTool({
+            mode: "Point",
+            once: true,
+            transformCoordinate: (coordinate, mapEvent) => {
+                const result = layer1.identify(coordinate);
+                if (result.length) {
+                    return new maptalks.Coordinate(result[0].coordinate);
+                }
+            }
+        })
+            .addTo(map)
+            .disable();
+
+        drawTool.on("drawend", function (param) {
+            console.info(param.geometry);
+            layer.addGeometry(param.geometry);
+        });
+
+        const items = [
+            "Point",
+            "LineString",
+            "Polygon",
+            "Circle",
+            "Ellipse",
+            "Rectangle",
+            "FreeHandLineString",
+            "FreeHandPolygon",
+        ].map(function (value) {
+            return {
+                item: value,
+                click: function () {
+                    drawTool.setMode(value).enable();
+                },
+            };
+        });
+
+        const toolbar = new maptalks.control.Toolbar({
+            items: [{
+                item: "Shape",
+                children: items,
+            },
+            {
+                item: "Disable",
+                click: function () {
+                    drawTool.disable();
+                },
+            },
+            {
+                item: "Clear",
+                click: function () {
+                    layer.clear();
+                },
+            },
+            ],
+        }).addTo(map);
+
+    </script>
+</body>
+
+</html>

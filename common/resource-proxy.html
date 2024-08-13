@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+        const { ResourceProxy } = maptalks;
+        ResourceProxy.proxy['/cartocdn/'] = {
+            target: 'https://a.basemaps.cartocdn.com/'
+        }
+        ResourceProxy.proxy['/autonavi/'] = {
+            target: 'https://webst01.is.autonavi.com/'
+        }
+        ResourceProxy.proxy['/arcgisonline/'] = {
+            target: 'https://services.arcgisonline.com/ArcGIS/'
+        }
+
+        const map = new maptalks.Map("map", {
+            center: [120.58443009853363, 31.077306186678225],
+            zoom: 4,
+            bearing: 0,
+            pitch: 0,
+            centerCross: true,
+            baseLayer: new maptalks.TileLayer("base", {
+                // debug: true,
+                urlTemplate: '/arcgisonline/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                subdomains: ["a", "b", "c", "d"],
+
+                spatialReference: {
+                    projection: 'EPSG:3857'
+                },
+            }),
+        });
+
+
+    </script>
+</body>
+
+</html>

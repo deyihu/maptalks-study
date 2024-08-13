@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<link rel='stylesheet' href='https://maptalks.com/api/maptalks.css' />
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks.js'></script>
+<script type='text/javascript' src='https://maptalks.com/api/maptalks-gl-layers.js'></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+        const { ResourceProxy } = maptalks;
+        ResourceProxy.proxy['/arcgisonline/'] = {
+            target: 'https://services.arcgisonline.com/ArcGIS/'
+        }
+
+        const map = new maptalks.Map("map", {
+            center: [0, 0],
+            zoom: 2,
+            bearing: 0,
+            pitch: 0,
+            centerCross: true,
+            baseLayer: new maptalks.TileLayer("base", {
+                urlTemplate: '/arcgisonline/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                subdomains: ["a", "b", "c", "d"],
+            }),
+        });
+
+        const layer = new maptalks.VectorLayer('layer', { collision: true, collisionDelay: 250, debug: false }).addTo(map);
+
+        const options = {
+            imgUrl: './../assets/image/1718345235147.png',
+            jsonUrl: './../assets/image/1718345235147.json',
+            sourceName: 'sprite/'
+        };
+
+        ResourceProxy.loadSprite(options).then(result => {
+            console.log(result);
+            const icons = result;
+            fetch('./../assets/data/ne_50m_populated_places_simple.geojson').then(res => res.json()).then(geojson => {
+                const points = maptalks.GeoJSON.toGeometry(geojson);
+                layer.addGeometry(points);
+                let idx = 0;
+                points.forEach((point) => {
+                    const icon = icons[idx].name;
+                    point.setSymbol({
+                        markerFile: `$sprite/${icon}`,
+                        markerWidth: 20,
+                        markerHeight: 20
+                    })
+                    idx++;
+                    if (idx === icons.length) {
+                        idx = 0;
+                    }
+                });
+            })
+        })
+
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,122 @@
+{
+    "bingbaoyu": {
+        "x": 0,
+        "y": 0,
+        "width": 48,
+        "height": 48
+    },
+    "chentu": {
+        "x": 48,
+        "y": 0,
+        "width": 48,
+        "height": 48
+    },
+    "dafeng": {
+        "x": 96,
+        "y": 0,
+        "width": 48,
+        "height": 48
+    },
+    "dawu": {
+        "x": 144,
+        "y": 0,
+        "width": 48,
+        "height": 48
+    },
+    "daxue": {
+        "x": 0,
+        "y": 48,
+        "width": 48,
+        "height": 48
+    },
+    "dayu": {
+        "x": 48,
+        "y": 48,
+        "width": 48,
+        "height": 48
+    },
+    "duoyun": {
+        "x": 96,
+        "y": 48,
+        "width": 48,
+        "height": 48
+    },
+    "fengbao": {
+        "x": 144,
+        "y": 48,
+        "width": 48,
+        "height": 48
+    },
+    "mai": {
+        "x": 0,
+        "y": 96,
+        "width": 48,
+        "height": 48
+    },
+    "qingtian": {
+        "x": 48,
+        "y": 96,
+        "width": 48,
+        "height": 48
+    },
+    "shachen": {
+        "x": 96,
+        "y": 96,
+        "width": 48,
+        "height": 48
+    },
+    "xiaoxue": {
+        "x": 144,
+        "y": 96,
+        "width": 48,
+        "height": 48
+    },
+    "xiaoyu": {
+        "x": 0,
+        "y": 144,
+        "width": 48,
+        "height": 48
+    },
+    "xiayu": {
+        "x": 48,
+        "y": 144,
+        "width": 48,
+        "height": 48
+    },
+    "yewan": {
+        "x": 96,
+        "y": 144,
+        "width": 48,
+        "height": 48
+    },
+    "yintian": {
+        "x": 144,
+        "y": 144,
+        "width": 48,
+        "height": 48
+    },
+    "youyun": {
+        "x": 0,
+        "y": 192,
+        "width": 48,
+        "height": 48
+    },
+    "yuxue": {
+        "x": 48,
+        "y": 192,
+        "width": 48,
+        "height": 48
+    },
+    "zhenyu": {
+        "x": 96,
+        "y": 192,
+        "width": 48,
+        "height": 48
+    },
+    "zhongyu": {
+        "x": 144,
+        "y": 192,
+        "width": 48,
+        "height": 48
+    }
+}
