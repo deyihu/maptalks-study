@@ -1,5 +1,5 @@
 /*!
- * maptalks v1.0.0-rc.33
+ * maptalks v1.0.0-rc.35
  * LICENSE : BSD-3-Clause
  * (c) 2016-2024 maptalks.org
  */
@@ -9,7 +9,7 @@
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.maptalks = {}));
 })(this, (function (exports) { 'use strict';
 
-  var version = "1.0.0-rc.33";
+  var version = "1.0.0-rc.35";
 
   /**
    * from detect-node
@@ -28133,6 +28133,9 @@
           }
           return -1;
       };
+      OverlayLayer.prototype.onGeometryEvent = function (param) {
+          return this._onGeometryEvent(param);
+      };
       //@internal
       OverlayLayer.prototype._onGeometryEvent = function (param) {
           if (!param || !param['target']) {
@@ -49500,7 +49503,7 @@
   exports.ui = index$2;
   exports.worker = worker;
 
-  typeof console !== 'undefined' && console.log && console.log('maptalks v1.0.0-rc.33');
+  typeof console !== 'undefined' && console.log && console.log('maptalks v1.0.0-rc.35');
 
 }));
 //# sourceMappingURL=maptalks.js.map
