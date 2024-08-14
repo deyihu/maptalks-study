@@ -25,7 +25,7 @@
 
     <script>
         const map = new maptalks.Map("map", {
-           "center":[121.58086515,31.20763717],"zoom":9.586411386388574,"pitch":0,"bearing":-1.2000000000000455
+           "center":[121.58086515,31.20763717],"zoom":8.586411386388574,"pitch":0,"bearing":-1.2000000000000455
         });
 
         const layer1 = new maptalks.TileLayer("base", {
@@ -39,7 +39,7 @@
             // attribution: "&copy; <a href='http://osm.org'>OpenStreetMap</a> contributors, &copy; <a href='https://carto.com/'>CARTO</a>",
         }).addTo(map);
 
-        fetch('https://geo.datav.aliyun.com/areas_v3/bound/310000.json').then(res => res.json()).then(geojson => {
+        fetch('./../assets/data/shanghai.json').then(res => res.json()).then(geojson => {
             const polygons = maptalks.GeoJSON.toGeometry(geojson);
             const mask1 = polygons[0];
             const mask2 = mask1.copy();
