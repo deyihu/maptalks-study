@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        background-color: black;
+        display: flex;
+
+    }
+
+    .map {
+        width: 50%;
+    }
+</style>
+<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.min.css' />
+
+<script type='text/javascript' src='https://cdn.jsdelivr.net/npm/maptalks-gl/dist/maptalks-gl.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+
+<body>
+
+    <div class="container">
+        <div id="map1" class="map"></div>
+        <div id="map2" class="map"></div>
+    </div>
+
+    <script>
+
+        function createMap(dom) {
+
+            var map = new maptalks.Map(dom, {
+                center: [120.59421765, 31.27427065],
+                zoom: 16,
+                pitch: 60,
+                // baseLayer: new maptalks.TileLayer('base', {
+                //     urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                //     subdomains: ["a", "b", "c", "d"],
+                // })
+            });
+            const style = [
+                {
+                    name: 'building-floors',
+                    filter: ["all",
+                        ["==", "$type", "Polygon"]
+                    ],
+                    renderPlugin: {
+                        type: "lit",
+                        dataConfig: {
+                            type: "3d-extrusion",
+                            altitudeProperty: "height",
+                            minHeightProperty: "bottomHeight",
+                            altitudeScale: 1,
+                            defaultAltitude: 10,
+                            topThickness: 1,
+                            top: true,
+                            side: true
+                        },
+                        sceneConfig: {}
+                    },
+                    symbol: {
+                        topPolygonFill: "#6190e8",
+                        bottomPolygonFill: "#a7bfe8",
+                    }
+                },
+                {
+                    name: 'building-topline',
+                    filter: ["all",
+                        ["==", "$type", "LineString"]
+                    ],
+                    renderPlugin: {
+                        type: "lit",
+                        dataConfig: {
+                            type: "line"
+                        },
+                        sceneConfig: {
+                            // bloom: true
+                        },
+                        type: "line"
+                    },
+                    symbol: {
+                        // lineBloom: true,
+                        lineColor: "#fff",
+                        lineOpacity: 1,
+                        lineWidth: 4
+                    }
+                },
+            ];
+
+            const layer = new maptalks.GeoJSONVectorTileLayer("geo", {
+                data: { type: 'FeatureCollection', features: [] },
+                style,
+            });
+            // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+            const sceneConfig = {
+                postProcess: {
+                    enable: true,
+                    antialias: { enable: true },
+                    bloom: {
+                        enable: true,
+                        threshold: 0,
+                        factor: 1,
+                        radius: 0.02,
+                    },
+                }
+            };
+            const groupLayer = new maptalks.GroupGLLayer('group', [layer], { sceneConfig });
+            groupLayer.addTo(map);
+
+            return {
+                map, layer, groupLayer
+            }
+
+        }
+
+
+        function polygon2Line(feature, offset = 0.001) {
+            const rings = [];
+            const coordinates = feature.geometry.coordinates;
+            const height = feature.properties.height || 0;
+            function forEachRing(coord) {
+                if (Array.isArray(coord[0][0])) {
+                    for (let i = 0, len = coord.length; i < len; i++) {
+                        forEachRing(coord[i]);
+                    }
+                } else {
+                    const ring = coord.map(c => {
+                        const [x, y] = c;
+                        return [x, y, height + offset];
+                    });
+                    rings.push(ring);
+                }
+            }
+            forEachRing(coordinates);
+            return {
+                type: 'Feature',
+                geometry: {
+                    type: 'MultiLineString',
+                    coordinates: rings
+                },
+                properties: {}
+            }
+
+        }
+
+        const result1 = createMap('map1');
+        const layer1 = result1.layer;
+        const map1 = result1.map;
+
+        function getData1(layer, offset = 0.001) {
+            fetch('./../assets/data/buildingsfilter-test.geojson').then(res => res.json()).then(geojson => {
+                const features = geojson.features;
+                const lines = features.map(f => {
+                    return polygon2Line(f, offset);
+                });
+                lines.forEach(line => {
+                    features.push(line);
+                })
+                layer.setData(geojson);
+            })
+        }
+        function getData2(layer, offset = 0.01) {
+            fetch('./../assets/data/beijingarea.json').then(res => res.json()).then(geojson => {
+                const features = geojson.features;
+                const lines = features.map(f => {
+                    f.properties.height = f.properties.height || 3000;
+                    return polygon2Line(f, offset);
+                });
+                lines.forEach(line => {
+                    features.push(line);
+                })
+                layer.setData(geojson);
+            })
+        }
+
+        getData1(layer1);
+
+        const result2 = createMap('map2');
+        const layer2 = result2.layer;
+        const map2 = result2.map;
+
+        getData2(layer2, 100);
+        map2.setView({
+            center: [116.46755129, 39.86160898],
+            zoom: 9,
+            pitch: 60,
+        })
+
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>

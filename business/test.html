@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>geotiff test</title>
+    <script type="text/javascript" src="https://unpkg.com/dat.gui@0.7.6/build/dat.gui.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/geotiff@1.0.0-beta.16/dist-browser/geotiff.js"></script>
+    <link type="text/css" rel="stylesheet" href="https://unpkg.com/maptalks/dist/maptalks.css">
+    <script type="text/javascript" src="https://unpkg.com/maptalks/dist/maptalks.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/@maptalks/gl/dist/maptalksgl.js"></script>
+    <script type="text/javascript" src="./js/accesstoken.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/three@0.138.0/build/three.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/maptalks.three@latest/dist/maptalks.three.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/three@0.109.0/examples/js/libs/stats.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/colorin@0.6.0/dist/colorin.min.js"></script>
+    <style>
+        html,
+        body {
+            margin: 0px;
+            height: 100%;
+            width: 100%;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            /* background-color: #000; */
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <script>
+
+        var baseLayer = new maptalks.TileLayer('tile', {
+            urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+            subdomains: ['a', 'b', 'c', 'd'],
+            attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+        });
+
+        var map = new maptalks.Map("map", {
+            "center": [104.67216957286769, 24.365922651238776], "zoom": 3.4782202095149106, "pitch": 0, "bearing": 0.600000000000136,
+            centerCross: true,
+            doubleClickZoom: false,
+            // baseLayer: baseLayer
+        });
+
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            forceRenderOnMoving: true,
+            forceRenderOnRotating: true,
+            forceRenderOnZooming: true,
+        });
+
+        const material = new THREE.MeshBasicMaterial({ wireframe: false, color: "#FFF", transparent: true, opacity: 1 });
+        const lines = [];
+
+
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            stats = new Stats();
+            stats.domElement.style.zIndex = 100;
+            document.getElementById('map').appendChild(stats.domElement);
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+            // data from https://antv-l7.gitee.io/zh/examples/raster/basic#dem
+            fetch('https://gw.alipayobjects.com/os/rmsportal/XKgkjjGaAzRyKupCBiYW.dat').then(res => res.arrayBuffer()).then(arrayBuffer => {
+                GeoTIFF.fromArrayBuffer(arrayBuffer).then(tiff => {
+                    return tiff.getImage();
+                }).then(image => {
+                    let width = image.getWidth();
+                    let height = image.getHeight();
+                    if (width % 2 === 1) {
+                        width++;
+                    }
+                    if (height % 2 === 1) {
+                        height++;
+                    }
+                    image.readRasters({}).then(data => {
+                        console.log(data);
+                        const time = 'time';
+                        console.time(time);
+                        const plane = new GeoTiffPlane([73.482190241, 9.62501784112, 134.906618732, 60.4300459963], {
+                            imageWidth: width,
+                            imageHeight: height,
+                            imageData: data[0]
+                        }, material, threeLayer);
+                        console.timeEnd(time);
+                        threeLayer.addMesh(plane);
+                        lines.push(plane);
+                    })
+                })
+                // const image = tiff.getImage();
+                // const width = image.getWidth();
+                // const height = image.getHeight();
+                // const values = image.readRasters();
+            })
+            animation();
+            initGui();
+        }
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true }
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [threeLayer], { sceneConfig });
+        groupLayer.addTo(map);
+
+        function animation() {
+            // layer animation support Skipping frames
+            threeLayer._needsUpdate = !threeLayer._needsUpdate;
+            if (threeLayer._needsUpdate && !threeLayer.isRendering()) {
+                threeLayer.redraw();
+            }
+            stats.update();
+            requestAnimationFrame(animation);
+
+        }
+
+
+        function initGui() {
+            var params = {
+                add: true,
+                color: material.color.getStyle(),
+                wireframe: material.wireframe,
+                show: true,
+                opacity: material.opacity,
+                altitude: 0,
+            };
+            var gui = new dat.GUI();
+            gui.add(params, 'add').onChange(function () {
+                if (params.add) {
+                    threeLayer.addMesh(lines);
+                } else {
+                    threeLayer.removeMesh(lines);
+                }
+            });
+            gui.addColor(params, 'color').name('color').onChange(function () {
+                material.color.set(params.color);
+                material.needsUpdate = true;
+                // lines.forEach(function (mesh) {
+                //     mesh.setSymbol(material);
+                // });
+            });
+            gui.add(params, 'opacity', 0, 1).onChange(function () {
+                material.opacity = params.opacity;
+                // lines.forEach(function (mesh) {
+                //     mesh.setSymbol(material);
+                // });
+            });
+            gui.add(params, 'show').onChange(function () {
+                lines.forEach(function (mesh) {
+                    if (params.show) {
+                        mesh.show();
+                    } else {
+                        mesh.hide();
+                    }
+                });
+            });
+            gui.add(params, 'wireframe').onChange(function () {
+                material.wireframe = params.wireframe;
+            });
+        }
+
+        const OPTIONS = {
+            interactive: false,
+            altitude: 0,
+            imageWidth: 512,
+            imageHeight: 512,
+            imageData: null,
+        };
+
+        /**
+         *
+         */
+        class GeoTiffPlane extends maptalks.BaseObject {
+            constructor(extent, options, material, layer) {
+                options = maptalks.Util.extend({}, OPTIONS, options, { layer, extent });
+                // console.log(options);
+                const { imageData, altitude, imageHeight, imageWidth, factor, filterIndex } = options;
+                if (!(extent instanceof maptalks.Extent)) {
+                    extent = new maptalks.Extent(extent);
+                }
+                const { xmin, ymin, xmax, ymax } = extent;
+                const coords = [
+                    [xmin, ymin],
+                    [xmin, ymax],
+                    [xmax, ymax],
+                    [xmax, ymin]
+                ];
+                let vxmin = Infinity, vymin = Infinity, vxmax = -Infinity, vymax = -Infinity;
+                coords.forEach(coord => {
+                    const v = layer.coordinateToVector3(coord);
+                    const { x, y } = v;
+                    vxmin = Math.min(x, vxmin);
+                    vymin = Math.min(y, vymin);
+                    vxmax = Math.max(x, vxmax);
+                    vymax = Math.max(y, vymax);
+                });
+                const w = Math.abs(vxmax - vxmin), h = Math.abs(vymax - vymin);
+                const geometry = new THREE.PlaneBufferGeometry(w, h, 2, 2);
+
+                super();
+                this._initOptions(options);
+                this._createMesh(geometry, material);
+                const z = layer.altitudeToVector3(altitude, altitude).x;
+                const v = layer.coordinateToVector3(extent.getCenter(), z);
+                this.getObject3d().position.copy(v);
+
+                const canvas = document.createElement('canvas');
+                canvas.width = imageWidth;
+                canvas.height = imageHeight;
+                const texture = new THREE.CanvasTexture(canvas);
+                material.map = texture;
+                // this.canvas = canvas;
+                this.tempHeight = 0;
+                this.heightData = imageData;
+                this.ci = new colorin.ColorIn(colors);
+                this.colorCache = new Map();
+
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                // const imageData = ctx.getImageData(0, 0, width, height);
+                const { width, height } = canvas;
+                this.imageData = ctx.getImageData(0, 0, width, height);;
+                this.ctx = ctx;
+
+                // let idx = 0;
+
+
+                // const colors = new Float32Array(imageData.length * 3);
+                // for (let i = 0, len = imageData.length; i < len; i++) {
+
+
+                //     if (colorCache[altitude] === undefined) {
+                //         colorCache[altitude] = getColor(altitude);
+                //     }
+                //     const c = colorCache[altitude];
+                //     if (rgbCache[c] === undefined) {
+                //         rgbCache[c] = new THREE.Color(c);
+                //     }
+
+                //     const color = rgbCache[c];
+                //     colors[i * 3] = color.r;
+                //     colors[i * 3 + 1] = color.g;
+                //     colors[i * 3 + 2] = color.b;
+                // }
+                // geometry.addAttribute('color', new THREE.BufferAttribute(colors, 3, true));
+                // material.vertexColors = THREE.VertexColors;
+
+            }
+
+            _animation() {
+                const ctx = this.ctx;
+                const colorCache = this.colorCache;
+                const imageData = this.imageData;
+
+                // const time = 'time';
+                // console.time(time);
+                const tempHeight = this.tempHeight;
+                for (let i = 0, len = this.heightData.length; i < len; i++) {
+                    const value = this.heightData[i];
+                    const idx = i * 4;
+                    // imageData.data[idx + 3] = 0;
+                    if (imageData.data[idx + 3] > 0) {
+                        continue;
+                    }
+                    if (value <= tempHeight) {
+                        let rgb = colorCache.get(value);
+                        if (!colorCache.has(value)) {
+                            rgb = this.ci.getColor(value);
+                            colorCache.set(value, rgb);
+                        } else {
+                            rgb = colorCache.get(value);
+                        }
+                        const [r, g, b] = rgb;
+                        const idx = i * 4;
+                        imageData.data[idx] = r;
+                        imageData.data[idx + 1] = g;
+                        imageData.data[idx + 2] = b;
+                        imageData.data[idx + 3] = 255;
+                    }
+                }
+                // console.timeEnd(time);
+                ctx.putImageData(imageData, 0, 0);
+                this.tempHeight += 15;
+                if (this.tempHeight > 8000) {
+                    this.tempHeight = 0;
+                    for (let i = 0, len = this.heightData.length; i < len; i++) {
+                        const idx = i * 4;
+                        imageData.data[idx + 3] = 0;
+                    }
+                }
+                this.getObject3d().material.map.needsUpdate = true;
+            }
+        }
+
+        const colors = [
+            [-1000, '#206C7C'],
+            [-0, '#428500'],
+            [200, '#428501'],
+            [500, '#6CA102'],
+            [800, '#ACCC00'],
+            [1200, '#FBE100'],
+            [2000, '#FCB600'],
+            [4000, 'red'],
+            [8000, '#FE2200'],
+        ]
+
+
+
+
+    </script>
+</body>
+
+</html>

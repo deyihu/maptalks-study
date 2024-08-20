@@ -13,19 +13,50 @@
 
     .container {
         width: 100%;
-        height: 100%
+        height: 100%;
+        /* background-color: black; */
     }
 </style>
 <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.min.css' />
-
+<script type='text/javascript' src='http://localhost/d/maptalks.js/dist/maptalks.js'></script>
+<!--  -->
 <script type='text/javascript' src='https://cdn.jsdelivr.net/npm/maptalks-gl/dist/maptalks-gl.min.js'></script>
-
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
 
 <body>
 
     <div id="map" class="container"></div>
 
     <script>
+
+        var map = new maptalks.Map('map', {
+            center: [120.59421765, 31.27427065],
+            zoom: 5,
+            pitch: 60,
+            zoomControl: true,
+            // baseLayer: new maptalks.TileLayer('base', {
+            //     urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            //     subdomains: ["a", "b", "c", "d"],
+            //     maxAvailableZoom: 18,
+            // })
+        });
+
+
+
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true },
+                bloom: {
+                    enable: true,
+                    threshold: 0,
+                    factor: 1,
+                    radius: 0.02,
+                },
+            }
+        };
+        // const groupLayer = new maptalks.GroupGLLayer('group', [], { sceneConfig });
+        // groupLayer.addTo(map);
 
         const fun1 = function (exports) {
             exports.initialize = function () {
@@ -45,7 +76,7 @@
                     .then((arrayBuffer) => {
                         const blob = new Blob([arrayBuffer]);
                         createImageBitmap(blob).then((bitmap) => {
-                            ctx.filter = "sepia(100%) invert(90%)";
+                            ctx.filter = "grayscale(1.2)";
                             ctx.drawImage(bitmap, 0, 0);
                             const image = canvas.transferToImageBitmap();
                             postResponse(null, { image }, [image]);
@@ -62,8 +93,9 @@
         const actor = new maptalks.worker.Actor(workerKey);
 
         var baseLayer = new maptalks.TileLayer("base", {
-            urlTemplate:
-                "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            repeatWorld: false,
+            opacity: 0.8,
+            urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
             subdomains: ["a", "b", "c", "d"],
             attribution:
                 '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
@@ -81,11 +113,30 @@
             };
         });
 
-        var map = new maptalks.Map("map", {
-            center: [116.45266161, 39.86656647],
-            zoom: 5,
-            baseLayer
-        });
+        // baseLayer.addTo(groupLayer);
+
+
+        var baseLayer1 = new maptalks.TileLayer("base1", {
+            repeatWorld: false,
+            // opacity: 0.8,
+            urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+            attribution:
+                '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+        }).addTo(map);
+
+        fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000.json').then(res => res.json()).then(geojson => {
+            const polygon = maptalks.GeoJSON.toGeometry(geojson);
+            baseLayer1.setMask(polygon[0]);
+
+            // const masks = geojson.features[0].geometry.coordinates.map(c => {
+            //     return new maptalks.ClipInsideMask(c);
+            // })
+            // baseLayer1.setMask(masks[0]);
+        })
+
+
+
 
 
 
