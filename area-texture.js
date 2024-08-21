@@ -13,10 +13,6 @@ const merc = new SphericalMercator({
 const TILEURL = 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 // const TILEURL = 'https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}';
 
-const limits = {
-    min_zoom: 10,
-    max_zoom: 10
-};
 
 function getTileImages(tiles, callback) {
     let idx = 0;
@@ -46,13 +42,6 @@ function getTileImages(tiles, callback) {
     load();
 }
 
-function getGeometry() {
-    let geometry;
-    let geojson = fs.readFileSync(path.join(__dirname, './assets/data/beijing.geojson')).toString();
-    geojson = JSON.parse(geojson);
-    geometry = geojson.features[0].geometry;
-    return geometry;
-}
 
 //计算所有tiles的bbox,返回的是墨卡托的值
 function tilesBBOX(tiles) {
@@ -177,6 +166,19 @@ function rectClipCanvas(canvas, bbox) {
     const ctx = canvas1.getContext('2d');
     ctx.drawImage(canvas, x1, y1, width, height, 0, 0, width, height);
     return canvas1;
+}
+
+const limits = {
+    min_zoom: 10,
+    max_zoom: 10
+};
+
+function getGeometry() {
+    let geometry;
+    let geojson = fs.readFileSync(path.join(__dirname, './assets/data/shanghai.json')).toString();
+    geojson = JSON.parse(geojson);
+    geometry = geojson.features[0].geometry;
+    return geometry;
 }
 
 function test() {
