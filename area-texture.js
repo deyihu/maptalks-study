@@ -175,7 +175,7 @@ const limits = {
 
 function getGeometry() {
     let geometry;
-    let geojson = fs.readFileSync(path.join(__dirname, './assets/data/shanghai.json')).toString();
+    let geojson = fs.readFileSync(path.join(__dirname, './assets/data/beijing.geojson')).toString();
     geojson = JSON.parse(geojson);
     geometry = geojson.features[0].geometry;
     return geometry;
