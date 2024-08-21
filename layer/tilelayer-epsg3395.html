@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.min.css' />
+
+<script type='text/javascript' src='https://cdn.jsdelivr.net/npm/maptalks-gl/dist/maptalks-gl.min.js'></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/proj4@2.12.0/dist/proj4.min.js"></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+        // https://epsg.io/3395
+        var proj3395 = '+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +type=crs';
+        var proj = proj4('WGS84', proj3395);
+
+        // define a custom projection object
+        var projection = {
+            code: 'EPSG:3395',  // code of the projection
+
+            project: function (c) { // from wgs84 to EPSG3857
+                var pc = proj.forward(c.toArray());
+                return new maptalks.Coordinate(pc);
+            },
+
+            unproject: function (pc) { // from EPSG3857 to wgs84
+                var c = proj.inverse(pc.toArray());
+                return new maptalks.Coordinate(c);
+            },
+
+            // tell projection how to measure
+            // for cartesian coordinates change this to:
+            // measure: 'identity'
+            measure: 'EPSG:4326'
+        };
+
+
+        const baseLayer = new maptalks.TileLayer('base', {
+            urlTemplate: 'https://api.shipxy.com/apicall/GetMTile?k=1F6D701272402D1E7D8D316CCE519123&x={x}&y={y}&z={z}',
+            subdomains: ["a", "b", "c", "d"],
+            // decodeImageInWorker: true,
+            // fetchOptions: {
+            //     headers: {
+            //         Referer: "https://api.shipxy.com/",
+            //         // token: "your token",
+            //         //others params
+            //     },
+            //     //other config
+            // },
+            // attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>',
+            spatialReference: {
+                projection: projection,        // geo projection, defined by proj4js
+                resolutions: [           // map's zoom levels and resolutions
+                    156543.03392804097,
+                    78271.51696402048,
+                    9135.75848201024,
+                    19567.87924100512,
+                    9783.93962050256,
+                    4891.96981025128,
+                    2445.98490512564,
+                    1222.99245256282,
+                    611.49622628141,
+                    305.748113140705,
+                    152.8740565703525,
+                    76.43702828517625,
+                    38.21851414258813,
+                    19.109257071294063,
+                    9.554628535647032,
+                    4.777314267823516,
+                    2.388657133911758,
+                    1.194328566955879,
+                    0.5971642834779395,
+                    0.29858214173896974
+                ],
+                fullExtent: {         // map's full extent
+                    'top': 18764656.23,
+                    'left': -20037508.34,
+                    'bottom': -12496570.74,
+                    'right': 20037508.34
+                }
+            }
+        });
+
+
+        const map = new maptalks.Map("map", {
+            "center": [120.43480202, 31.78610166], "zoom": 9.001982200783615, "pitch": 0, "bearing": 0,
+            baseLayer,
+            zoomControl: true
+        });
+
+        const layer = new maptalks.VectorLayer('layer', {}).addTo(map);
+
+        //wgs84 data
+        const geojson = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            119.8636663723427,
+                            32.28497853358656
+                        ]
+                    },
+                    "properties": {
+                        "name": "10-1d73cd6a",
+                        "_color": "",
+                        "center": [
+                            119.8636663723427,
+                            32.28497853358656,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            119.84934278151212,
+                            32.268849766885545
+                        ]
+                    },
+                    "properties": {
+                        "name": "11-270fdb27",
+                        "_color": "",
+                        "center": [
+                            119.84934278151212,
+                            32.268849766885545,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            119.60858667402965,
+                            32.195970903664886
+                        ]
+                    },
+                    "properties": {
+                        "name": "12-8a4c96d",
+                        "_color": "",
+                        "center": [
+                            119.60858667402965,
+                            32.195970903664886,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            119.37879085835253,
+                            32.23297814227116
+                        ]
+                    },
+                    "properties": {
+                        "name": "13-e5d5f73",
+                        "_color": "",
+                        "center": [
+                            119.37879085835253,
+                            32.23297814227116,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            119.3856328832577,
+                            32.217527898597055
+                        ]
+                    },
+                    "properties": {
+                        "name": "14-7de5b1b4",
+                        "_color": "",
+                        "center": [
+                            119.3856328832577,
+                            32.217527898597055,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            118.8240575614036,
+                            32.16608786765541
+                        ]
+                    },
+                    "properties": {
+                        "name": "15-0db227a",
+                        "_color": "",
+                        "center": [
+                            118.8240575614036,
+                            32.16608786765541,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            118.71690431903963,
+                            32.097556519631354
+                        ]
+                    },
+                    "properties": {
+                        "name": "16-4d78e6b4",
+                        "_color": "",
+                        "center": [
+                            118.71690431903963,
+                            32.097556519631354,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            118.72833080267282,
+                            32.08965883507154
+                        ]
+                    },
+                    "properties": {
+                        "name": "17-3957e69",
+                        "_color": "",
+                        "center": [
+                            118.72833080267282,
+                            32.08965883507154,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            118.6078747800652,
+                            31.928208385754942
+                        ]
+                    },
+                    "properties": {
+                        "name": "18-753744ab",
+                        "_color": "",
+                        "center": [
+                            118.6078747800652,
+                            31.928208385754942,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            120.41010506131249,
+                            31.966905218011014
+                        ]
+                    },
+                    "properties": {
+                        "name": "2-66fadfd",
+                        "_color": "",
+                        "center": [
+                            120.41010506131249,
+                            31.966905218011014,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            118.46807909831853,
+                            31.79362075005958
+                        ]
+                    },
+                    "properties": {
+                        "name": "20-19acecd",
+                        "_color": "",
+                        "center": [
+                            118.46807909831853,
+                            31.79362075005958,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            118.48803262202857,
+                            31.768032811365043
+                        ]
+                    },
+                    "properties": {
+                        "name": "21-4df1888",
+                        "_color": "",
+                        "center": [
+                            118.48803262202857,
+                            31.768032811365043,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            120.73496587058148,
+                            31.984806278160278
+                        ]
+                    },
+                    "properties": {
+                        "name": "3-b933414",
+                        "_color": "",
+                        "center": [
+                            120.73496587058148,
+                            31.984806278160278,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            120.95553203232637,
+                            31.816852485703677
+                        ]
+                    },
+                    "properties": {
+                        "name": "4-3198a18",
+                        "_color": "",
+                        "center": [
+                            120.95553203232637,
+                            31.816852485703677,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            121.0882319382639,
+                            31.72373887908164
+                        ]
+                    },
+                    "properties": {
+                        "name": "5-33692d9",
+                        "_color": "",
+                        "center": [
+                            121.0882319382639,
+                            31.72373887908164,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            121.22089143059945,
+                            31.635685149070685
+                        ]
+                    },
+                    "properties": {
+                        "name": "6-049b0db",
+                        "_color": "",
+                        "center": [
+                            121.22089143059945,
+                            31.635685149070685,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            120.01474014632248,
+                            31.99096696838103
+                        ]
+                    },
+                    "properties": {
+                        "name": "7-6cdfed92",
+                        "_color": "",
+                        "center": [
+                            120.01474014632248,
+                            31.99096696838103,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            120.09309668411093,
+                            31.96224571070239
+                        ]
+                    },
+                    "properties": {
+                        "name": "8-47e1edcd",
+                        "_color": "",
+                        "center": [
+                            120.09309668411093,
+                            31.96224571070239,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            119.98678203681817,
+                            31.97021666476005
+                        ]
+                    },
+                    "properties": {
+                        "name": "9-196e54",
+                        "_color": "",
+                        "center": [
+                            119.98678203681817,
+                            31.97021666476005,
+                            0
+                        ]
+                    }
+                }
+            ]
+        };
+        const points = maptalks.GeoJSON.toGeometry(geojson, (geo) => {
+            geo.setSymbol({
+                markerFile: './../assets/image/matou.png',
+                markerWidth: 25,
+                markerHeight: 25
+            })
+        });
+        layer.addGeometry(points);
+
+
+
+
+    </script>
+</body>
+
+</html>
