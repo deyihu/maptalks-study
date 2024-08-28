@@ -33,10 +33,14 @@
             zoom: 11,
             pitch: 55,
             baseLayer: new maptalks.TileLayer('base', {
-                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
                 subdomains: ["a", "b", "c", "d"],
             })
         });
+
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+        })
         const layer = new maptalks.VectorLayer('layer', {
             enableAltitude: true
         }).addTo(map);
@@ -116,6 +120,71 @@
             }
         ];
         point.setSymbol(symbol);
+
+        const coordinates = [
+            [121.27379481231426, 31.134414928872594]
+            , [121.4813728271168, 31.048307999823777]
+            , [121.66648699493498, 31.106514236794208]
+            , [121.6410086067373, 31.270724510345342]
+            , [121.3424577069709, 31.411867036055718]
+        ];
+
+        const markerSize = 30;
+        const markerFill = 'white';
+        const textFill = 'black';
+        const rectWidth = markerSize * 0.7;
+        const symbol1 = [
+            {
+                markerFile: './../assets/image/camera.png',
+                markerWidth: markerSize,
+                markerHeight: markerSize
+            },
+            {
+                markerType: 'ellipse',
+                markerWidth: markerSize - 1,
+                markerHeight: markerSize * 0.9,
+                markerFill,
+                markerLineWidth: 0,
+                markerHorizontalAlignment: "middle",
+                markerVerticalAlignment: "top",
+                markerDx: markerSize + rectWidth / 4,
+                markerDy: -2
+            },
+            {
+                markerType: 'rectangle',
+                markerWidth: rectWidth,
+                markerHeight: markerSize * 0.9,
+                markerFill,
+                markerLineWidth: 0,
+                markerHorizontalAlignment: "middle",
+                markerVerticalAlignment: "top",
+                markerDx: markerSize / 2 + rectWidth / 2,
+                markerDy: -2
+            },
+
+            {
+                textName: '100',
+                textFill,
+                textDx: markerSize,
+                textDy: -markerSize / 2,
+                textSize: 14,
+                textWeight: 'bold'
+            }, {
+                markerType: 'ellipse',
+                markerWidth: 3,
+                markerHeight: 3,
+                markerFill: 'red'
+            }
+        ];
+
+        const points = coordinates.map(c => {
+            return new maptalks.Marker(c, {
+                symbol: symbol1
+            })
+        });
+        layer.addGeometry(points);
+
+
 
 
 
