@@ -58,6 +58,28 @@
             })
         });
 
+        //custom a component
+        var Profile = Vue.extend({
+            template: `<div class="profile"> 
+                          <p v-if="collision">参与碰撞</p>
+                          <p v-if="!collision">不参与碰撞</p>
+                           <el-button size="mini">默认按钮</el-button>
+                            <el-button size="mini" type="danger">危险按钮</el-button>
+                            <el-checkbox v-model="checked">备选项</el-checkbox>
+                            <p>{{firstName}}</p>
+                            <p>{{lastName}}</p>
+                        </div>`,
+            props: ['checked', 'firstName', 'collision'],
+            data: function () {
+                return {
+                    // firstName: 'Walter' + index,
+                    lastName: 'White',
+                    alias: 'Heisenberg',
+                    // checked: index % 2 === 0
+                }
+            }
+        })
+
         function randomCoordinates() {
             var coordinates = [];
             var center = map.getCenter();
@@ -69,25 +91,13 @@
             return coordinates;
         }
         randomCoordinates().map((c, index) => {
-            var Profile = Vue.extend({
-                template: `<div class="profile">  <el-button size="mini">默认按钮</el-button>
-                            <el-button size="mini" type="danger">危险按钮</el-button>
-                            <el-checkbox v-model="checked">备选项</el-checkbox>
-                            <p>{{firstName}} {{lastName}} aka {{alias}}</p></div>`,
-                data: function () {
-                    return {
-                        firstName: 'Walter' + index,
-                        lastName: 'White',
-                        alias: 'Heisenberg',
-                        checked: index % 2 === 0
-                    }
-                }
-            })
-            const profile = new Profile().$mount();
+
+            const profile = new Profile({ propsData: { checked: index % 2 === 0, firstName: 'hello' + index, collision: index !== 3 } }).$mount();
             console.log(profile);
             var uiMarker = new maptalks.ui.UIMarker(c, {
                 content: profile.$el,
                 verticalAlignment: 'top',
+                collision:profile.collision
                 // eventsPropagation: false
             });
             uiMarker.addTo(map);
