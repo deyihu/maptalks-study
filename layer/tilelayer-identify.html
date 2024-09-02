@@ -14,6 +14,7 @@
     .container {
         width: 100%;
         height: 100%;
+        background-color: #0C111C;
     }
 
     .panel {
@@ -34,16 +35,16 @@
     <script>
 
 
-        const SIZE = 17408;
+        // const SIZE = 17408;
         //切图第一个参数分辨率
         const RES = 1;
         //原点
-        const ORIGIN = [-SIZE / 2, -SIZE / 2];
+        const ORIGIN = [0, 0];
         //切图的分辨率集合
         const resolutions = [];
         //一共18个层级
         let i = 0;
-        while (i <= 12) {
+        while (i <= 14) {
             resolutions.push(RES / Math.pow(2, i));
             i++;
         }
@@ -53,8 +54,8 @@
         };
 
         const map = new maptalks.Map("map", {
-            center: [0, 0],
-            zoom: 2,
+            "center": [0.26707767, -0.62549072], "zoom": 9.642674643106751, "pitch": 0, "bearing": 0,
+            zoomControl: true,
 
             spatialReference
 
@@ -62,7 +63,11 @@
         });
 
         const layer = new maptalks.VectorLayer('layer').addTo(map);
-        const point = new maptalks.Marker(map.getCenter()).addTo(layer);
+        const point = new maptalks.Marker(map.getCenter(), {
+            symbol: {
+                markerFile: 'https://assets.yuanshen.site/icons/106.png'
+            }
+        }).addTo(layer);
 
 
         const baseLayer = new maptalks.TileLayer("tile", {
