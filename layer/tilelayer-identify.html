@@ -56,11 +56,17 @@
         const map = new maptalks.Map("map", {
             "center": [0.26707767, -0.62549072], "zoom": 9.642674643106751, "pitch": 0, "bearing": 0,
             zoomControl: true,
-
+            limitExtentOnMaxExtent: true,
             spatialReference
 
 
         });
+
+        const extent = [
+            -1.8879062293358584, -1.9462920141138827,
+            2.0620937706641413,
+            0.3611298608861173];
+        map.setMaxExtent(extent);
 
         const layer = new maptalks.VectorLayer('layer').addTo(map);
         const point = new maptalks.Marker(map.getCenter(), {
@@ -75,6 +81,7 @@
             subdomains: ["a", "b", "c", "d"],
             tileSystem: [1, -1].concat(ORIGIN),
             spatialReference,
+            maxAvailableZoom: 13
 
         })
         map.setBaseLayer(baseLayer);
