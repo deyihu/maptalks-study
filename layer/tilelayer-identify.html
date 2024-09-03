@@ -36,48 +36,62 @@
 
 
         // const SIZE = 17408;
-        //切图第一个参数分辨率
-        const RES = 1;
+        // const HALF = SIZE / 2;
+        // //切图第一个参数分辨率
+        // const RES = 1280 * 6;
         //原点
-        const ORIGIN = [0, 0];
+        const ORIGIN = [-3568, 6286];
         //切图的分辨率集合
         const resolutions = [];
-        //一共18个层级
+
+
+        //一共13个层级
+        const zoom = 13;
         let i = 0;
-        while (i <= 14) {
-            resolutions.push(RES / Math.pow(2, i));
+        while (i <= zoom) {
+            resolutions.push(Math.pow(2, (zoom - i)));
             i++;
         }
+        console.log(resolutions);
         const spatialReference = {
             projection: "identity",
             resolutions: resolutions,
+            // fullExtent: {
+            //     top: 0,
+            //     left: 0,
+            //     bottom: SIZE,
+            //     right: SIZE
+            // }
         };
 
+        const cloneSp = JSON.parse(JSON.stringify(spatialReference));
+        cloneSp.resolutions.push(0.5, 0.25, 0.125);
+
         const map = new maptalks.Map("map", {
-            "center": [0.26707767, -0.62549072], "zoom": 9.642674643106751, "pitch": 0, "bearing": 0,
+            "center": [0, 0], "zoom": 9.642674643106751, "pitch": 0, "bearing": 0,
             zoomControl: true,
             limitExtentOnMaxExtent: true,
-            spatialReference
-
-
+            spatialReference: cloneSp
         });
 
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+        })
+
         const extent = [
-            -1.8879062293358584, -1.9462920141138827,
-            2.0620937706641413,
-            0.3611298608861173];
+            -26308.77230221383,
+            -13760.477836008104,
+            22762.802931919003,
+            10954.216565766088
+        ];
         map.setMaxExtent(extent);
 
-        const layer = new maptalks.VectorLayer('layer').addTo(map);
-        const point = new maptalks.Marker(map.getCenter(), {
-            symbol: {
-                markerFile: 'https://assets.yuanshen.site/icons/106.png'
-            }
-        }).addTo(layer);
+        const layer = new maptalks.VectorLayer('layer', { collision: false, progressiveRender: true, progressiveRenderCount: 1000 }).addTo(map);
 
 
         const baseLayer = new maptalks.TileLayer("tile", {
             urlTemplate: "https://assets.yuanshen.site/tiles_twt40/{z}/{x}_{y}.png",
+            // urlTemplate: "https://act-webstatic.mihoyo.com/ys-map-op/map/2/c64d14ffe710540c50df8df05c96f8b5/{x}_{y}_N.webp",
             subdomains: ["a", "b", "c", "d"],
             tileSystem: [1, -1].concat(ORIGIN),
             spatialReference,
@@ -86,6 +100,34 @@
         })
         map.setBaseLayer(baseLayer);
 
+        fetch('./../assets/data/yuanshenmarkers.json').then(res => res.json()).then(json => {
+            const points = [];
+            json.forEach(d => {
+                const { icon, items } = d;
+                items.forEach(item => {
+                    const { x, y } = item;
+                    const point = new maptalks.Marker([x, - y], {
+                        symbol: [
+                            {
+                                markerType: 'ellipse',
+                                markerWidth: 20,
+                                markerHeight: 20,
+                                markerDy: -9,
+                                markerFill: 'white',
+                                markerLineColor: 'black'
+                            },
+                            {
+                                markerFile: icon,
+                                markerWidth: 15,
+                                markerHeight: 15
+                            }
+                        ]
+                    });
+                    points.push(point);
+                });
+            });
+            layer.addGeometry(points);
+        });
 
 
     </script>
