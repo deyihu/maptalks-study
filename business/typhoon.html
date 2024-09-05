@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<head>
+    <title>添加一个矢量瓦片图层</title>
+    <style type="text/css">
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0px;
+            overflow: hidden;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+        }
+
+        .tools {
+            background-color: white;
+            z-index: 1000;
+            position: absolute;
+            /* padding: 6px; */
+            border-bottom: 1px solid #dfdfdf;
+            width: 100%;
+            display: flex;
+        }
+
+        .tools .item {
+            margin-right: 10px;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.min.css" />
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/maptalks-gl/dist/maptalks-gl.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/maptalks.routeplayer@latest/dist/maptalks.routeplayer.js"></script>
+    <script type="text/javascript" src="./../assets/lib/lil-gui.min.js"></script>
+</head>
+
+<body>
+    <div class="tools">
+        <div class="item"> <button onclick="start()">play</button></div>
+        <div class="item"> <button onclick="pause()">pause</button></div>
+        <!-- <div class="item"> <button onclick="replay()">重播</button></div> -->
+        <div class="item"> <button onclick="setIndex()">setIndex</button></div>
+        <div class="item"> <button onclick="setTime()">setTime</button></div>
+        <div class="item"> <button onclick="setPercent()">setPercent</button></div>
+        <div class="item"> <button onclick="finish()">finish</button></div>
+        <div class="item"> <button onclick="reset()">reset</button></div>
+        <div class="item">
+            <label for="speed">speed</label>
+            <input type="range" id="speed" name="volume" min="1" max="100" value="4" />
+        </div>
+        <div class="item">
+            <label for="speed">auto set map center</label>
+            <input id="automapcenter" type="checkbox" />
+        </div>
+    </div>
+
+    <div id="map" class="container"></div>
+
+    <script>
+        const map = new maptalks.Map("map", {
+            "center": [129.09846937, 24.96820288], "zoom": 4.8519818114702336, "pitch": 0, "bearing": 0,
+            zoomControl: true,
+        });
+        const tileLayer = new maptalks.TileLayer('base', {
+            urlTemplate: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            subdomains: ["a", "b", "c", "d"],
+            maxAvailableZoom: 18,
+        }).addTo(map);
+
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
+        const layer1 = new maptalks.VectorLayer('layer1').addTo(map);
+
+        let player, polygon, circle1, circle2, point, autoUpdateMapCenter, preCoordinate;
+
+        function translateGeos(currentCoordinate) {
+            currentCoordinate = new maptalks.Coordinate(currentCoordinate);
+            const offset = currentCoordinate.sub(preCoordinate);
+            [polygon, circle1, circle2, point].forEach(geo => {
+                geo.translate(offset)
+            })
+            preCoordinate = currentCoordinate;
+        }
+
+        function update(e) {
+            if (autoUpdateMapCenter) {
+                map.setCenter(e.coordinate);
+            }
+            translateGeos(e.coordinate);
+        }
+
+        fetch('./../assets/data/typhoon.json').then(res => res.json()).then(geojson => {
+            const line = maptalks.GeoJSON.toGeometry(geojson);
+            line.setSymbol({
+                lineColor: 'red',
+                lineDasharray: [5, 5]
+            })
+            line.addTo(layer);
+            const coordinates = line.getCoordinates();
+
+            const points = coordinates.map(c => {
+                return new maptalks.Marker(c, {
+                    symbol: {
+                        markerType: 'ellipse',
+                        markerWidth: 8,
+                        markerHeight: 8,
+                        markerFill: '#FE00FE',
+                        markerLineColor: '#fff',
+                        markerLineWidth: 0
+                    }
+                })
+            });
+            layer.addGeometry(points);
+
+            const data = maptalks.formatRouteData(coordinates, { duration: 1000 * 60 * 10 });
+            console.log(data);
+            player = new maptalks.RoutePlayer(data, { speed: 4, debug: true });
+            console.log(player);
+            player.on('playing', update);
+
+            createTyphoon();
+        })
+
+        const symbol = {
+            lineWidth: 0,
+            polygonFill: 'red',
+            polygonOpacity: 0
+        }
+
+        const radius = 100000 * 3;
+        const fillSymbol = {
+            polygonFill: '#4E421C',
+            polygonOpacity: 0.8,
+            lineColor: '#AA9008'
+        }
+
+        function createTyphoon() {
+            const center = player.getStartCoordinate();
+            preCoordinate = new maptalks.Coordinate(center);
+            const sector1 = new maptalks.Sector(center, radius, -90, 90, {
+                symbol,
+                numberOfShellPoints: 120
+            })
+
+            const shell1 = sector1.getShell();
+            const sector2 = new maptalks.Sector(center, radius * 1.2, 90, 270, {
+                symbol,
+                numberOfShellPoints: 120
+            })
+
+            const shell2 = sector2.getShell();
+
+            const coordinates1 = shell1.slice(1, shell1.length - 1);
+            const coordinates2 = shell2.slice(1, shell2.length - 1);
+
+            const ring = [...coordinates1, ...coordinates2];
+
+
+            polygon = new maptalks.Polygon([ring], {
+                enableSimplify: false,
+                symbol: fillSymbol
+            }).addTo(layer);
+
+            circle1 = new maptalks.Circle(center, radius / 1.5, {
+                symbol: Object.assign({}, fillSymbol, { polygonFill: '#815E14', lineColor: '#E99503' })
+            }).addTo(layer);
+
+            circle2 = new maptalks.Circle(center, radius / 3, {
+                symbol: Object.assign({}, fillSymbol, { polygonFill: '#A66C12', lineColor: '#E6820E' })
+            }).addTo(layer);
+
+            point = new maptalks.Marker(center, {
+                symbol: {
+                    markerFile: './../assets/image/typhoon.png',
+                    markerVerticalAlignment: 'middle'
+                }
+            }).addTo(layer);
+        }
+
+        function start() {
+            player.play();
+        }
+        function pause() {
+            player.pause();
+        }
+
+        function finish() {
+            player.finish();
+        }
+
+        function reset() {
+            player.reset();
+
+            translateGeos(player.getStartCoordinate());
+            if (autoUpdateMapCenter) {
+                map.setCenter(player.getStartCoordinate());
+            }
+        }
+
+        function replay() {
+            reset();
+            player.replay();
+        }
+
+        function setIndex() {
+            const index = 20;
+            player.setIndex(index);
+        }
+
+        function setTime() {
+            const t = player.getStartTime() / 2 + player.getEndTime() / 2;
+            player.setTime(t);
+        }
+
+        function setPercent() {
+            player.setPercent(0.4);
+        }
+
+        document.querySelector('#speed').addEventListener('change', e => {
+            player.setSpeed(parseFloat(e.target.value));
+        })
+        document.querySelector('#automapcenter').addEventListener('change', e => {
+            autoUpdateMapCenter = (e.target.checked);
+        })
+
+
+
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
