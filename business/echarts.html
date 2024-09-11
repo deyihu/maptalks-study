@@ -18,7 +18,7 @@
 </style>
 <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.min.css' />
 
-<script type='text/javascript' src='https://cdn.jsdelivr.net/npm/maptalks-gl/dist/maptalks-gl.min.js'></script>
+<script type='text/javascript' src='http://localhost/d/maptalks.js/dist/maptalks.js'></script>
 <script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
 <script type='text/javascript' src='./../assets/lib/randomColor.js'></script>
 
@@ -67,7 +67,9 @@
             fetch('../assets/data/hk.json').then(res => res.json()).then(geojson => {
                 const polygons = maptalks.GeoJSON.toGeometry(geojson);
                 polygons.forEach(polygon => {
-                    polygon.options.enableSimplify = false;
+                    polygon.config({
+                        simplifyTolerance: 1
+                    })
                     polygon.setSymbol({
                         polygonFill: {
                             type: 'color-interpolate',
@@ -98,8 +100,12 @@
                     const { name } = point.getProperties();
                     point.setSymbol({
                         textName: name,
-                        textHaloRadius: 0.2,
-                        textHaloFill: '#fff'
+                        textFaceName: 'Microsoft YaHei',
+                        textSize: 14,
+                        textWeight: 'bold',
+                        textHaloRadius: 3,
+                        textHaloFill: '#fff',
+                        textFill: '#000'
                     });
 
                 });
