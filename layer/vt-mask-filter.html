@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.min.css' />
+
+<script type='text/javascript' src='https://cdn.jsdelivr.net/npm/maptalks-gl/dist/maptalks-gl.min.js'></script>
+
+<body>
+    <script type="text/javascript" src="https://maptalks.com/api/transcoders.draco.js"></script>
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const map = new maptalks.Map("map", {
+            "center": [-74.0018077, 40.72749255], "zoom": 12.29899196322828, "pitch": 0, "bearing": 0,
+            centerCross: true,
+            // spatialReference: {
+            //     projection: 'EPSG:4326'
+            // },
+        });
+
+
+
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+        });
+
+        const baseLayer = new maptalks.TileLayer("base", {
+            // debug: true,
+            urlTemplate: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+            subdomains: ["a", "b", "c", "d"],
+            maxAvailableZoom: 18,
+
+            // spatialReference: {
+            //     projection: 'EPSG:3857'
+            // },
+        });
+
+        const groupGLLayer = new maptalks.GroupGLLayer("gl", [baseLayer], {
+
+        }).addTo(map);
+
+
+        const vtLayer = new maptalks.VectorTileLayer("vt", {
+            debug: true,
+            urlTemplate: "http://tile.maptalks.com/test/planet-single/{z}/{x}/{y}.mvt",
+        });
+        groupGLLayer.addLayer(vtLayer);
+
+        const geojson = { "type": "Feature", "geometry": { "type": "Polygon", "coordinates": [[[-74.03159143294367, 40.708348917382544], [-74.01056762145402, 40.761008305659296], [-73.98282787018297, 40.800807048898676], [-73.97319195658355, 40.80832191159082], [-73.93202032574968, 40.79218601153709], [-73.93961225767649, 40.77759401332903], [-73.9530441372393, 40.762114148294756], [-73.96297204822052, 40.74751554412215], [-73.96881199585654, 40.73601135589118], [-73.96997998538374, 40.72494776007339], [-73.97669592516516, 40.70967697709703], [-73.98808382305538, 40.706356778149605], [-73.9985957288002, 40.70325777644862], [-74.01027562407222, 40.697280723101954], [-74.02137152458064, 40.69661657295755], [-74.03042344341647, 40.69794486662522], [-74.03480340414346, 40.70082274538157], [-74.03159143294367, 40.708348917382544]]] }, "properties": null };
+
+        const polygon = maptalks.GeoJSON.toGeometry(geojson);
+        vtLayer.setMask(polygon.copy());
+
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
+        polygon.setSymbol({
+            polygonOpacity: 0,
+            lineColor: 'red'
+        })
+        polygon.addTo(layer);
+
+
+        // var drawTool = new maptalks.DrawTool({
+        //     mode: 'Point'
+        // }).addTo(map).disable();
+
+        // drawTool.on('drawend', function (param) {
+        //     console.log(JSON.stringify(param.geometry.toGeoJSON()));
+        //     // layer.addGeometry(param.geometry);
+        // });
+
+        // var items = ['Point', 'LineString', 'Polygon', 'Circle', 'Ellipse', 'Rectangle', 'FreeHandLineString', 'FreeHandPolygon'].map(function (value) {
+        //     return {
+        //         item: value,
+        //         click: function () {
+        //             drawTool.setMode(value).enable();
+        //         }
+        //     };
+        // });
+
+        // var toolbar = new maptalks.control.Toolbar({
+        //     items: [
+        //         {
+        //             item: 'Shape',
+        //             children: items
+        //         },
+        //         {
+        //             item: 'Disable',
+        //             click: function () {
+        //                 drawTool.disable();
+        //             }
+        //         },
+        //         {
+        //             item: 'Clear',
+        //             click: function () {
+        //                 layer.clear();
+        //             }
+        //         }
+        //     ]
+        // }).addTo(map);
+
+
+
+
+
+    </script>
+</body>
+
+</html>
