@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.min.css' />
+
+<script type='text/javascript' src='https://cdn.jsdelivr.net/npm/maptalks-gl/dist/maptalks-gl.min.js'></script>
+
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            "center": [121.44224697, 31.12893667], "zoom": 9.309009504457512, "pitch": 0, "bearing": 0,
+            // seamlessZoom: false,
+            // cameraInfiniteFar: true,
+            zoomControl: true,
+            // debugSky: true
+        });
+
+        function getTileUrl(x, y, z, domain) {
+            const url = "https://ecn.{subdomain}.tiles.virtualearth.net/tiles/a{quadkey}.jpeg?g=14583";
+            var quadkey = toQuadKey(x, y, z);
+            const urlTemplate = url;
+            // let domain = '';
+            return urlTemplate.replace('{quadkey}', quadkey).replace('{subdomain}', domain);
+        }
+
+        const layer = new maptalks.TileLayer('base', {
+            //other server url
+            //https://github.com/digidem/leaflet-bing-layer
+            urlTemplate: getTileUrl,
+            subdomains: ["t0", "t1", "t2", "t3"],
+            maxAvailableZoom: 18,
+            maskClip: true,
+        });
+
+        function toQuadKey(x, y, z) {
+            var index = ''
+            for (var i = z; i > 0; i--) {
+                var b = 0
+                var mask = 1 << (i - 1)
+                if ((x & mask) !== 0) b++
+                if ((y & mask) !== 0) b += 2
+                index += b.toString()
+            }
+            return index
+        }
+
+
+
+        layer.addTo(map);
+
+
+    </script>
+</body>
+
+</html>
