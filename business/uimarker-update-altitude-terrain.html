@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>geometry update altitude by terrain</title>
+    <style type="text/css">
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0px;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+        }
+
+        .panel-template {
+            display: none;
+        }
+
+        .panel {
+            background-color: white;
+            border: 1px solid #c9c5c5;
+            padding: 10px;
+            border-radius: 8px;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.min.css" />
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/maptalks-gl/dist/maptalks-gl.min.js"></script>
+    <script type="text/javascript" src="https://maptalks.com/api/lil-gui.min.js"></script>
+</head>
+
+<body>
+    <div class="panel-template">
+        <div class="panel">
+            <h1>hello world</h1>
+        </div>
+    </div>
+    <div id="map" class="container"></div>
+
+    <script>
+        const map = new maptalks.Map("map", {
+            center: [119.40307165, 30.37671886, 436],
+            zoom: 11,
+            pitch: 60,
+            // cameraInfiniteFar: true,
+            heightFactor: 1.2,
+            zoomControl: true
+        });
+
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+            // const result = group.queryTerrain(e.coordinate);
+            // console.log(result);
+            // e.coordinate.z = result[0];
+            // const point = new maptalks.Marker(e.coordinate).addTo(layer);
+        });
+
+
+        const coordinates = [
+            [118.16423460809328, 30.14668074051026],
+            [118.14001978916593, 30.11416868731652],
+            [118.29666762333555, 30.06867279382088],
+            [118.43491098245431, 30.183605434805244],
+            [118.3761374260089, 30.103358602539753],
+            [118.07795298378001, 30.078655751521165],
+            [118.3150747887714, 30.301597569061155]
+        ];
+
+        const data = coordinates.map(c => {
+            return {
+                id: maptalks.Util.GUID(),
+                coordinates: c
+            }
+        });
+
+
+
+        const markers = data.map(d => {
+            const { id, coordinates } = d;
+            const marker = new maptalks.ui.UIMarker(coordinates, {
+                content: document.querySelector('.panel-template').innerHTML,
+                id,
+                verticalAlignment: 'top',
+                collision: true,
+                collisionBufferSize: 2,
+                collisionWeight: 1,
+                collisionFadeIn: true,
+                dy: -20
+            });
+            marker.addTo(map);
+            return marker;
+        });
+
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: {
+                    enable: true,
+                },
+            },
+        };
+
+        const colors4 = [
+            [0, '#F0F9E9'],
+            [200, '#D7EFD1'],
+            [400, '#A6DCB6'],
+            [650, '#8FD4BD'],
+            [880, '#67C1CB'],
+            [1100, '#3C9FC8'],
+            [1300, '#1171B1'],
+            [1450, '#085799'],
+            [1600, '#084586'],
+        ];
+
+
+
+
+        const terrain = {
+            type: 'mapbox',
+            tileSize: 256,
+            maxAvailableZoom: 14,
+
+            requireSkuToken: false,
+            urlTemplate: './../assets/data/tile-rgb/{z}/{x}/{y}.png',
+            subdomains: ['a', 'b', 'c', 'd'],
+            colors: colors4,
+            exaggeration: 4,
+        };
+        const group = new maptalks.GroupGLLayer('group', [], {
+            terrain
+        });
+        group.addTo(map);
+
+        // map.setView({
+        //     "center": [120.06864866, 30.12911788, 430.3062438964844], "zoom": 12.814714048170666, "pitch": 56.45000000000009, "bearing": 2.7148818684635216
+        // })
+
+        map.setView({
+            "center": [118.25079334, 30.1210681, 430.3062438964844], "zoom": 11.892086520379873, "pitch": 66.64999999999992, "bearing": 112.90705084326646
+        })
+
+        let needUpdateGeos = [];
+
+        group.getTerrainLayer().on('tileload', e => {
+            const terrainLayer = group.getTerrainLayer();
+            const terrainOptions = terrainLayer.options;
+            //计算当前的瓦片内的点，加入到更新队列
+            const { res, extent2d } = e.tile;
+            markers.forEach(marker => {
+                const coordinate = marker.getCoordinates();
+                const glpoint = map.coordinateToPointAtRes(coordinate, res);
+                if (extent2d.contains(glpoint)) {
+                    const height = group.queryTerrain(coordinate);
+                    if (height && Array.isArray(height)) {
+                        needUpdateGeos.push({
+                            marker,
+                            altitude: height[0] * terrainOptions.exaggeration
+                        })
+                    }
+                }
+            });
+        })
+
+        const cache = new Map();
+        function animtion() {
+            if (needUpdateGeos.length) {
+                for (let len = needUpdateGeos.length, i = len - 1; i >= 0; i--) {
+                    const data = needUpdateGeos[i];
+                    const { marker, altitude } = data;
+                    if (cache.has(marker)) {
+                        continue;
+                    }
+                    marker.setAltitude(altitude);
+                    cache.set(marker, 1);
+                }
+                cache.clear();
+                needUpdateGeos = [];
+            }
+            requestAnimationFrame(animtion);
+        }
+
+        animtion();
+
+    </script>
+</body>
+
+</html>
