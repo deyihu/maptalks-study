@@ -175,9 +175,22 @@ const limits = {
 
 function getGeometry() {
     let geometry;
-    let geojson = fs.readFileSync(path.join(__dirname, './assets/data/beijing.geojson')).toString();
+    const p = path.join(__dirname, './assets/data/beijing.geojson');
+    let geojson = fs.readFileSync(p).toString();
     geojson = JSON.parse(geojson);
+    const features = geojson.features || [];
+    if (!features.length) {
+        throw new Error(`没有从数据文件${p.toString()} 里发现geojson数据`)
+    }
+    if (features.length > 1) {
+        console.warn(`你的数据里发现多条数据,如果多面你应该把他们合并成MultiPolygon,features:${features.length}`);
+    }
     geometry = geojson.features[0].geometry;
+    const type = geometry.type;
+    if (['Polygon', 'MultiPolygon'].indexOf(type) === -1) {
+        throw new Error(`你的数据不对,剪裁的数据应该是Polygon/MultiPolygon，而你的是：${type}`);
+    }
+
     return geometry;
 }
 
