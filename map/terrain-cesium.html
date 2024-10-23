@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<head>
+    <title>添加一个矢量瓦片图层</title>
+    <style type="text/css">
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0px;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            background-color: black;
+        }
+    </style>
+    <link rel="stylesheet" href="https://unpkg.com/maptalks/dist/maptalks.css" />
+    <!-- <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/maptalks-gl/dist/maptalks-gl.min.js"></script> -->
+    <script type="text/javascript" src="https://unpkg.com/maptalks-gl/dist/maptalks-gl.js"></script>
+    <script type="text/javascript" src="./../assets/lib/lil-gui.min.js"></script>
+</head>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+        const map = new maptalks.Map('map', {
+            center: [114.3404041441181, 30.548730054693106],
+            zoom: 9,
+            zoomControl: true,
+            spatialReference: {
+                projection: 'EPSG:4326'
+            },
+        });
+        const tileLayer = new maptalks.TileLayer('base', {
+            tileSystem: [1, -1, -180, 90],
+            urlTemplate: 'https://t{s}.tianditu.gov.cn/vec_c/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=vec&STYLE=default&TILEMATRIXSET=c&FORMAT=tiles&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&tk=your key',
+            subdomains: ['1', '2', '3', '4', '5'],
+            attribution: '&copy; <a target="_blank" href="http://www.tianditu.cn">Tianditu</a>'
+        });
+
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: {
+                    enable: true,
+                },
+            },
+        };
+
+        const colors4 = [
+            [0, '#F0F9E9'],
+            [200, '#D7EFD1'],
+            [400, '#A6DCB6'],
+            [650, '#8FD4BD'],
+            [880, '#67C1CB'],
+            [1100, '#3C9FC8'],
+            [1300, '#1171B1'],
+            [1450, '#085799'],
+            [1600, '#084586'],
+        ];
+
+
+
+
+        const terrain = {
+            tileSystem: [1, 1, -180, -90],
+            zoomOffset: -1,
+            maxAvailableZoom: 14,
+            type: 'cesium',
+            terrainWidth: 65,
+            urlTemplate: './../assets/data/cesiumlab-terrain/{z}/{x}/{y}.terrain',
+            shader: "lit",
+            material: {
+                baseColorFactor: [1, 1, 1, 1],
+                outputSRGB: 1,
+                roughnessFactor: 0.69,
+                metallicFactor: 0
+            }
+        };
+        const group = new maptalks.GroupGLLayer('group', [tileLayer], {
+            terrain
+        });
+        group.addTo(map);
+        map.setView({
+            "center": [106.63906041, 29.46901528, 430.3062438964844], "zoom": 12.336833621741476, "pitch": 66.35000000000008, "bearing": 92.20705084326664
+        })
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
