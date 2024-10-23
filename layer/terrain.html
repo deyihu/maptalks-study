@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>添加一个矢量瓦片图层</title>
+    <style type="text/css">
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0px;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.min.css" />
+    <script type="text/javascript" src="http://localhost/d/maptalks.js/dist/maptalks.js"></script>
+    <!-- <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/maptalks-gl/dist/maptalks-gl.min.js"></script> -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/maptalks-gl/dist/maptalks-gl.min.js"></script>
+    <script type="text/javascript" src="https://maptalks.com/api/transcoders.draco.js"></script>
+    <script type="text/javascript" src="./../assets/lib/lil-gui.min.js"></script>
+</head>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+        const map = new maptalks.Map("map", {
+            // "center": [119.09557457, 30.14442343, 339.73126220703125], "zoom": 11.856275713521464, "pitch": 61.80000000000011, "bearing": -64.07337236948052,
+            "center": [108.95986733, 34.21997952, 430.3062438964844], "zoom": 12.698416480987284, "pitch": 0, "bearing": 1.8437368186266667,
+            // cameraInfiniteFar: true,
+            // heightFactor: 4.2,
+            zoomControl: true,
+            maxVisualPitch: 66
+        });
+
+        map.on('click', e => {
+            // console.log(e.coordinate.toArray());
+            // const result = group.queryTerrain(e.coordinate);
+            // console.log(result);
+            // e.coordinate.z = result[0];
+            // const point = new maptalks.Marker(e.coordinate).addTo(layer);
+        })
+
+        // const vt = new maptalks.VectorTileLayer("vt", {
+        //     urlTemplate: "http://tile.maptalks.com/test/planet-single/{z}/{x}/{y}.mvt",
+        //     spatialReference: "preset-vt-3857",
+        // });
+
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: {
+                    enable: true,
+                },
+            },
+        };
+
+        const fun1 = function (exports) {
+
+            /*!
+            * colorin v0.6.0
+            */
+            (function (global, factory) {
+                typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
+                    typeof define === 'function' && define.amd ? define(['exports'], factory) :
+                        (global = global || self, factory(global.colorin = global.colorin || {}));
+            }(this, function (exports) {
+                'use strict';
+
+                let canvas;
+                const OPTIONS = {
+                    width: 100,
+                    height: 10
+                };
+                // const ISNODE = typeof global === 'object';
+
+                let offscreenCanvas = false;
+                try {
+                    const canvas = new OffscreenCanvas(1, 1);
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillText('hello', 0, 0);
+                    offscreenCanvas = true;
+                } catch (err) {
+                    offscreenCanvas = false;
+                }
+
+                function getCanvas() {
+                    if (!canvas) {
+                        const { width, height } = OPTIONS;
+                        if (offscreenCanvas) {
+                            canvas = new OffscreenCanvas(width, height);
+                        } else {
+                            canvas = document.createElement('canvas');
+                            canvas.width = width;
+                            canvas.height = height;
+                        }
+                    }
+                    return canvas;
+                }
+
+                function registerCanvas(canvasInstance) {
+                    if (canvasInstance) {
+                        canvas = canvasInstance;
+                    }
+                }
+
+                class ColorIn {
+                    constructor(colors, options = {}) {
+                        if (!Array.isArray(colors)) {
+                            console.error('colors is not array');
+                            return;
+                        }
+                        if (colors.length < 2) {
+                            console.error('colors.length should >1');
+                            return;
+                        }
+                        this.colors = colors;
+                        let min = Infinity, max = -Infinity;
+                        for (let i = 0, len = colors.length; i < len; i++) {
+                            const value = colors[i][0];
+                            min = Math.min(value, min);
+                            max = Math.max(value, max);
+                        }
+                        this.min = min;
+                        this.max = max;
+                        this.valueOffset = this.max - this.min;
+                        this.options = Object.assign({}, OPTIONS, options);
+                        this._initImgData();
+                    }
+
+                    getImageData() {
+                        return this.imgData;
+                    }
+
+                    _initImgData() {
+                        const canvas = getCanvas();
+                        const { width, height } = this.options;
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+                        const { colors, valueOffset } = this;
+                        for (let i = 0, len = colors.length; i < len; i++) {
+                            const [stop, color] = colors[i];
+                            const s = (stop - this.min) / valueOffset;
+                            gradient.addColorStop(s, color);
+                        }
+                        ctx.fillStyle = gradient;
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        this.imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    }
+
+                    getColor(stop) {
+                        stop = Math.max(this.min, stop);
+                        stop = Math.min(stop, this.max);
+                        const s = (stop - this.min) / this.valueOffset;
+                        let x = Math.round(s * this.imgData.width);
+                        x = Math.min(x, this.imgData.width - 1);
+                        const idx = x * 4;
+                        const r = this.imgData.data[idx];
+                        const g = this.imgData.data[idx + 1];
+                        const b = this.imgData.data[idx + 2];
+                        const a = this.imgData.data[idx + 3];
+                        return [r, g, b, a];
+                    }
+                }
+
+                exports.registerCanvas = registerCanvas;
+                exports.ColorIn = ColorIn;
+
+                Object.defineProperty(exports, '__esModule', { value: true });
+
+            }));
+            //# sourceMappingURL=colorin.js.map
+
+            exports.initialize = function () {
+                console.log("tileimagebitmap init");
+            };
+
+
+
+            const colors0 = [
+                [0, '#F0F9E9'],
+                [200, '#D7EFD1'],
+                [400, '#A6DCB6'],
+                [650, '#8FD4BD'],
+                [880, '#67C1CB'],
+                [1100, '#3C9FC8'],
+                [1300, '#1171B1'],
+                [1450, '#085799'],
+                [1600, '#084586'],
+                [4000, '#AB5424'],
+                [5000, '#50291E'],
+                [6000, '#fff'],
+            ];
+
+            const colors1 = [
+                [0, '#FFF7ED'],
+                [200, '#FEE9C9'],
+                [400, '#FDD59F'],
+                [650, '#FDBC85'],
+                [880, '#FC8E58'],
+                [1100, '#EF6546'],
+                [1300, '#D82C19'],
+                [1450, '#B40000'],
+                [2000, '#800000']
+            ];
+
+            const colors2 = [
+                [0, '#267300'],
+                [200, '#428501'],
+                [400, '#6CA102'],
+                [650, '#9FC100'],
+                [880, '#ACCC00'],
+                [1100, '#E0ED04'],
+                [1300, '#FBE100'],
+                [1450, '#FCB600'],
+                [1600, '#FF8D03'],
+                [2000, '#FE2200']
+            ];
+
+            const colors3 = [
+                [0, '#226412'],
+                [200, '#4C931B'],
+                [400, '#80BD3F'],
+                [650, '#B9E287'],
+                [880, '#E7F5D1'],
+                [1100, '#F7F7F7'],
+                [1300, '#FDE1EF'],
+                [1450, '#F1B7DB'],
+                [1600, '#DF78AF'],
+                [2000, '#C6147E'],
+                [2500, '#8F0051']
+            ];
+            const colors4 = [
+                [0, '#F0F9E9'],
+                [200, '#D7EFD1'],
+                [400, '#A6DCB6'],
+                [650, '#8FD4BD'],
+                [880, '#67C1CB'],
+                [1100, '#3C9FC8'],
+                [1300, '#1171B1'],
+                [1450, '#085799'],
+                [1600, '#084586'],
+            ];
+            const colors5 = [
+                [0, '#FBFBFB'],
+                [200, '#D6D6D6'],
+                [400, '#BEBEBE'],
+                [650, '#AFAFAF'],
+                [880, '#868686'],
+                [1100, '#5E5E5E'],
+                [1300, '#3F3F3F'],
+                [1450, '#2B2B2B'],
+                [1600, '#070707'],
+            ];
+
+            const ci = new colorin.ColorIn(colors4);
+
+            var canvas;
+            var tempCanvas;
+            var notfindImage;
+
+            const TILESIZE = 256;
+
+            function get404Image() {
+                if (notfindImage) {
+                    return notfindImage;
+                }
+                if (!notfindImage) {
+                    canvas = createCanvas();
+                    canvas.width = TILESIZE;
+                    canvas.height = TILESIZE;
+
+                }
+                var ctx = canvas.getContext('2d');
+                ctx.font = "bold 48px serif";
+                ctx.textAlign = 'center';
+                ctx.strokeStyle = 'gray';
+                ctx.fillText('404', canvas.width / 2, canvas.height / 2);
+                ctx.rect(0, 0, canvas.width, canvas.height);
+                ctx.stroke();
+                notfindImage = canvas.transferToImageBitmap();
+                return notfindImage;
+            }
+
+            function createCanvas() {
+                return new OffscreenCanvas(1, 1);
+            }
+
+            function clearCanvas(ctx) {
+                const canvas = ctx.canvas;
+                const { width, height } = canvas;
+                ctx.clearRect(0, 0, width, height);
+            }
+
+            function colorTerrain(imgdata) {
+                const data = imgdata.data;
+                for (let i = 0, len = data.length; i < len; i += 4) {
+                    const R = data[i], G = data[i + 1], B = data[i + 2], A = data[i + 3];
+                    let height = 0;
+
+                    //地形解码
+                    height = -10000 + ((R * 256 * 256 + G * 256 + B) * 0.1);
+                    height = Math.max(height, 0);
+                    const [r, g, b] = ci.getColor(height);
+
+                    //根据不同的高度设置不同的颜色
+                    data[i] = r;
+                    data[i + 1] = g;
+                    data[i + 2] = b;
+                    data[i + 3] = 255;
+                }
+            }
+
+            exports.onmessage = function (msg, postResponse) {
+                const url = msg.data.url;
+                tempCanvas = tempCanvas || createCanvas();
+                tempCanvas.width = TILESIZE;
+                tempCanvas.height = TILESIZE;
+                const tempCtx = tempCanvas.getContext("2d");
+                clearCanvas(tempCtx);
+                //fetch image
+                fetch(url)
+                    .then((res) => res.arrayBuffer())
+                    .then((arrayBuffer) => {
+                        const blob = new Blob([arrayBuffer]);
+                        createImageBitmap(blob).then((bitmap) => {
+                            const { width, height } = bitmap;
+                            tempCtx.drawImage(bitmap, 0, 0);
+                            const imgdata = tempCtx.getImageData(0, 0, width, height);
+                            colorTerrain(imgdata);
+                            canvas = canvas || createCanvas();
+                            canvas.width = width;
+                            canvas.height = height;
+                            var ctx = canvas.getContext('2d');
+                            clearCanvas(ctx);
+                            ctx.putImageData(imgdata, 0, 0);
+                            const image = canvas.transferToImageBitmap();
+                            postResponse(null, { image }, [image]);
+                        }).catch(error => {
+                            createImageBitmap(get404Image()).then(image => {
+                                postResponse(null, { image }, [image]);
+                            })
+                        })
+                    })
+                    .catch((error) => {
+                        createImageBitmap(get404Image()).then(image => {
+                            postResponse(null, { image }, [image]);
+                        })
+                    });
+            };
+        };
+        const workerKey = "tileimagebitmap";
+        maptalks.registerWorkerAdapter(workerKey, fun1);
+        const actor = new maptalks.worker.Actor(workerKey);
+
+        // const baseLayer = new maptalks.TileLayer('base', {
+        //     urlTemplate: 'https://mapplat.z7z7z7.cn/tile-server/rgb-tile/{z}/{x}/{y}',
+        //     // urlTemplate: 'https://mapplat.z7z7z7.cn/tile-server/rgb-tile-2x/{z}/{x}/{y}',
+        //     subdomains: ["a", "b", "c", "d"],
+        //     bufferPixel: 1,
+        //     // tileSize: 512,
+        //     // zoomOffset: -1
+        // })
+
+
+        // baseLayer.on('renderercreate', function (e) {
+        //     //load tile image
+        //     //   img(Image): an Image object
+        //     //   url(String): the url of the tile
+        //     e.renderer.loadTileBitmap = function (url, tile, callback) {
+        //         actor.send({ url: maptalks.Util.getAbsoluteURL(url) }, null, (error, message) => {
+        //             callback(message.image);
+        //         });
+        //     };
+        // });
+
+        // const baseLayer = new maptalks.TileLayer('base', {
+        //     urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+        //     urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+        //     urlTemplate: 'https://mapplat.z7z7z7.cn/tile-server/arcgis-image/{z}/{x}/{y}',
+        //     // urlTemplate: 'https://mapplat.z7z7z7.cn/tile-server/rgb-tile-2x/{z}/{x}/{y}',
+
+        //     // tileSize: 512,
+        //     // zoomOffset: -1,
+        //     // spatialReference: 'preset-vt-3857',
+        //     // debug: true,
+        //     // subdomains: ["a", "b", "c", "d"],
+        // })
+
+        const baseLayer = new maptalks.TileLayer("base", {
+            //other server url
+            //https://github.com/digidem/leaflet-bing-layer
+            urlTemplate:
+                "https://ecn.{subdomain}.tiles.virtualearth.net/tiles/a{quadkey}.jpeg?g=14583",
+            subdomains: ["t0", "t1", "t2", "t3"],
+            maxAvailableZoom: 18,
+            maskClip: true,
+            debug: true
+        });
+
+        function toQuadKey(x, y, z) {
+            var index = "";
+            for (var i = z; i > 0; i--) {
+                var b = 0;
+                var mask = 1 << (i - 1);
+                if ((x & mask) !== 0) b++;
+                if ((y & mask) !== 0) b += 2;
+                index += b.toString();
+            }
+            return index;
+        }
+
+        baseLayer.getTileUrl = function (x, y, z) {
+            var quadkey = toQuadKey(x, y, z);
+            const urlTemplate = this.options.urlTemplate;
+            let domain = "";
+            if (this.options["subdomains"]) {
+                const subdomains = this.options["subdomains"];
+                if (Array.isArray(subdomains)) {
+                    const length = subdomains.length;
+                    let s = (x + y) % length;
+                    if (s < 0) {
+                        s = 0;
+                    }
+                    domain = subdomains[s];
+                }
+            }
+            return urlTemplate
+                .replace("{quadkey}", quadkey)
+                .replace("{subdomain}", domain);
+        };
+
+        // const geo3dtilelayer = new maptalks.Geo3DTilesLayer("3dtiles", {
+        //     services: [{
+        //         url: "http://resource.dvgis.cn/data/3dtiles/dayanta/tileset.json",
+        //         maximumScreenSpaceError: 16.0,
+        //         heightOffset: 10
+        //     }]
+        // });
+
+        // geo3dtilelayer.once("loadtileset", (e) => {
+        //     // const extent = geo3dtilelayer.getExtent(e.index);
+        //     // map.fitExtent(extent, 0, {
+        //     //     animation: false
+        //     // });
+        // });
+
+        const skinLayers = [
+            baseLayer,
+            // geo3dtilelayer,
+        ];
+
+        const accesstoken = 'pk.eyJ1IjoiaHVkZXlpIiwiYSI6ImNsM3JmNm5kYjBscDQzYnBmcTc3YjdnYjgifQ.8hZch1NnILJ4Lkp7i9bJ1g';
+
+
+        const colors0 = [
+            [0, '#F0F9E9'],
+            [200, '#D7EFD1'],
+            [400, '#A6DCB6'],
+            [650, '#8FD4BD'],
+            [880, '#67C1CB'],
+            [1100, '#3C9FC8'],
+            [1300, '#1171B1'],
+            [1450, '#085799'],
+            [1600, '#084586'],
+            [4000, '#AB5424'],
+            [5000, '#50291E'],
+            [6000, '#fff'],
+        ];
+
+        const colors1 = [
+            [0, '#FFF7ED'],
+            [200, '#FEE9C9'],
+            [400, '#FDD59F'],
+            [650, '#FDBC85'],
+            [880, '#FC8E58'],
+            [1100, '#EF6546'],
+            [1300, '#D82C19'],
+            [1450, '#B40000'],
+            [2000, '#800000']
+        ];
+
+        const colors2 = [
+            [0, '#267300'],
+            [200, '#428501'],
+            [400, '#6CA102'],
+            [650, '#9FC100'],
+            [880, '#ACCC00'],
+            [1100, '#E0ED04'],
+            [1300, '#FBE100'],
+            [1450, '#FCB600'],
+            [1600, '#FF8D03'],
+            [2000, '#FE2200']
+        ];
+
+        const colors3 = [
+            [0, '#226412'],
+            [200, '#4C931B'],
+            [400, '#80BD3F'],
+            [650, '#B9E287'],
+            [880, '#E7F5D1'],
+            [1100, '#F7F7F7'],
+            [1300, '#FDE1EF'],
+            [1450, '#F1B7DB'],
+            [1600, '#DF78AF'],
+            [2000, '#C6147E'],
+            [2500, '#8F0051']
+        ];
+        const colors4 = [
+            [0, '#F0F9E9'],
+            [200, '#D7EFD1'],
+            [400, '#A6DCB6'],
+            [650, '#8FD4BD'],
+            [880, '#67C1CB'],
+            [1100, '#3C9FC8'],
+            [1300, '#1171B1'],
+            [1450, '#085799'],
+            [1600, '#084586'],
+        ];
+        const colors5 = [
+            [0, '#FBFBFB'],
+            [200, '#D6D6D6'],
+            [400, '#BEBEBE'],
+            [650, '#AFAFAF'],
+            [880, '#868686'],
+            [1100, '#5E5E5E'],
+            [1300, '#3F3F3F'],
+            [1450, '#2B2B2B'],
+            [1600, '#070707'],
+        ];
+
+        const colors6 = [
+            [0, '#054343'],
+            [200, '#00BC94'],
+            [400, '#74E37D'],
+            [650, '#E8FA94'],
+            [880, '#E8E18C'],
+            [1100, '#8E6E5B'],
+            [1300, '#C7B7B4'],
+            [1450, '#ffffff'],
+            [1600, '#ffffff'],
+        ]
+
+        const terrain = {
+            type: 'mapbox',
+            tileSize: 256,
+            maxAvailableZoom: 14,
+
+            requireSkuToken: false,
+            urlTemplate: 'https://mapplat.z7z7z7.cn/tile-server/rgb-tile/{z}/{x}/{y}',
+            // urlTemplate: 'https://mapplat.z7z7z7.cn/tile-server/rgb-tile-2x/{z}/{x}/{y}',
+            // urlTemplate: `https://a.tiles.mapbox.com/v4/mapbox.terrain-rgb/{z}/{x}/{y}@2x.pngraw?access_token=${accesstoken}`,
+            subdomains: ['a', 'b', 'c', 'd'],
+            colors: colors1,
+            exaggeration: 4,
+        };
+        const group = new maptalks.GroupGLLayer('group', [], {
+            terrain
+        });
+        group.addTo(map);
+
+        // map.setView({
+        //     "center": [120.55050303, 31.21861117, 430.3062438964844], "zoom": 16.35878084076061, "pitch": 53.10000000000046, "bearing": 3.6437368186259396
+        // })
+
+        map.setView({
+            "center": [118.25079334, 30.1210681, 430.3062438964844], "zoom": 11.892086520379873, "pitch": 66.64999999999992, "bearing": 112.90705084326646
+        })
+
+        const layer = new maptalks.VectorLayer('layer', {
+            enableAltitude: true
+        }).addTo(map);
+
+        // const pointLayer = new maptalks.PointLayer('layer', {
+        //     awareOfTerrain: true,
+        //     sceneConfig: {
+        //         depthFunc: '>'
+        //     }
+        // }).addTo(group);
+        // const point = new maptalks.Marker(map.getCenter(), {
+        //     awareOfTerrain: true
+        // }).addTo(pointLayer);
+
+        // const lineLayer = new maptalks.LineStringLayer('line', {
+        //     awareOfTerrain: true
+        // }).addTo(group);
+        // const line = new maptalks.LineString([
+        //     [119.3661644539551, 30.392785908360878],
+        //     [119.44959188315431, 30.36953596104749]
+        // ], {
+        //     awareOfTerrain: true,
+        //     symbol: {
+        //         lineWidth: 5,
+        //         lineColor: 'red'
+        //     }
+        // }).addTo(lineLayer);
+
+
+        function test() {
+            const data = [];
+            const result = baseLayer.getTiles();
+            const { tileGrids } = result;
+            tileGrids.forEach(tileGrid => {
+                const tiles = tileGrid.tiles;
+                tiles.forEach(tile => {
+                    const { x, y, z } = tile;
+                    data.push([x, y, z]);
+                });
+
+            });
+            console.log(JSON.stringify(data));
+        }
+
+
+
+    </script>
+</body>
+
+</html>
