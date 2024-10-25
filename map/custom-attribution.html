@@ -34,6 +34,7 @@
 <script type='text/javascript' src='https://cdn.jsdelivr.net/npm/maptalks-gl/dist/maptalks-gl.min.js'></script>
 
 <body>
+   
     <div id="map" class="container"></div>
 
     <script>
@@ -41,25 +42,22 @@
             center: [108.95965, 34.2189],
             zoom: 4,
             bearing: 0,
-            pitch: 0
+            pitch: 0,
+            attribution: false
         });
 
-        map.setView({
-            "center": [118.51602582, 29.96580433, 430.3062438964844], "zoom": 10.953054287012382, "pitch": 72.34999999999994, "bearing": 113.80705084326632
-        })
-
-        function reloadErrorTileFunction(layer, renderer, tileinfo, tileImage) {
-            //mock 404 image url
-            tileImage.src = 'https://webst01.is.autonavi.com/appmaptile?style=6&x=731&y=416&z=10';
-            renderer.loadTile(tileInfo, tileImage);
-        }
 
         const baseLayer = new maptalks.TileLayer('base', {
-            reloadErrorTileFunction,
-            urlTemplate: "./../assets/data/tile-rgb/{z}/{x}/{y}.png",
+            urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
             subdomains: ["a", "b", "c", "d"],
             attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
         }).addTo(map);
+
+        const control = new maptalks.control.Attribution({ custom: true });
+        control.addTo(map);
+
+        control.setContent(`<a href="https://maptalks.org/" target="_blank"><img src="./../assets/image/people.gif"/>hello maptalks</a>`);
+
 
 
 
