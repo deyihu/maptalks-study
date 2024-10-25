@@ -19,8 +19,8 @@
 <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.min.css' />
 <script type="text/javascript" src="//at.alicdn.com/t/font_3330503_allx40pxkxd.js"></script>
 
-<!-- <script type='text/javascript' src='https:unpkg.com/maptalks/dist/maptalks.min.js'></script> -->
-<script type='text/javascript' src='http://localhost/d/maptalks.js/dist/maptalks.js'></script>
+<script type='text/javascript' src='https:unpkg.com/maptalks/dist/maptalks.min.js'></script>
+<!-- <script type='text/javascript' src='http://localhost/d/maptalks.js/dist/maptalks.js'></script> -->
 
 <body>
     <div id="map" class="container"></div>
@@ -65,24 +65,24 @@
             "center": [120.6409867, 31.16581762], "zoom": 13.530837475845765, "pitch": 0, "bearing": 4.499999999999204
         })
 
-        const lineColorStops = [
-            [0, 'red'],
-            [3 / 4, 'yellow'],
-            [1.00, 'green']
-        ];
+        const symbol = {
+            'lineColor': {
+                'type': 'linear',
+                'colorStops': [
+                    [0, 'red'],
+                    [0.5, 'yellow'],
+                    [1.00, 'green']
+                ]
+            },
+            'lineWidth': 4
+        }
         fetch('./../assets/data/roads.geojson').then(res => res.json()).then(geojson => {
             let lines = maptalks.GeoJSON.toGeometry(geojson).filter(line => {
                 const properties = line.getProperties();
                 if (!properties || !properties.name) {
                     return false;
                 }
-                line.setSymbol({
-                    'lineColor': {
-                        'type': 'linear',
-                        'colorStops': lineColorStops
-                    },
-                    'lineWidth': 4
-                })
+                line.setSymbol(symbol)
                 return true;
             });
             layer.addGeometry(lines);

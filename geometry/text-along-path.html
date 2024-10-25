@@ -19,7 +19,7 @@
 <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.min.css' />
 <script type="text/javascript" src="//at.alicdn.com/t/font_3330503_allx40pxkxd.js"></script>
 
-<script type='text/javascript' src='https:unpkg.com/maptalks/dist/maptalks.min.js'></script>
+<script type='text/javascript' src='https://cdn.jsdelivr.net/npm/maptalks-gl/dist/maptalks-gl.min.js'></script>
 
 <body>
     <div id="map" class="container"></div>
@@ -94,7 +94,7 @@
                 }
                 return true;
             });
-            layer.addGeometry(lines);
+            // layer.addGeometry(lines);
             lines.forEach(line => {
                 const line1 = line.copy();
                 const properties = line1.getProperties();
