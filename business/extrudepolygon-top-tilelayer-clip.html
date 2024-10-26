@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    :root {
+        --space: 0.25rem;
+    }
+
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+
+        /* background-image: linear-gradient(45deg, #eee 25%, transparent 25%, transparent 75%, #eee 75%, #eee 100%), linear-gradient(45deg, #eee 25%, #fff 25%, #fff 75%, #eee 75%, #eee 100%);
+        background-position: 0 0, calc(2* var(--space)) calc(2* var(--space));
+        background-size: calc(4* var(--space)) calc(4* var(--space)); */
+        /* border: 1px dashed #c9c9c9; */
+
+        background-color: black;
+    }
+</style>
+<link rel='stylesheet' href='https://unpkg.com/maptalks/dist/maptalks.css' />
+<script type='text/javascript' src='https://unpkg.com/maptalks-gl/dist/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.tileclip.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const maskId = 'beijing';
+        const tileActor = maptalks.getTileActor();
+
+        var map = new maptalks.Map('map', {
+            center: [116.46755129, 39.86160898],
+            zoom: 9,
+            pitch: 60,
+            zoomControl: true
+        });
+
+        const tileLayer = new maptalks.TileLayer('base', {
+            urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+        });
+
+        tileLayer.on('renderercreate', function (e) {
+            //load tile image
+            //   img(Image): an Image object
+            //   url(String): the url of the tile
+            e.renderer.loadTileBitmap = function (url, tile, callback) {
+                //get Tile data
+                tileActor.getTile({
+                    url: maptalks.Util.getAbsoluteURL(url)
+                }).then(imagebitmap => {
+
+                    //clip tile
+                    tileActor.clipTile({
+                        tile: imagebitmap,
+                        tileBBOX: tileLayer._getTileBBox(tile),
+                        projection: tileLayer.getProjection().code,
+                        tileSize: tileLayer.getTileSize().width,
+                        maskId,
+                    }).then(image => {
+                        callback(image);
+                    }).catch(error => {
+                        //do some things
+                        console.error(error);
+                    })
+                }).catch(error => {
+                    //do some things
+                    console.error(error);
+                })
+            };
+        });
+
+
+
+        fetch('./../assets/data/beijing.geojson').then(res => res.json()).then(geojson => {
+            const feature = geojson.features[0];
+            tileActor.injectMask(maskId, feature).then(data => {
+                tileLayer.addTo(groupLayer);
+                threeLayer.addTo(groupLayer);
+                threeLayer.setZIndex(-1);
+            }).catch(error => {
+                console.error(error);
+            })
+        })
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            identifyCountOnEvent: 1
+            // forceRenderOnMoving: true,
+            // forceRenderOnRotating: true
+        });
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            scene.add(new THREE.AmbientLight('#fff', 0.3));
+            addAreas();
+            addSubAreas();
+            animation();
+            initGui();
+
+        };
+
+        // 添加到GroupGLLayer中
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true },
+                bloom: {
+                    enable: true,
+                    threshold: 0,
+                    factor: 1,
+                    radius: 0.02,
+                },
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [], { sceneConfig });
+        groupLayer.addTo(map);
+
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
+
+
+        const material = new THREE.MeshPhongMaterial({ color: '#474747' });
+
+        const subAreaSymbol = {
+            lineColor: '#ffffff',
+            lineWidth: 2,
+            polygonOpacity: 0.2,
+            polygonFill: '#053766',
+            shadowBlur: 10,
+            shadowColor: '#0693fe'
+        }
+
+        function resetTopUV(extrudePolygons) {
+            // console.log(geometries);
+            //计算所有区域的总的包围盒
+            let minx = Infinity, miny = Infinity, maxx = -Infinity, maxy = -Infinity, maxZ = -Infinity;
+            extrudePolygons.forEach(extrudePolygon => {
+                const geometry = extrudePolygon.getObject3d().geometry;
+                const center = extrudePolygon.getObject3d().position;
+                const px = center.x, py = center.y;
+                const position = geometry.attributes.position.array;
+                for (let i = 0, len = position.length; i < len; i += 3) {
+                    const x = position[i] + px, y = position[i + 1] + py, z = position[i + 2];
+                    minx = Math.min(minx, x);
+                    miny = Math.min(miny, y);
+                    maxx = Math.max(maxx, x);
+                    maxy = Math.max(maxy, y);
+                    maxZ = Math.max(maxZ, z);
+                }
+            });
+            console.log(minx, miny, maxx, maxy);
+            //计算每个子区域的每个轮廓坐标点的在这个包围盒的百分比
+            const dx = maxx - minx, dy = maxy - miny;
+            extrudePolygons.forEach(extrudePolygon => {
+                const geometry = extrudePolygon.getObject3d().geometry;
+                const position = geometry.attributes.position.array;
+                const center = extrudePolygon.getObject3d().position;
+                const px = center.x, py = center.y;
+                const uv = geometry.attributes.uv.array;
+                let idx = 0;
+                for (let i = 0, len = position.length; i < len; i += 3) {
+                    const x = position[i] + px, y = position[i + 1] + py, z = position[i + 2];
+                    if (z === maxZ) {
+                        const u = (x - minx) / dx;
+                        const v = (y - miny) / dy;
+                        const index = idx * 2;
+                        uv[index] = u;
+                        uv[index + 1] = v;
+                    }
+                    idx++;
+                }
+            });
+        }
+
+        const height = 6000, offset = 100, altitude = -height - 200;
+        const polygonLinkLine = new Map();
+
+        function addAreas() {
+            fetch('../assets/data/beijingarea.json').then(res => res.json()).then(geojson => {
+                const polygons = maptalks.GeoJSON.toGeometry(geojson);
+                const extrudePolygons = polygons.map((p, index) => {
+                    const id = maptalks.Util.GUID();
+                    const extrudePolygon = threeLayer.toExtrudePolygon(p, {
+                        height,
+                        topColor: '#fff',
+                        asynchronous: true,
+                        altitude,
+                        maxZoom: 12
+                    }, material);
+                    // extrudePolygon.on('mouseover', polygonUp);
+                    // extrudePolygon.on('mouseout', polygonDown);
+                    extrudePolygon.setId(id);
+                    return extrudePolygon;
+                });
+
+                threeLayer.addMesh(extrudePolygons);
+            })
+        }
+
+        function addSubAreas() {
+            fetch('./../assets/data/beijingarea.json').then(res => res.json()).then(geojson => {
+                const polygons = maptalks.GeoJSON.toGeometry(geojson, (geo) => {
+                    geo.setSymbol({ ...subAreaSymbol })
+                });
+                layer.addGeometry(polygons);
+            })
+        }
+
+
+
+        function animation() {
+            // layer animation support Skipping frames
+            threeLayer._needsUpdate = !threeLayer._needsUpdate;
+            if (threeLayer._needsUpdate) {
+                threeLayer.redraw();
+            }
+            requestAnimationFrame(animation);
+        }
+
+        function initGui() {
+            var params = Object.assign({}, subAreaSymbol, {
+                areaColor: material.color.getStyle(),
+            });
+            var gui = new lil.GUI();
+            gui.addColor(params, 'areaColor').name('area color').onChange(function () {
+                material.color.set(params.areaColor);
+
+            });
+
+            function updateSubAreaSymbol() {
+                layer.getGeometries().forEach(polygon => {
+                    polygon.updateSymbol({
+                        ...params
+                    })
+                })
+            }
+            gui.addColor(params, 'lineColor').name('lineColor').onChange(updateSubAreaSymbol);
+            gui.addColor(params, 'shadowColor').name('shadowColor').onChange(updateSubAreaSymbol);
+            gui.add(params, 'lineWidth', 0, 20, 1).name('lineWidth').onChange(updateSubAreaSymbol);
+            gui.addColor(params, 'polygonFill').name('polygonFill').onChange(updateSubAreaSymbol);
+            gui.add(params, 'polygonOpacity', 0, 1, 0.1).name('polygonOpacity').onChange(updateSubAreaSymbol);
+        }
+
+
+
+
+
+    </script>
+</body>
+
+</html>
