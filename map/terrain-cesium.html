@@ -76,6 +76,8 @@
             terrainWidth: 65,
             urlTemplate: './../assets/data/cesiumlab-terrain/{z}/{x}/{y}.terrain',
             shader: "lit",
+            colors:colors4,
+            exaggeration: 4,
             material: {
                 baseColorFactor: [1, 1, 1, 1],
                 outputSRGB: 1,
@@ -83,7 +85,9 @@
                 metallicFactor: 0
             }
         };
-        const group = new maptalks.GroupGLLayer('group', [tileLayer], {
+        const group = new maptalks.GroupGLLayer('group', [
+            // tileLayer
+        ], {
             terrain
         });
         group.addTo(map);
