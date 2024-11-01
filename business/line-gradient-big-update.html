@@ -170,6 +170,7 @@
             let distance = 0;
 
             let p = 0;
+            //第一个顶点
             let [r, g, b] = ci.getColor(p);
             r /= 255;
             g /= 255;
@@ -180,6 +181,7 @@
                 const d = calDistance(c1, c2);
                 distance += d;
                 p = distance / totalDistance;
+                //中间的顶点需要插入两次,注意Line和LineSegments的区别
                 let [r, g, b] = ci.getColor(p);
                 r /= 255;
                 g /= 255;
@@ -199,6 +201,7 @@
             for (let i = 0, len = lines.length; i < len; i++) {
                 getLineColors(lines[i], colorsArray);
             }
+            //获取fatline geometry
             line.getObject3d().geometry.setColors(colorsArray);
         }
 
@@ -260,11 +263,13 @@
                 "center": [121.10419972, 31.13969959], "zoom": 12.222540965155499, "pitch": 60.000000000000036, "bearing": 0.7427699333062492
             })
             fetch('./../assets/data/roads-big.geojson').then(res => res.json()).then(geojson => {
-      
+
                 geojson.features.forEach(feature => {
+                    //计算线条的长度
                     feature.distance = pathDistance(feature.geometry.coordinates);
                 });
                 geojson.features = geojson.features.filter(f => {
+                    //模拟线条初始化的颜色
                     f.startColor = 'red';
                     f.endColor = 'yellow';
                     return f.distance > 500;
@@ -274,12 +279,13 @@
 
                 geojson.features = features;
 
-                console.log(JSON.stringify(geojson))
 
+                //colorin LRU
                 ciCache = new maptalks.LRUCache(features.length + 100, (item) => {
                     console.log(item);
                 })
 
+                //features is geojso line array
                 line = threeLayer.toFatLines(features, { altitude: 1, asynchronous: true }, material);
 
                 threeLayer.addMesh(line);
