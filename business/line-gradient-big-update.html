@@ -20,12 +20,12 @@
 <link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
 
 <script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
-<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
 <script type='text/javascript' src='./../assets/lib/three.min.js'></script>
 <script type='text/javascript' src='./../assets/lib/LineMaterial.js'></script>
 <script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
 <script type='text/javascript' src='./../assets/lib/colorin.js'></script>
 <script type='text/javascript' src='./../assets/lib/randomColor.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
 
 <body>
 
@@ -317,6 +317,17 @@
         }
 
 
+        var gui = new lil.GUI({ width: 250 });
+        const params = {
+            pointlayer: true
+        }
+        gui.add(params, 'pointlayer').onChange(() => {
+            if (!params.pointlayer) {
+                layer.remove();
+            } else {
+                layer.addTo(map)
+            }
+        })
 
 
 
