@@ -1,5 +1,5 @@
 /*!
- * colorin v0.6.0
+ * colorin v0.7.0
   */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -77,7 +77,7 @@
             const { width, height } = this.options;
             canvas.width = width;
             canvas.height = height;
-            const ctx = canvas.getContext('2d');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
             const { colors, valueOffset } = this;
