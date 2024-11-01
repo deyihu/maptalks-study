@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        /* background-color: black; */
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/LineMaterial.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/colorin.js'></script>
+<script type='text/javascript' src='./../assets/lib/randomColor.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+
+        const PI = Math.PI / 180;
+        const R = 6378137;
+
+        function toRadian(d) {
+            return d * PI;
+        }
+
+        function measureLenBetween(c1, c2) {
+            if (!c1 || !c2) {
+                return 0;
+            }
+            let b = toRadian(c1[1]);
+            const d = toRadian(c2[1]),
+                e = b - d,
+                f = toRadian(c1[0]) - toRadian(c2[0]);
+            b = 2 * Math.asin(Math.sqrt(Math.pow(Math.sin(e / 2), 2) + Math.cos(b) * Math.cos(d) * Math.pow(Math.sin(f / 2), 2)));
+            b *= R;
+            return b;
+        }
+
+        function calDistance(c1, c2) {
+            const d = measureLenBetween(c1, c2);
+            const dz = c2[2] || 0 - c1[2] || 0;
+            if (dz === 0) {
+                return d;
+            }
+            return Math.sqrt(d * d + dz * dz);
+        }
+
+        function pathDistance(coordinates) {
+            let distance = 0;
+            for (let i = 1, len = coordinates.length; i < len; i++) {
+                const c1 = coordinates[i - 1], c2 = coordinates[i];
+                distance += calDistance(c1, c2);
+            }
+            return distance;
+        }
+
+        const baseLayer = new maptalks.TileLayer('tile', {
+            // altitude: -height,
+            urlTemplate: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            subdomains: ['a', 'b', 'c', 'd'],
+            attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+        });
+        var map = new maptalks.Map('map', {
+            center: [116.42494846, 40.20868295],
+            zoom: 9,
+            pitch: 60,
+            // maxFPS: 30,
+        });
+
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            identifyCountOnEvent: 1,
+            // animation: true
+            // forceRenderOnMoving: true,
+            // forceRenderOnRotating: true
+        });
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            scene.add(new THREE.AmbientLight('#fff', 0.3));
+            addRoad();
+            animation();
+            // addPolygons();
+            // initGui();
+
+        };
+        // 添加到GroupGLLayer中
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true }
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [baseLayer, threeLayer], { sceneConfig });
+        groupLayer.addTo(map);
+
+        const layer = new maptalks.VectorLayer('layer', {
+            // collision: true,
+            progressiveRender: true,
+            progressiveRenderCount: 1000,
+            forceRenderOnMoving: true,
+            forceRenderOnZooming: true,
+            forceRenderOnRotating: true,
+        }).addTo(map);
+
+        //https://threejs.org/examples/#webgl_lines_fat
+        var material = new THREE.LineMaterial({
+            color: 0xffffff,
+            transparent: true,
+            vertexColors: true,
+            // side: THREE.BackSide,
+            linewidth: 4 // in pixels
+            // dashed: false
+
+        });
+        let line;
+
+        function animation() {
+            // layer animation support Skipping frames
+            threeLayer._needsUpdate = !threeLayer._needsUpdate;
+            if (threeLayer._needsUpdate) {
+                threeLayer.redraw();
+            }
+            requestAnimationFrame(animation);
+        }
+
+
+
+        let ciCache;
+
+        function getCi(feature) {
+            const { startColor, endColor } = feature;
+            const key = `${startColor}_${endColor}`;
+            let ci = ciCache.get(key);
+            if (!ci) {
+                ci = new colorin.ColorIn([
+                    [0, startColor],
+                    [1, endColor]
+                ]);
+                ciCache.add(key, ci);
+            }
+            return ci;
+        }
+
+        function getLineColors(feature, colors) {
+            const ci = getCi(feature);
+            const totalDistance = feature.distance;
+            const coordinates = feature.geometry.coordinates;
+            let distance = 0;
+
+            let p = 0;
+            let [r, g, b] = ci.getColor(p);
+            r /= 255;
+            g /= 255;
+            b /= 255;
+            colors.push(r, g, b);
+            for (let i = 1, len = coordinates.length; i < len; i++) {
+                const c1 = coordinates[i - 1], c2 = coordinates[i];
+                const d = calDistance(c1, c2);
+                distance += d;
+                p = distance / totalDistance;
+                let [r, g, b] = ci.getColor(p);
+                r /= 255;
+                g /= 255;
+                b /= 255;
+                colors.push(r, g, b);
+                if (i === len - 1) {
+                    continue;
+                }
+                colors.push(r, g, b);
+            }
+
+        }
+
+        function updateLineColors() {
+            const lines = line.getOptions().lineStrings;
+            const colorsArray = [];
+            for (let i = 0, len = lines.length; i < len; i++) {
+                getLineColors(lines[i], colorsArray);
+            }
+            line.getObject3d().geometry.setColors(colorsArray);
+        }
+
+        function mockColorUpdate() {
+            const lines = line.getOptions().lineStrings;
+            const linesLen = lines.length;
+            const updateIds = [];
+            //模拟每秒有50条数据颜色更新
+            while (updateIds.length < 50) {
+                const index = Math.min(linesLen - 1, Math.ceil(Math.random() * linesLen));
+                updateIds.push(index);
+            }
+            for (let i = 0, len = updateIds.length; i < len; i++) {
+                const index = updateIds[i];
+                const line = lines[index];
+                if (!line) {
+                    continue;
+                }
+                line.startColor = randomColor();
+                line.endColor = randomColor();
+            }
+            updateLineColors();
+        }
+
+        function debug(features) {
+            features.forEach(f => {
+                const coordinates = f.geometry.coordinates;
+                coordinates.forEach((c, index) => {
+                    const point = new maptalks.Marker(c, {
+                        symbol: {
+                            textName: index,
+                            textSize: 12
+                        }
+                    });
+                    point.addTo(layer);
+                });
+            });
+        }
+
+        function addPoints(features) {
+            const points = [];
+            features.forEach(feature => {
+                const coordinates = feature.geometry.coordinates;
+                const c1 = coordinates[0], c2 = coordinates[coordinates.length - 1];
+                const point = new maptalks.Marker(c1, {
+                    symbol: {
+                        markerFile: './../assets/image/camera.png',
+                        markerWidth: 20,
+                        markerHeight: 20
+                    }
+                });
+                points.push(point);
+            });
+            layer.addGeometry(points);
+        }
+
+        function addRoad() {
+            map.setView({
+                "center": [121.10419972, 31.13969959], "zoom": 12.222540965155499, "pitch": 60.000000000000036, "bearing": 0.7427699333062492
+            })
+            fetch('./../assets/data/roads-big.geojson').then(res => res.json()).then(geojson => {
+      
+                geojson.features.forEach(feature => {
+                    feature.distance = pathDistance(feature.geometry.coordinates);
+                });
+                geojson.features = geojson.features.filter(f => {
+                    f.startColor = 'red';
+                    f.endColor = 'yellow';
+                    return f.distance > 500;
+                })
+                const features = geojson.features.slice(0, 10000);
+                console.log('features count:', features.length);
+
+                geojson.features = features;
+
+                console.log(JSON.stringify(geojson))
+
+                ciCache = new maptalks.LRUCache(features.length + 100, (item) => {
+                    console.log(item);
+                })
+
+                line = threeLayer.toFatLines(features, { altitude: 1, asynchronous: true }, material);
+
+                threeLayer.addMesh(line);
+                line.on('workerload', e => {
+                    updateLineColors();
+                    addPoints(features);
+                    setInterval(() => {
+                        mockColorUpdate();
+                    }, 1000);
+                    // debug(features);
+                })
+                line.setInfoWindow({
+                    content: 'hello world',
+                    title: 'message',
+                    animationDuration: 0,
+                    autoOpenOn: false
+                });
+
+                line.on('click', e => {
+                    console.log(e);
+                    if (e.selectMesh) {
+                        const properties = e.selectMesh.data.properties || {};
+                        e.target.getInfoWindow().setContent(JSON.stringify(properties));
+                        e.target.getInfoWindow().show(e.coordinate);
+                    }
+                })
+
+            })
+        }
+
+
+
+
+
+    </script>
+</body>
+
+</html>
