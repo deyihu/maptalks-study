@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+
+    .infowindow-template {
+        display: none;
+    }
+
+    #infowindow {
+        text-align: center;
+        width: 300px;
+        font-size: 16px
+    }
+
+    .markerDiv {
+        /* // width:10vw; */
+        min-width: 180px;
+        min-height: 100px;
+        background: beige;
+        padding-bottom: 1vh;
+        margin-bottom: 4vh;
+        width: 200px;
+        height: 100px;
+    }
+
+    .markerBody {
+        margin: 1vh 0;
+    }
+
+    .markerName {
+        text-align: center;
+        font-size: 12px;
+        font-weight: 600;
+        background: darkblue;
+        color: white;
+
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/element-ui/lib/theme-chalk/index.css' />
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/vue.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/element-ui/lib/index.js'></script>
+<style>
+    .profile {
+        background-color: white;
+        border: 1px solid gray;
+        padding: 10px;
+        width: 200px;
+    }
+</style>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            center: [119.47201791, 30.12828901],
+            zoom: 11,
+            pitch: 60,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+            })
+        });
+
+
+
+
+        function randomCoordinates() {
+            const coordinates = [];
+            const { x, y } = map.getCenter();
+            while (coordinates.length < 1000) {
+                const cx = Math.random() - 0.5 + x;
+                const cy = Math.random() - 0.5 + y;
+                coordinates.push([cx, cy]);
+            }
+            return coordinates;
+        }
+
+        function getMarkerData(marker) {
+            const name = `hello${Math.ceil(Math.random() * 10000)}`;
+            const wendu = ` 供回温:${(Math.random() * 200).toFixed(2)}/${(Math.random() * 200).toFixed(2)}℃`;
+            const yali = ` 供回压:${(Math.random() * 100).toFixed(2)}/${(Math.random() * 100).toFixed(2)} MPa`;
+            const liu = `流量:${(Math.random() * 100).toFixed(2)} t/h`;
+            return {
+                name, wendu, yali, liu
+            }
+        }
+
+        //custom a component
+        var Profile = Vue.extend({
+            template: `  <div class="markerDiv">
+            <div class="markerName">{{name}}</div>
+            <div class="markerBody">
+                <div class="markerRow">{{wendu}}</div>
+                <div class="markerRow">{{yali}}</div>
+                <div class="markerRow">{{liu}}</div>
+            </div>
+        </div>`,
+            props: ['name', 'wendu', 'yali', 'liu'],
+            data: function () {
+                return {
+                    // firstName: 'Walter' + index,
+                    lastName: 'White',
+                    alias: 'Heisenberg',
+                    // checked: index % 2 === 0
+                }
+            }
+        });
+
+        const markers = [], components = [];
+
+        randomCoordinates().forEach((c, index) => {
+
+            const props = getMarkerData();
+
+            const profile = new Profile({ propsData: props }).$mount();
+            var marker = new maptalks.ui.UIMarker(c, {
+                content: profile.$el,
+                collision: true,
+                collisionBufferSize: 2,
+                collisionWeight: 1,
+                collisionFadeIn: true,
+                verticalAlignment: "top",
+                horizontalAlignment: 'middle',
+                altitude: 0,
+                // minZoom: 2,
+                // maxZoom: 10,
+                animation: 'fade',
+            });
+            marker.addTo(map);
+            markers.push(marker);
+            components.push(profile);
+        })
+
+        let time = Date.now();
+        function animation() {
+
+            const currentTime = Date.now();
+            if (currentTime - time > 50) {
+                markers.forEach((marker, index) => {
+                    const uiDom = marker.getDOM();
+                    if (uiDom.style.visibility !== 'visible') {
+                        return;
+                    }
+                    const { name, wendu, yali, liu } = getMarkerData();
+                    const component = components[index];
+                    component.$props.name = name;
+                    component.$props.wendu = wendu;
+                    component.$props.yali = yali;
+                    component.$props.liu = liu;
+
+                })
+                time = currentTime;
+            }
+
+            requestAnimationFrame(animation);
+        }
+
+        animation();
+
+
+    </script>
+</body>
+
+</html>
