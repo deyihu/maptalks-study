@@ -61,7 +61,7 @@
         });
 
 
-        drawTool.on('drawvertex', function (param) {
+        drawTool.on('drawstart', function (param) {
             //设置绘制图形时，图形的样式
             updateGeometrySymbol(param.tempGeometry);
         });
