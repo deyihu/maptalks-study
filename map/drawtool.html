@@ -60,7 +60,7 @@
             map.config('geometryEvents', false);
         });
 
-       
+
         drawTool.on('drawvertex', function (param) {
             //设置绘制图形时，图形的样式
             updateGeometrySymbol(param.tempGeometry);
@@ -69,31 +69,31 @@
         function updateGeometrySymbol(geometry) {
             const mode = drawTool.getMode();
             if (mode === 'linestring') {
-                if (geometry.getCoordinates().length > 1) {
-                    geometry.setSymbol({
-                        lineColor: 'red',
-                        markerType: 'ellipse',
-                        markerWidth: 10,
-                        markerHeight: 10,
-                        'markerPlacement': 'vertex',
-                    })
-                }
+                // if (geometry.getCoordinates().length > 1) {
+                geometry.setSymbol({
+                    lineColor: 'red',
+                    markerType: 'ellipse',
+                    markerWidth: 10,
+                    markerHeight: 10,
+                    'markerPlacement': 'vertex',
+                })
+                // }
 
             }
             if (mode === 'polygon') {
-                if (geometry.getCoordinates().length > 1) {
-                    geometry.setSymbol({
-                        polygonFill: "white",
-                        polygonOpacity: 0.7,
-                        lineColor: 'blue',
-                        lineWidth: 2,
-                        markerType: 'ellipse',
-                        markerWidth: 10,
-                        markerHeight: 10,
-                        markerFill: "red",
-                        'markerPlacement': 'vertex',
-                    })
-                }
+                // if (geometry.getCoordinates().length > 1) {
+                geometry.setSymbol({
+                    polygonFill: "white",
+                    polygonOpacity: 0.7,
+                    lineColor: 'blue',
+                    lineWidth: 2,
+                    markerType: 'ellipse',
+                    markerWidth: 10,
+                    markerHeight: 10,
+                    markerFill: "red",
+                    'markerPlacement': 'vertex',
+                })
+                // }
             }
             if (mode === 'point') {
                 geometry.setSymbol({
