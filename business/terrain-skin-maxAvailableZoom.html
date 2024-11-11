@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<head>
+    <title>添加一个矢量瓦片图层</title>
+    <style type="text/css">
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0px;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <link rel="stylesheet" href="./../assets/lib/maptalks/maptalks.css" />
+    <!-- <script type="text/javascript" src="./../assets/lib/maptalks/maptalks-gl.js"></script> -->
+    <script type="text/javascript" src="./../assets/lib/maptalks/maptalks-gl.js"></script>
+    <script type="text/javascript" src="./../assets/lib/lil-gui.min.js"></script>
+    <script type="text/javascript" src="./../assets/lib/maptalks.tileclip.js"></script>
+</head>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const tileActor = maptalks.getTileActor();
+        const maskId = '山';
+
+        const map = new maptalks.Map("map", {
+            // "center": [119.09557457, 30.14442343, 339.73126220703125], "zoom": 11.856275713521464, "pitch": 61.80000000000011, "bearing": -64.07337236948052,
+            "center": [108.95986733, 34.21997952, 430.3062438964844], "zoom": 12.698416480987284, "pitch": 0, "bearing": 1.8437368186266667,
+            // cameraInfiniteFar: true,
+            // heightFactor: 4.2,
+            zoomControl: true,
+            // baseLayer: new maptalks.TileLayer('base', {
+            //     urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            //     subdomains: ["a", "b", "c", "d"],
+            // })
+        });
+
+
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: {
+                    enable: true,
+                },
+            },
+        };
+
+        const colors4 = [
+            [0, '#F0F9E9'],
+            [200, '#D7EFD1'],
+            [400, '#A6DCB6'],
+            [650, '#8FD4BD'],
+            [880, '#67C1CB'],
+            [1100, '#3C9FC8'],
+            [1300, '#1171B1'],
+            [1450, '#085799'],
+            [1600, '#084586'],
+        ];
+
+
+
+
+        const terrain = {
+            type: 'mapbox',
+            tileSize: 256,
+            maxAvailableZoom: 12,
+
+            requireSkuToken: false,
+            urlTemplate: './../assets/data/tile-rgb/{z}/{x}/{y}.png',
+            subdomains: ['a', 'b', 'c', 'd'],
+            // colors: colors4,
+            // exaggeration: 4,
+        };
+
+        const baseLayer1 = new maptalks.TileLayer('base1', {
+            urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+        });
+
+        const baseLayer = new maptalks.TileLayer('base', {
+            urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+            // maxAvailableZoom: 14,
+        })
+
+
+        baseLayer.on('renderercreate', function (e) {
+            //load tile image
+            //   img(Image): an Image object
+            //   url(String): the url of the tile
+            e.renderer.loadTileBitmap = function (url, tile, callback) {
+                const { x, y, z } = tile;
+                const urlTemplate = baseLayer.options.urlTemplate;
+                const maxAvailableZoom = 15;
+                tileActor.getTileWithMaxZoom({
+                    x,
+                    y,
+                    z,
+                    urlTemplate,
+                    maxAvailableZoom,
+                    // filter: 'sepia(100%) invert(90%)'
+                }).then(imagebitmap => {
+                    tileActor.clipTile({
+                        tile: imagebitmap,
+                        tileBBOX: baseLayer._getTileBBox(tile),
+                        projection: baseLayer.getProjection().code,
+                        tileSize: baseLayer.getTileSize().width,
+                        maskId,
+                    }).then(image => {
+                        callback(image);
+                    }).catch(error => {
+                        //do some things
+                        console.error(error);
+                    })
+                }).catch(error => {
+                    //do some things
+                    console.error(error);
+                })
+            };
+        });
+
+
+        const group = new maptalks.GroupGLLayer('group', [baseLayer1], {
+            terrain
+        });
+        group.addTo(map);
+
+        map.setView({
+            "center": [118.25779765, 30.25172089, 0.3062438964844], "zoom": 16.66043596103459, "pitch": 50.14999999999995, "bearing": 112.90705084326646
+        })
+
+        fetch('./../assets/data/terrain-mask-data.json').then(res => res.json()).then(geojson => {
+            tileActor.injectMask(maskId, geojson).then(data => {
+                baseLayer.addTo(group);
+            }).catch(error => {
+                console.error(error);
+            })
+        })
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
