@@ -65,11 +65,13 @@
 
         function pathDistance(coordinates) {
             let distance = 0;
+            const distanceList = [0];
             for (let i = 1, len = coordinates.length; i < len; i++) {
                 const c1 = coordinates[i - 1], c2 = coordinates[i];
                 distance += calDistance(c1, c2);
+                distanceList.push(distance);
             }
-            return distance;
+            return { distance, distanceList };
         }
 
         const baseLayer = new maptalks.TileLayer('tile', {
@@ -124,17 +126,24 @@
             forceRenderOnRotating: true,
         }).addTo(map);
 
-        //https://threejs.org/examples/#webgl_lines_fat
-        var material = new THREE.LineMaterial({
-            color: 0xffffff,
-            transparent: true,
-            vertexColors: true,
-            // side: THREE.BackSide,
-            linewidth: 4 // in pixels
-            // dashed: false
+        let lines = [];
+        const lineMatarilMap = {};
 
-        });
-        let line;
+        function getLineMaterail(lineWidth) {
+            if (!lineMatarilMap[lineWidth]) {
+                //https://threejs.org/examples/#webgl_lines_fat
+                lineMatarilMap[lineWidth] = new THREE.LineMaterial({
+                    color: 0xffffff,
+                    transparent: true,
+                    vertexColors: true,
+                    // side: THREE.BackSide,
+                    linewidth: lineWidth // in pixels
+                    // dashed: false
+
+                });
+            }
+            return lineMatarilMap[lineWidth];
+        }
 
         function animation() {
             // layer animation support Skipping frames
@@ -163,67 +172,98 @@
             return ci;
         }
 
-        function getLineColors(feature, colors) {
+        function getLineColors(feature, colorsArray) {
+            const lineColorCache = feature.lineColorCache;
+            if (lineColorCache) {
+                //颜色不变，直接复用上次的缓存的颜色值
+                if (lineColorCache.startColor === feature.startColor && lineColorCache.endColor === feature.endColor) {
+                    const colors = lineColorCache.colors;
+                    for (let i = 0, len = colors.length; i < len; i++) {
+                        colorsArray.push(colors[i])
+                    }
+                    return;
+                }
+            }
+
             const ci = getCi(feature);
             const totalDistance = feature.distance;
+            const distanceList = feature.distanceList;
             const coordinates = feature.geometry.coordinates;
             let distance = 0;
 
+            const tempColor = [];
             let p = 0;
             //第一个顶点
             let [r, g, b] = ci.getColor(p);
             r /= 255;
             g /= 255;
             b /= 255;
-            colors.push(r, g, b);
-            for (let i = 1, len = coordinates.length; i < len; i++) {
-                const c1 = coordinates[i - 1], c2 = coordinates[i];
-                const d = calDistance(c1, c2);
-                distance += d;
-                p = distance / totalDistance;
+            colorsArray.push(r, g, b);
+            tempColor.push(r, g, b);
+            for (let i = 1, len = distanceList.length; i < len; i++) {
+
+                p = distanceList[i] / totalDistance;
                 //中间的顶点需要插入两次,注意Line和LineSegments的区别
                 let [r, g, b] = ci.getColor(p);
                 r /= 255;
                 g /= 255;
                 b /= 255;
-                colors.push(r, g, b);
+                colorsArray.push(r, g, b);
+                tempColor.push(r, g, b);
                 if (i === len - 1) {
                     continue;
                 }
-                colors.push(r, g, b);
+                colorsArray.push(r, g, b);
+                tempColor.push(r, g, b);
+            }
+            feature.lineColorCache = {
+                startColor: feature.startColor,
+                endColor: feature.endColor,
+                colors: tempColor
+
             }
 
         }
 
         function updateLineColors() {
-            const lines = line.getOptions().lineStrings;
-            const colorsArray = [];
-            for (let i = 0, len = lines.length; i < len; i++) {
-                getLineColors(lines[i], colorsArray);
-            }
-            //获取fatline geometry
-            line.getObject3d().geometry.setColors(colorsArray);
+            // const time = 'time';
+            // console.time(time);
+            lines.slice(0,Infinity).forEach(line => {
+                const lineStrings = line.getOptions().lineStrings;
+                const colorsArray = [];
+                for (let i = 0, len = lineStrings.length; i < len; i++) {
+                    getLineColors(lineStrings[i], colorsArray);
+                }
+                // console.log(colorsArray.length);
+                //获取fatline geometry
+                line.getObject3d().geometry.setColors(colorsArray);
+            });
+
+            // console.timeEnd(time);
         }
 
         function mockColorUpdate() {
-            const lines = line.getOptions().lineStrings;
-            const linesLen = lines.length;
-            const updateIds = [];
-            //模拟每秒有50条数据颜色更新
-            while (updateIds.length < 50) {
-                const index = Math.min(linesLen - 1, Math.ceil(Math.random() * linesLen));
-                updateIds.push(index);
-            }
-            for (let i = 0, len = updateIds.length; i < len; i++) {
-                const index = updateIds[i];
-                const line = lines[index];
-                if (!line) {
-                    continue;
+            lines.forEach(line => {
+                const lineStrings = line.getOptions().lineStrings;
+                const linesLen = lineStrings.length;
+                const updateIds = [];
+                //模拟每个组里每秒有50条数据颜色更新
+                while (updateIds.length < 50) {
+                    const index = Math.min(linesLen - 1, Math.ceil(Math.random() * linesLen));
+                    updateIds.push(index);
                 }
-                line.startColor = randomColor();
-                line.endColor = randomColor();
-            }
-            updateLineColors();
+                for (let i = 0, len = updateIds.length; i < len; i++) {
+                    const index = updateIds[i];
+                    const lineString = lineStrings[index];
+                    if (!lineString) {
+                        continue;
+                    }
+                    lineString.startColor = randomColor();
+                    lineString.endColor = randomColor();
+                }
+                updateLineColors();
+            });
+
         }
 
         function debug(features) {
@@ -266,52 +306,70 @@
 
                 geojson.features.forEach(feature => {
                     //计算线条的长度
-                    feature.distance = pathDistance(feature.geometry.coordinates);
+                    const { distance, distanceList } = pathDistance(feature.geometry.coordinates);
+                    feature.distance = distance;
+                    feature.distanceList = distanceList;
                 });
                 geojson.features = geojson.features.filter(f => {
                     //模拟线条初始化的颜色
                     f.startColor = 'red';
                     f.endColor = 'yellow';
+                    f.lineWidth = Math.round(2 + Math.random() * 8);
                     return f.distance > 500;
                 })
                 const features = geojson.features.slice(0, 10000);
                 console.log('features count:', features.length);
 
-                geojson.features = features;
+                // geojson.features = features;
+
+
 
 
                 //colorin LRU
                 ciCache = new maptalks.LRUCache(features.length + 100, (item) => {
                     console.log(item);
                 })
-
-                //features is geojso line array
-                line = threeLayer.toFatLines(features, { altitude: 1, asynchronous: true }, material);
-
-                threeLayer.addMesh(line);
-                line.on('workerload', e => {
-                    updateLineColors();
-                    addPoints(features);
-                    setInterval(() => {
-                        mockColorUpdate();
-                    }, 1000);
-                    // debug(features);
-                })
-                line.setInfoWindow({
-                    content: 'hello world',
-                    title: 'message',
-                    animationDuration: 0,
-                    autoOpenOn: false
+                //根据线条宽度分组
+                const featureMap = {};
+                features.forEach(feature => {
+                    const lineWidth = feature.lineWidth;
+                    featureMap[lineWidth] = featureMap[lineWidth] || [];
+                    featureMap[lineWidth].push(feature);
                 });
+                for (const lineWidth in featureMap) {
+                    const features = featureMap[lineWidth];
+                    //features is geojso line array
+                    const line = threeLayer.toFatLines(features, { altitude: 1, asynchronous: true }, getLineMaterail(lineWidth));
 
-                line.on('click', e => {
-                    console.log(e);
-                    if (e.selectMesh) {
-                        const properties = e.selectMesh.data.properties || {};
-                        e.target.getInfoWindow().setContent(JSON.stringify(properties));
-                        e.target.getInfoWindow().show(e.coordinate);
-                    }
-                })
+                    // threeLayer.addMesh(line);
+                    // line.on('workerload', e => {
+
+                    //     // debug(features);
+                    // })
+                    line.setInfoWindow({
+                        content: 'hello world',
+                        title: 'message',
+                        animationDuration: 0,
+                        autoOpenOn: false
+                    });
+
+                    line.on('click', e => {
+                        console.log(e);
+                        if (e.selectMesh) {
+                            const properties = e.selectMesh.data.properties || {};
+                            e.target.getInfoWindow().setContent(JSON.stringify(properties));
+                            e.target.getInfoWindow().show(e.coordinate);
+                        }
+                    })
+                    lines.push(line);
+                    threeLayer.addMesh(lines);
+                }
+                updateLineColors();
+                addPoints(features);
+                setInterval(() => {
+                    mockColorUpdate();
+                }, 1000);
+
 
             })
         }
