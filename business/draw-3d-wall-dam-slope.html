@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        background-color: black;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/LineMaterial.js'></script>
+<script type='text/javascript' src='./../assets/lib/poly-extrude.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const coordinates = [
+            [
+                120.63889127041375,
+                31.19656194648357
+            ],
+            [
+                120.63945975967954,
+                31.196745449351084
+            ],
+            [
+                120.63966087616495,
+                31.196789031229827
+            ],
+            [
+                120.64005238292339,
+                31.196527539656273
+            ],
+            [
+                120.64053506248865,
+                31.196321098429934
+            ],
+            [
+                120.64105260224471,
+                31.19621558385134
+            ],
+            [
+                120.6418517050804,
+                31.19601372954716
+            ],
+            [
+                120.64318175543804,
+                31.195653602048623
+            ],
+            [
+                120.64397817672057,
+                31.19541504549872
+            ],
+            [
+                120.6444796271578,
+                31.195293473179476
+            ],
+            [
+                120.64515806010218,
+                31.195249890611905
+            ],
+            [
+                120.64563537656113,
+                31.195204014203256
+            ],
+            [
+                120.6457587280056,
+                31.19469478457401
+            ],
+            [
+                120.64590085032205,
+                31.194052509061606
+            ],
+            [
+                120.645823085281,
+                31.19380706691092
+            ],
+            [
+                120.64544230473507,
+                31.1935593302629
+            ],
+            [
+                120.64494621740414,
+                31.19321983824736
+            ],
+            [
+                120.64396745050794,
+                31.192437625656765
+            ],
+            [
+                120.64375292625687,
+                31.1922770533574
+            ]
+        ];
+
+        var map = new maptalks.Map('map', {
+            "center": [120.64240904, 31.19429251], "zoom": 17.580001967893683, "pitch": 27.750000000000043, "bearing": -1.050000000000864,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+                maxAvailableZoom: 18,
+            })
+        });
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            identifyCountOnEvent: 1
+            // forceRenderOnMoving: true,
+            // forceRenderOnRotating: true
+        });
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            scene.add(new THREE.AmbientLight('#fff', 0.3));
+            loadTexture();
+            animation();
+            createWall(new maptalks.LineString(coordinates));
+            // initGui();
+
+        };
+
+        // threeLayer.addTo(map);
+        // 添加到GroupGLLayer中
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true },
+                bloom: {
+                    enable: true,
+                    threshold: 0,
+                    factor: 1,
+                    radius: 0.02,
+                },
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [], { sceneConfig });
+        groupLayer.addTo(map);
+
+        threeLayer.addTo(groupLayer);
+
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
+        layer.setZIndex(-1)
+
+        const material = new THREE.MeshPhongMaterial({ color: '#fff' });
+        const material1 = new THREE.MeshPhongMaterial({ color: '#fff' });
+        // const material2 = new THREE.MeshPhongMaterial({ color: 'gray' });
+
+        function loadTexture() {
+            const textureLoader = new THREE.TextureLoader();
+            textureLoader.load('./../assets/image/green.jpg', (texture) => {
+                texture.needsUpdate = true; //使用贴图时进行更新
+                texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+                // texture.repeat.set(0.002, 0.002);
+                texture.repeat.set(1, 1);
+                material.map = texture;
+                material.needsUpdate = true;
+            });
+
+            textureLoader.load('./../assets/image/wall.jpg', (texture) => {
+                texture.needsUpdate = true; //使用贴图时进行更新
+                texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+                // texture.repeat.set(0.002, 0.002);
+                texture.repeat.set(6, 6);
+                material1.map = texture;
+                material1.needsUpdate = true;
+            });
+
+        }
+
+
+
+        function createWall(lineString) {
+            const extrudeLine = new Slope(lineString, { width: 20, sideHeight: 1 }, material1, threeLayer);
+            console.log(extrudeLine);
+            threeLayer.addMesh(extrudeLine);
+
+        }
+
+
+
+
+
+        const height = 100, offset = 100;
+
+
+        function animation() {
+            // layer animation support Skipping frames
+            threeLayer._needsUpdate = !threeLayer._needsUpdate;
+            if (threeLayer._needsUpdate) {
+                threeLayer.redraw();
+            }
+            requestAnimationFrame(animation);
+        }
+
+        function initGui() {
+            var params = {
+                add: true,
+                color: linematerial.color.getStyle(),
+                show: true,
+                opacity: 1,
+                altitude: 0
+            };
+            var gui = new lil.GUI();
+            gui.addColor(params, 'color').name('line color').onChange(function () {
+                linematerial.color.set(params.color);
+
+            });
+        }
+
+        const drawTool = new maptalks.DrawTool({
+            mode: "LineString",
+            once: true,
+            // transformCoordinate: (coordinate, mapEvent) => {
+            //     const result = layer1.identify(coordinate);
+            //     if (result.length) {
+            //         return new maptalks.Coordinate(result[0].coordinate);
+            //     }
+            // }
+        })
+            .addTo(map)
+            .disable();
+
+        drawTool.on("drawend", function (param) {
+            console.info(param.geometry);
+            layer.addGeometry(param.geometry);
+            createWall(param.geometry);
+        });
+
+        drawTool.on('drawstart', function (param) {
+            //设置绘制图形时，图形的样式
+            updateGeometrySymbol(param.tempGeometry);
+        });
+
+
+        function updateGeometrySymbol(geometry) {
+            const mode = drawTool.getMode();
+            if (mode === 'linestring') {
+                // if (geometry.getCoordinates().length > 1) {
+                geometry.setSymbol({
+                    lineColor: 'red',
+                    markerType: 'ellipse',
+                    markerWidth: 10,
+                    markerHeight: 10,
+                    'markerPlacement': 'vertex',
+                })
+                // }
+
+            }
+            if (mode === 'polygon') {
+                // if (geometry.getCoordinates().length > 1) {
+                geometry.setSymbol({
+                    polygonFill: "white",
+                    polygonOpacity: 0.7,
+                    lineColor: 'blue',
+                    lineWidth: 2,
+                    markerType: 'ellipse',
+                    markerWidth: 10,
+                    markerHeight: 10,
+                    markerFill: "red",
+                    'markerPlacement': 'vertex',
+                })
+                // }
+            }
+            if (mode === 'point') {
+                geometry.setSymbol({
+                    markerType: 'ellipse',
+                    markerWidth: 10,
+                    markerHeight: 10,
+                    markerFill: "red",
+                })
+            }
+        }
+
+        const items = [
+            // "Point",
+            "LineString",
+            // "Polygon",
+            // "Circle",
+            // "Ellipse",
+            // "Rectangle",
+            // "FreeHandLineString",
+            // "FreeHandPolygon",
+        ].map(function (value) {
+            return {
+                item: value,
+                click: function () {
+                    drawTool.setMode(value).enable();
+                },
+            };
+        });
+
+        const toolbar = new maptalks.control.Toolbar({
+            items: [{
+                item: "Shape",
+                children: items,
+            },
+            {
+                item: "Disable",
+                click: function () {
+                    drawTool.disable();
+                },
+            },
+            {
+                item: "Clear",
+                click: function () {
+                    layer.clear();
+                },
+            },
+            ],
+        }).addTo(map);
+
+
+        const OPTIONS = {
+            height: 5,
+            side: 'left',
+            sideHeight: 0,
+            width: 10,
+            altitude: 0
+        }
+        const OUT = new THREE.Vector3();
+
+        class Slope extends maptalks.BaseObject {
+            constructor(lineString, options, material, threeLayer) {
+                options = Object.assign({}, OPTIONS, options);
+                super();
+                this._initOptions(options);
+                const { height, side, sideHeight, width } = options;
+                const h = threeLayer.altitudeToVector3(height, height).x;
+                const sideH = threeLayer.altitudeToVector3(sideHeight, sideHeight).x;
+                const w = threeLayer.distanceToVector3(width, width).x;
+                const points = [];
+                const coordinates = lineString.getCoordinates();
+                const center = lineString.getCenter();
+                const centerPt = threeLayer.coordinateToVector3(center);
+
+                for (let i = 0, len = coordinates.length; i < len; i++) {
+                    const coordinate = coordinates[i];
+                    const alt = coordinate.z || 0;
+                    let z = 0;
+                    if (alt !== 0) {
+                        z = threeLayer.altitudeToVector3(alt, alt).x;
+                    }
+                    const v = threeLayer.coordinateToVector3(coordinate, z, OUT).sub(centerPt);
+                    points.push([v.x, v.y, v.z]);
+                }
+                const { position, indices, normal, uv } = polyextrude.extrudeSlopes([points], {
+                    depth: h,
+                    sideDepth: sideH,
+                    side,
+                    lineWidth: w
+                });
+                const geometry = new THREE.BufferGeometry();
+                geometry.setAttribute('position', new THREE.BufferAttribute(position, 3));
+                geometry.setAttribute('normal', new THREE.BufferAttribute(normal, 3))
+                geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+                geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+                const { altitude } = options;
+                const z = threeLayer.altitudeToVector3(altitude, altitude).x;
+                centerPt.z = z;
+                this._createMesh(geometry, material);
+                this.getObject3d().position.copy(centerPt);
+                this.type = 'Slope';
+            }
+        }
+
+
+
+
+
+    </script>
+</body>
+
+</html>

@@ -1,5 +1,5 @@
 /*!
- * poly-extrude v0.4.0
+ * poly-extrude v0.5.0
   */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -1091,9 +1091,66 @@
       result.lines = lines;
       return result;
     }
+    function extrudeSlopes(lines, options) {
+      options = Object.assign({}, {
+        depth: 2,
+        lineWidth: 1,
+        side: 'left',
+        sideDepth: 0
+      }, options);
+      var _options = options,
+          depth = _options.depth,
+          side = _options.side,
+          sideDepth = _options.sideDepth;
+      var results = lines.map(function (line) {
+        var tempResult = expandLine(line, options);
+        tempResult.line = line;
+        var leftPoints = tempResult.leftPoints,
+            rightPoints = tempResult.rightPoints;
+        var result = {
+          line: line
+        };
+        var depths;
+
+        for (var i = 0, len = line.length; i < len; i++) {
+          line[i][2] = line[i][2] || 0;
+        }
+
+        if (side === 'left') {
+          result.leftPoints = leftPoints;
+          result.rightPoints = line;
+          depths = [sideDepth, depth];
+        } else {
+          result.leftPoints = line;
+          result.rightPoints = rightPoints;
+          depths = [depth, sideDepth];
+        }
+
+        result.depths = depths;
+        generateTopAndBottom(result, options);
+        generateSides(result, options);
+        result.position = new Float32Array(result.points);
+        result.indices = new Uint32Array(result.index);
+        result.uv = new Float32Array(result.uvs);
+        result.normal = generateNormal(result.indices, result.position);
+        return result;
+      });
+      var result = merge(results);
+      result.lines = lines;
+      return result;
+    }
 
     function generateTopAndBottom(result, options) {
       var z = options.depth;
+      var depths = result.depths;
+      var lz = z,
+          rz = z;
+
+      if (depths) {
+        lz = depths[0];
+        rz = depths[1];
+      }
+
       var points = [],
           index = [],
           uvs = [];
@@ -1111,7 +1168,7 @@
             z1 = _leftPoints$i[2];
         points[idx0] = x1;
         points[idx0 + 1] = y1;
-        points[idx0 + 2] = z + z1; // top right
+        points[idx0 + 2] = lz + z1; // top right
 
         var _rightPoints$i = rightPoints[i],
             x2 = _rightPoints$i[0],
@@ -1120,7 +1177,7 @@
         var idx1 = len * 3 + idx0;
         points[idx1] = x2;
         points[idx1 + 1] = y2;
-        points[idx1 + 2] = z + z2; // bottom left
+        points[idx1 + 2] = rz + z2; // bottom left
 
         var idx2 = len * 2 * 3 + idx0;
         points[idx2] = x1;
@@ -1171,6 +1228,17 @@
       result.index = index;
       result.points = points;
       result.uvs = uvs;
+
+      if (depths) {
+        len = leftPoints.length;
+        i = 0;
+
+        while (i < len) {
+          leftPoints[i].depth = lz;
+          rightPoints[i].depth = rz;
+          i++;
+        }
+      }
     }
 
     function generateSides(result, options) {
@@ -1181,10 +1249,11 @@
           uvs = result.uvs;
       var z = options.depth;
       var rings = [leftPoints, rightPoints];
+      var depthsEnable = result.depths;
 
       function addOneSideIndex(v1, v2) {
         var idx = points.length / 3;
-        points.push(v1[0], v1[1], z + v1[2], v2[0], v2[1], z + v2[2], v1[0], v1[1], v1[2], v2[0], v2[1], v2[2]);
+        points.push(v1[0], v1[1], (depthsEnable ? v1.depth : z) + v1[2], v2[0], v2[1], (depthsEnable ? v2.depth : z) + v2[2], v1[0], v1[1], v1[2], v2[0], v2[1], v2[2]);
         var a = idx + 2,
             b = idx + 3,
             c = idx,
@@ -1347,7 +1416,6 @@
      * @param {*} distance
      * @returns
      */
-
 
     function translateLine(p1, p2, distance) {
       var dy = p2[1] - p1[1],
@@ -3507,6 +3575,8 @@
     exports.expandPaths = expandPaths;
     exports.extrudePolygons = extrudePolygons;
     exports.extrudePolylines = extrudePolylines;
+    exports.extrudeSlopes = extrudeSlopes;
+    exports.leftOnLine = leftOnLine;
 
     Object.defineProperty(exports, '__esModule', { value: true });
 
