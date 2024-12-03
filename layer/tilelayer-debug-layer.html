@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const baseLayer = new maptalks.TileLayer('base', {
+            urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+        });
+
+        var map = new maptalks.Map('map', {
+            center: [116.45266161, 39.86656647],
+            zoom: 5
+        });
+        baseLayer.addTo(map);
+
+        const layer = new maptalks.VectorLayer('layer', {
+            geometryEvents: false
+        }).addTo(map);
+
+        const idMap = new Map();
+        map.on('frameend', () => {
+            const tiles = baseLayer.getTiles();
+            const tileGrids = tiles.tileGrids || [];
+            idMap.clear();
+            tileGrids.forEach(tileGrid => {
+                const tiles = tileGrid.tiles || [];
+                tiles.forEach(tile => {
+                    idMap.set(tile.id, tile);
+                });
+            });
+            updateTileBBOXPolygons();
+        })
+
+        const symbol = {
+            polygonFill: '#fff',
+            polygonOpacity: 0.5,
+            lineColor: 'red'
+        }
+
+        function updateTileBBOXPolygons() {
+            const geos = layer.getGeometries();
+            const needRemove = geos.filter(g => {
+                const id = g.getId();
+                if (!idMap.has(id)) {
+                    return true;
+                }
+            });
+            if (needRemove.length) {
+                layer.removeGeometry(needRemove);
+            }
+
+            const needAdd = [];
+            for (const [id, tile] of idMap) {
+                const p = layer.getGeometryById(id);
+                if (!p) {
+                    needAdd.push(tile)
+                }
+            }
+            const polygons = needAdd.map(tile => {
+                const bbox = baseLayer._getTileBBox(tile);
+                const extent = new maptalks.Extent(bbox);
+                const coordinates = extent.toArray();
+                const { x, y, z } = tile;
+                const p = new maptalks.Polygon([coordinates], {
+                    symbol: Object.assign({}, symbol, { textName: `哈哈:${x}-${y}-${z}` })
+                });
+                p.setId(tile.id);
+                return p;
+            });
+            if (polygons.length) {
+                layer.addGeometry(polygons);
+            }
+        }
+
+
+
+    </script>
+</body>
+
+</html>
