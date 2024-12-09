@@ -115,6 +115,11 @@
             transform: translateX(100%);
         }
     }
+
+    .hello {
+        background-color: black !important;
+        color: #fff;
+    }
 </style>
 <link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
 
@@ -178,7 +183,8 @@
         point.addTo(layer);
         const defaultContent = document.getElementById('loading-container').innerHTML;
         point.setInfoWindow({
-            content: defaultContent
+            content: defaultContent,
+            cssName: 'hello'
         });
         point.on('click', e => {
             const infoWindow = e.target.getInfoWindow();
