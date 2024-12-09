@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            "center": [121.44224697, 31.12893667], "zoom": 9.309009504457512, "pitch": 0, "bearing": 0,
+            // seamlessZoom: false,
+            // cameraInfiniteFar: true,
+            zoomControl: true,
+            // debugSky: true
+        });
+
+        const layer = new maptalks.TileLayer('base', {
+            //other server url
+            //https://github.com/digidem/leaflet-bing-layer
+            urlTemplate: "./../assets/image/grid.png",
+            // subdomains: ["t0", "t1", "t2", "t3"],
+            // maxAvailableZoom: 18,
+            // maskClip: true,
+        });
+
+
+        // layer.getTileUrl = function (x, y, z) {
+        //     return './../assets/image/2024-12-09_160607.png' + '?t=' + new Date().getTime()
+        // }
+
+        layer.addTo(map);
+
+
+    </script>
+</body>
+
+</html>
