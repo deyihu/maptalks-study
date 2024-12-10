@@ -45,14 +45,15 @@
 
         const center = map.getCenter();
         const data = [];
-        for (let i = -2; i < 3; i++) {
-            for (let j = -2; j < 3; j++) {
+        for (let i = -50; i < 50; i++) {
+            for (let j = -50; j < 50; j++) {
                 data.push({
                     coordinates: center.add(i * 0.01, j * 0.01),
                     scale: [1, 1, Math.random() + 1]
                 });
             }
         }
+        console.log(data);
         const point = new maptalks.MultiGLTFMarker(data, {
             symbol: {
                 url: "./../assets/data/alien.gltf",
