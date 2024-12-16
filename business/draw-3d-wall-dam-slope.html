@@ -167,11 +167,11 @@
 
         function loadTexture() {
             const textureLoader = new THREE.TextureLoader();
-            textureLoader.load('./../assets/image/green.jpg', (texture) => {
+            textureLoader.load('./../assets/image/grid1.png', (texture) => {
                 texture.needsUpdate = true; //使用贴图时进行更新
                 texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
                 // texture.repeat.set(0.002, 0.002);
-                texture.repeat.set(1, 1);
+                texture.repeat.set(40, 10);
                 material.map = texture;
                 material.needsUpdate = true;
             });
@@ -180,7 +180,7 @@
                 texture.needsUpdate = true; //使用贴图时进行更新
                 texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
                 // texture.repeat.set(0.002, 0.002);
-                texture.repeat.set(6, 6);
+                texture.repeat.set(8, 2);
                 material1.map = texture;
                 material1.needsUpdate = true;
             });
@@ -190,7 +190,7 @@
 
 
         function createWall(lineString) {
-            const extrudeLine = new Slope(lineString, { width: 20, sideHeight: 1 }, material1, threeLayer);
+            const extrudeLine = new Slope(lineString, { width: 10, sideHeight: 1, pathUV: true }, material, threeLayer);
             console.log(extrudeLine);
             threeLayer.addMesh(extrudeLine);
 
@@ -335,7 +335,8 @@
             side: 'left',
             sideHeight: 0,
             width: 10,
-            altitude: 0
+            altitude: 0,
+            pathUV: false
         }
         const OUT = new THREE.Vector3();
 
@@ -367,7 +368,8 @@
                     depth: h,
                     sideDepth: sideH,
                     side,
-                    lineWidth: w
+                    lineWidth: w,
+                    pathUV: options.pathUV
                 });
                 const geometry = new THREE.BufferGeometry();
                 geometry.setAttribute('position', new THREE.BufferAttribute(position, 3));
