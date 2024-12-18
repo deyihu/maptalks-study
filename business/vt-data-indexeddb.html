@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        /* background-color: black; */
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/localforage.min.js'></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var dataStore = localforage.createInstance({
+            name: "maptalks-layer-data-store"
+        });
+
+
+        const map = new maptalks.Map("map", {
+            "center": [121.02231102, 31.26657838], "zoom": 13.36133878225234, "pitch": 0, "bearing": 0,
+        });
+
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+        });
+
+        const layer = new maptalks.VectorTileLayer("geo", {
+            // style: {
+            //     style: [{
+            //         name: 'landuse-fill',
+            //         filter: true,
+            //         renderPlugin: {
+            //             dataConfig: {
+            //                 type: "line"
+            //             },
+            //             sceneConfig: {},
+            //             type: "line"
+            //         },
+            //         symbol: {
+            //             lineColor: "green"
+            //         }
+            //     }
+            //     ]
+            // },
+            // features: true,
+            // pickGeometry: true,
+            version: 1,
+            urlTemplate: './../assets/data/vt-test/{z}/{x}/{y}.pbf'
+        });
+
+        layer.on('renderercreate', function (e) {
+            //load tile image
+            //   img(Image): an Image object
+            //   url(String): the url of the tile
+
+            const fetchData = (url, key, callback) => {
+                fetch(url).
+                    then(res => {
+                        if (res.ok) {
+                            return res.arrayBuffer();
+                        } else {
+                            callback(new Error(res.statusText))
+                        }
+                    })
+                    .then(arrayBuffer => {
+                        dataStore.setItem(key, arrayBuffer);
+                        callback(null, arrayBuffer);
+                    }).catch(error => {
+                        callback(error);
+                    })
+            }
+
+
+            e.renderer.loadTileArrayBuffer = function (url, tile, callback, options) {
+
+                console.log(options.command);
+
+
+                const { x, y, z } = tile;
+                const id = layer.getId();
+                const version = layer.options.version;
+                const key = `vectortilelayer_${id}_${version}_${x}_${y}_${z}`;
+
+                dataStore.getItem(key).then(arraybuffer => {
+                    if (arraybuffer) {
+                        console.log('cache hit,key:', key);
+                        callback(null, arraybuffer);
+                    } else {
+                        fetchData(url, key, callback);
+                    }
+                }).catch((error) => {
+                    console.error(error);
+                    fetchData(url, key, callback);
+                });
+
+
+
+            };
+        });
+
+
+
+
+        const groupGLLayer = new maptalks.GroupGLLayer("gl", [layer], {
+            sceneConfig: {
+                environment: {
+                    enable: true,
+                    mode: 1,
+                    level: 0,
+                    brightness: 0
+                },
+                postProcess: {
+                    enable: true,
+                    bloom: {
+                        enable: true,
+                        threshold: 0,
+                        factor: 0.6,
+                        radius: 1,
+                    },
+                }
+            }
+        }).addTo(map);
+
+
+
+    </script>
+</body>
+
+</html>

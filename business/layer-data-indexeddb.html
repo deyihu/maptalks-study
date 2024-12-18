@@ -67,7 +67,7 @@
                 const { x, y, z } = tile;
                 const id = baseLayer.getId();
                 const version = baseLayer.options.version;
-                const key = `layer_${id}_${version}_${x}_${y}_${z}`;
+                const key = `tilelayer_${id}_${version}_${x}_${y}_${z}`;
                 dataStore.getItem(key).then(image => {
                     if (image) {
                         console.log('cache hit,key:', key);
