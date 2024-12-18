@@ -61,7 +61,7 @@
             // features: true,
             // pickGeometry: true,
             version: 1,
-            urlTemplate: './../assets/data/vt-test/{z}/{x}/{y}.pbf'
+            urlTemplate: './../assets/data/vt-test/{z}/{x}/{y}.pbf1'
         });
 
         layer.on('renderercreate', function (e) {
@@ -79,8 +79,12 @@
                         }
                     })
                     .then(arrayBuffer => {
-                        dataStore.setItem(key, arrayBuffer);
-                        callback(null, arrayBuffer);
+                        if (arrayBuffer instanceof ArrayBuffer) {
+                            dataStore.setItem(key, arrayBuffer);
+                            callback(null, arrayBuffer);
+                        } else {
+                            callback({ message: 'some error' });
+                        }
                     }).catch(error => {
                         callback(error);
                     })
@@ -88,10 +92,7 @@
 
 
             e.renderer.loadTileArrayBuffer = function (url, tile, callback, options) {
-
                 console.log(options.command);
-
-
                 const { x, y, z } = tile;
                 const id = layer.getId();
                 const version = layer.options.version;
