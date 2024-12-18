@@ -1,5 +1,5 @@
 /*!
- * poly-extrude v0.13.0
+ * poly-extrude v0.15.0
   */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -1757,939 +1757,719 @@
      * @param {*} ring
      * @returns
      */
-
     function isClockwise(ring) {
-      var sum = 0;
-      var i = 1;
-      var prev;
-      var cur;
-      var len = ring.length;
-
-      while (i < len) {
-        prev = cur || ring[0];
-        cur = ring[i];
-        sum += (cur[0] - prev[0]) * (cur[1] + prev[1]);
-        i++;
-      }
-
-      return sum > 0;
-    }
-
-    function v3Sub(out, v1, v2) {
-      out[0] = v1[0] - v2[0];
-      out[1] = v1[1] - v2[1];
-      out[2] = v1[2] - v2[2];
-      return out;
-    }
-
-    function v3Normalize(out, v) {
-      var x = v[0];
-      var y = v[1];
-      var z = v[2];
-      var d = Math.sqrt(x * x + y * y + z * z) || 1;
-      out[0] = x / d;
-      out[1] = y / d;
-      out[2] = z / d;
-      return out;
-    }
-
-    function v3Cross(out, v1, v2) {
-      var ax = v1[0],
-          ay = v1[1],
-          az = v1[2],
-          bx = v2[0],
-          by = v2[1],
-          bz = v2[2];
-      out[0] = ay * bz - az * by;
-      out[1] = az * bx - ax * bz;
-      out[2] = ax * by - ay * bx;
-      return out;
-    }
-
-    function generateNormal(indices, position) {
-      function v3Set(p, a, b, c) {
-        p[0] = a;
-        p[1] = b;
-        p[2] = c;
-      }
-
-      var p1 = [];
-      var p2 = [];
-      var p3 = [];
-      var v21 = [];
-      var v32 = [];
-      var n = [];
-      var len = indices.length;
-      var normals = new Float32Array(position.length);
-      var f = 0;
-
-      while (f < len) {
-        // const i1 = indices[f++] * 3;
-        // const i2 = indices[f++] * 3;
-        // const i3 = indices[f++] * 3;
-        // const i1 = indices[f];
-        // const i2 = indices[f + 1];
-        // const i3 = indices[f + 2];
-        var a = indices[f],
-            b = indices[f + 1],
-            c = indices[f + 2];
-        var i1 = a * 3,
-            i2 = b * 3,
-            i3 = c * 3;
-        v3Set(p1, position[i1], position[i1 + 1], position[i1 + 2]);
-        v3Set(p2, position[i2], position[i2 + 1], position[i2 + 2]);
-        v3Set(p3, position[i3], position[i3 + 1], position[i3 + 2]);
-        v3Sub(v32, p3, p2);
-        v3Sub(v21, p1, p2);
-        v3Cross(n, v32, v21); // Already be weighted by the triangle area
-
-        for (var _i = 0; _i < 3; _i++) {
-          normals[i1 + _i] += n[_i];
-          normals[i2 + _i] += n[_i];
-          normals[i3 + _i] += n[_i];
+        let sum = 0;
+        let i = 1;
+        let prev;
+        let cur;
+        const len = ring.length;
+        while (i < len) {
+            prev = cur || ring[0];
+            cur = ring[i];
+            sum += (cur[0] - prev[0]) * (cur[1] + prev[1]);
+            i++;
         }
-
-        f += 3;
-      }
-
-      var i = 0;
-      var l = normals.length;
-
-      while (i < l) {
-        v3Set(n, normals[i], normals[i + 1], normals[i + 2]);
-        v3Normalize(n, n);
-        normals[i] = n[0] || 0;
-        normals[i + 1] = n[1] || 0;
-        normals[i + 2] = n[2] || 0;
-        i += 3;
-      }
-
-      return normals;
+        return sum > 0;
+    }
+    function v3Sub(out, v1, v2) {
+        out[0] = v1[0] - v2[0];
+        out[1] = v1[1] - v2[1];
+        out[2] = v1[2] - v2[2];
+        return out;
+    }
+    function v3Normalize(out, v) {
+        const x = v[0];
+        const y = v[1];
+        const z = v[2];
+        const d = Math.sqrt(x * x + y * y + z * z) || 1;
+        out[0] = x / d;
+        out[1] = y / d;
+        out[2] = z / d;
+        return out;
+    }
+    function v3Cross(out, v1, v2) {
+        const ax = v1[0], ay = v1[1], az = v1[2], bx = v2[0], by = v2[1], bz = v2[2];
+        out[0] = ay * bz - az * by;
+        out[1] = az * bx - ax * bz;
+        out[2] = ax * by - ay * bx;
+        return out;
+    }
+    function generateNormal(indices, position) {
+        function v3Set(p, a, b, c) {
+            p[0] = a;
+            p[1] = b;
+            p[2] = c;
+        }
+        const p1 = [];
+        const p2 = [];
+        const p3 = [];
+        const v21 = [];
+        const v32 = [];
+        const n = [];
+        const len = indices.length;
+        const normals = new Float32Array(position.length);
+        let f = 0;
+        while (f < len) {
+            // const i1 = indices[f++] * 3;
+            // const i2 = indices[f++] * 3;
+            // const i3 = indices[f++] * 3;
+            // const i1 = indices[f];
+            // const i2 = indices[f + 1];
+            // const i3 = indices[f + 2];
+            const a = indices[f], b = indices[f + 1], c = indices[f + 2];
+            const i1 = a * 3, i2 = b * 3, i3 = c * 3;
+            v3Set(p1, position[i1], position[i1 + 1], position[i1 + 2]);
+            v3Set(p2, position[i2], position[i2 + 1], position[i2 + 2]);
+            v3Set(p3, position[i3], position[i3 + 1], position[i3 + 2]);
+            v3Sub(v32, p3, p2);
+            v3Sub(v21, p1, p2);
+            v3Cross(n, v32, v21);
+            // Already be weighted by the triangle area
+            for (let i = 0; i < 3; i++) {
+                normals[i1 + i] += n[i];
+                normals[i2 + i] += n[i];
+                normals[i3 + i] += n[i];
+            }
+            f += 3;
+        }
+        let i = 0;
+        const l = normals.length;
+        while (i < l) {
+            v3Set(n, normals[i], normals[i + 1], normals[i + 2]);
+            v3Normalize(n, n);
+            normals[i] = n[0] || 0;
+            normals[i + 1] = n[1] || 0;
+            normals[i + 2] = n[2] || 0;
+            i += 3;
+        }
+        return normals;
     }
     function merge(results) {
-      if (results.length === 1) {
-        var _result = {
-          position: results[0].position,
-          normal: results[0].normal,
-          uv: results[0].uv,
-          indices: results[0].indices,
-          results: results
-        };
-        return _result;
-      }
-
-      var plen = 0,
-          ilen = 0;
-
-      for (var i = 0, len = results.length; i < len; i++) {
-        var _results$i = results[i],
-            position = _results$i.position,
-            indices = _results$i.indices;
-        plen += position.length;
-        ilen += indices.length;
-      }
-
-      var result = {
-        position: new Float32Array(plen),
-        normal: new Float32Array(plen),
-        uv: new Float32Array(plen / 3 * 2),
-        indices: new Uint32Array(ilen),
-        results: results
-      };
-      var pOffset = 0,
-          pCount = 0,
-          iIdx = 0,
-          uvOffset = 0;
-
-      for (var _i2 = 0, _len = results.length; _i2 < _len; _i2++) {
-        var _results$_i = results[_i2],
-            _position = _results$_i.position,
-            _indices = _results$_i.indices,
-            normal = _results$_i.normal,
-            uv = _results$_i.uv;
-        result.position.set(_position, pOffset);
-        result.normal.set(normal, pOffset);
-        result.uv.set(uv, uvOffset);
-        var j = 0;
-        var len1 = _indices.length;
-
-        while (j < len1) {
-          var pIndex = _indices[j] + pCount;
-          result.indices[iIdx] = pIndex;
-          iIdx++;
-          j++;
+        if (results.length === 1) {
+            const result = {
+                position: results[0].position,
+                normal: results[0].normal,
+                uv: results[0].uv,
+                indices: results[0].indices,
+                results
+            };
+            return result;
         }
-
-        uvOffset += uv.length;
-        pOffset += _position.length;
-        pCount += _position.length / 3;
-      }
-
-      return result;
+        let plen = 0, ilen = 0;
+        for (let i = 0, len = results.length; i < len; i++) {
+            const { position, indices } = results[i];
+            plen += position.length;
+            ilen += indices.length;
+        }
+        const result = {
+            position: new Float32Array(plen),
+            normal: new Float32Array(plen),
+            uv: new Float32Array(plen / 3 * 2),
+            indices: new Uint32Array(ilen),
+            results
+        };
+        let pOffset = 0, pCount = 0, iIdx = 0, uvOffset = 0;
+        for (let i = 0, len = results.length; i < len; i++) {
+            const { position, indices, normal, uv } = results[i];
+            result.position.set(position, pOffset);
+            result.normal.set(normal, pOffset);
+            result.uv.set(uv, uvOffset);
+            let j = 0;
+            const len1 = indices.length;
+            while (j < len1) {
+                const pIndex = indices[j] + pCount;
+                result.indices[iIdx] = pIndex;
+                iIdx++;
+                j++;
+            }
+            uvOffset += uv.length;
+            pOffset += position.length;
+            pCount += position.length / 3;
+        }
+        return result;
     }
     function radToDeg(rad) {
-      return rad * 180 / Math.PI;
+        return rad * 180 / Math.PI;
     }
     function degToRad(angle) {
-      return angle / 180 * Math.PI;
-    } // https://github.com/mrdoob/three.js/blob/16f13e3b07e31d0e9a00df7c3366bbe0e464588c/src/geometries/ExtrudeGeometry.js?_pjax=%23js-repo-pjax-container#L736
-
+        return angle / 180 * Math.PI;
+    }
+    // https://github.com/mrdoob/three.js/blob/16f13e3b07e31d0e9a00df7c3366bbe0e464588c/src/geometries/ExtrudeGeometry.js?_pjax=%23js-repo-pjax-container#L736
     function generateSideWallUV(uvs, vertices, indexA, indexB, indexC, indexD) {
-      var idx1 = indexA * 3,
-          idx2 = indexB * 3,
-          idx3 = indexC * 3,
-          idx4 = indexD * 3;
-      var a_x = vertices[idx1];
-      var a_y = vertices[idx1 + 1];
-      var a_z = vertices[idx1 + 2];
-      var b_x = vertices[idx2];
-      var b_y = vertices[idx2 + 1];
-      var b_z = vertices[idx2 + 2];
-      var c_x = vertices[idx3];
-      var c_y = vertices[idx3 + 1];
-      var c_z = vertices[idx3 + 2];
-      var d_x = vertices[idx4];
-      var d_y = vertices[idx4 + 1];
-      var d_z = vertices[idx4 + 2];
-      var uIndex = uvs.length - 1;
-
-      if (Math.abs(a_y - b_y) < Math.abs(a_x - b_x)) {
-        uvs[++uIndex] = a_x;
-        uvs[++uIndex] = 1 - a_z;
-        uvs[++uIndex] = b_x;
-        uvs[++uIndex] = 1 - b_z;
-        uvs[++uIndex] = c_x;
-        uvs[++uIndex] = 1 - c_z;
-        uvs[++uIndex] = d_x;
-        uvs[++uIndex] = 1 - d_z; // uvs.push(a_x, 1 - a_z);
-        // uvs.push(b_x, 1 - b_z);
-        // uvs.push(c_x, 1 - c_z);
-        // uvs.push(d_x, 1 - d_z);
-      } else {
-        uvs[++uIndex] = a_y;
-        uvs[++uIndex] = 1 - a_z;
-        uvs[++uIndex] = b_y;
-        uvs[++uIndex] = 1 - b_z;
-        uvs[++uIndex] = c_y;
-        uvs[++uIndex] = 1 - c_z;
-        uvs[++uIndex] = d_y;
-        uvs[++uIndex] = 1 - d_z; // uvs.push(a_y, 1 - a_z);
-        // uvs.push(b_y, 1 - b_z);
-        // uvs.push(c_y, 1 - c_z);
-        // uvs.push(d_y, 1 - d_z);
-      }
+        const idx1 = indexA * 3, idx2 = indexB * 3, idx3 = indexC * 3, idx4 = indexD * 3;
+        const a_x = vertices[idx1];
+        const a_y = vertices[idx1 + 1];
+        const a_z = vertices[idx1 + 2];
+        const b_x = vertices[idx2];
+        const b_y = vertices[idx2 + 1];
+        const b_z = vertices[idx2 + 2];
+        const c_x = vertices[idx3];
+        const c_y = vertices[idx3 + 1];
+        const c_z = vertices[idx3 + 2];
+        const d_x = vertices[idx4];
+        const d_y = vertices[idx4 + 1];
+        const d_z = vertices[idx4 + 2];
+        let uIndex = uvs.length - 1;
+        if (Math.abs(a_y - b_y) < Math.abs(a_x - b_x)) {
+            uvs[++uIndex] = a_x;
+            uvs[++uIndex] = 1 - a_z;
+            uvs[++uIndex] = b_x;
+            uvs[++uIndex] = 1 - b_z;
+            uvs[++uIndex] = c_x;
+            uvs[++uIndex] = 1 - c_z;
+            uvs[++uIndex] = d_x;
+            uvs[++uIndex] = 1 - d_z;
+            // uvs.push(a_x, 1 - a_z);
+            // uvs.push(b_x, 1 - b_z);
+            // uvs.push(c_x, 1 - c_z);
+            // uvs.push(d_x, 1 - d_z);
+        }
+        else {
+            uvs[++uIndex] = a_y;
+            uvs[++uIndex] = 1 - a_z;
+            uvs[++uIndex] = b_y;
+            uvs[++uIndex] = 1 - b_z;
+            uvs[++uIndex] = c_y;
+            uvs[++uIndex] = 1 - c_z;
+            uvs[++uIndex] = d_y;
+            uvs[++uIndex] = 1 - d_z;
+            // uvs.push(a_y, 1 - a_z);
+            // uvs.push(b_y, 1 - b_z);
+            // uvs.push(c_y, 1 - c_z);
+            // uvs.push(d_y, 1 - d_z);
+        }
     }
     function line2Vectors(line) {
-      var points = [];
-
-      for (var i = 0, len = line.length; i < len; i++) {
-        var p = line[i];
-        var x = p[0],
-            y = p[1],
-            z = p[2];
-        var v = new Vector3(x, y, z || 0);
-        points[i] = v;
-      }
-
-      return points;
+        const points = [];
+        for (let i = 0, len = line.length; i < len; i++) {
+            const p = line[i];
+            const [x, y, z] = p;
+            const v = new Vector3(x, y, z || 0);
+            points[i] = v;
+        }
+        return points;
     }
     function calLineDistance(line) {
-      var distance = 0;
-
-      for (var i = 0, len = line.length; i < len; i++) {
-        var p1 = line[i],
-            p2 = line[i + 1];
-
-        if (i === 0) {
-          p1.distance = 0;
+        let distance = 0;
+        for (let i = 0, len = line.length; i < len; i++) {
+            const p1 = line[i], p2 = line[i + 1];
+            if (i === 0) {
+                p1.distance = 0;
+            }
+            if (p1 && p2) {
+                const [x1, y1, z1] = p1;
+                const [x2, y2, z2] = p2;
+                const dx = x1 - x2, dy = y1 - y2, dz = (z1 || 0) - (z2 || 0);
+                const dis = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                distance += dis;
+                p2.distance = distance;
+            }
         }
-
-        if (p1 && p2) {
-          var x1 = p1[0],
-              y1 = p1[1],
-              z1 = p1[2];
-          var x2 = p2[0],
-              y2 = p2[1],
-              z2 = p2[2];
-          var dx = x1 - x2,
-              dy = y1 - y2,
-              dz = (z1 || 0) - (z2 || 0);
-          var dis = Math.sqrt(dx * dx + dy * dy + dz * dz);
-          distance += dis;
-          p2.distance = distance;
-        }
-      }
-
-      return distance;
+        return distance;
     }
 
     function extrudePolygons(polygons, options) {
-      options = Object.assign({}, {
-        depth: 2
-      }, options);
-      var results = polygons.map(function (polygon) {
-        for (var i = 0, len = polygon.length; i < len; i++) {
-          var ring = polygon[i];
-          validateRing(ring);
-
-          if (i === 0) {
-            if (!isClockwise(ring)) {
-              polygon[i] = ring.reverse();
+        options = Object.assign({}, { depth: 2 }, options);
+        const results = polygons.map(polygon => {
+            for (let i = 0, len = polygon.length; i < len; i++) {
+                const ring = polygon[i];
+                validateRing(ring);
+                if (i === 0) {
+                    if (!isClockwise(ring)) {
+                        polygon[i] = ring.reverse();
+                    }
+                }
+                else if (isClockwise(ring)) {
+                    polygon[i] = ring.reverse();
+                }
+                if (isClosedRing(ring)) {
+                    ring.splice(ring.length - 1, 1);
+                }
             }
-          } else if (isClockwise(ring)) {
-            polygon[i] = ring.reverse();
-          }
-
-          if (isClosedRing(ring)) {
-            ring.splice(ring.length - 1, 1);
-          }
-        }
-
-        var result = flatVertices(polygon, options);
-        result.polygon = polygon;
-        var triangles = earcut$1(result.flatVertices, result.holes, 2);
-        generateTopAndBottom$1(result, triangles);
-        generateSides$1(result, options);
-        result.position = new Float32Array(result.points);
-        result.indices = new Uint32Array(result.indices);
-        result.uv = new Float32Array(result.uv);
-        result.normal = generateNormal(result.indices, result.position);
+            const result = flatVertices(polygon, options);
+            result.polygon = polygon;
+            const triangles = earcut$1(result.flatVertices, result.holes, 2);
+            generateTopAndBottom$1(result, triangles);
+            generateSides$1(result, options);
+            result.position = new Float32Array(result.points);
+            result.indices = new Uint32Array(result.indices);
+            result.uv = new Float32Array(result.uv);
+            result.normal = generateNormal(result.indices, result.position);
+            return result;
+        });
+        const result = merge(results);
+        result.polygons = polygons;
         return result;
-      });
-      var result = merge(results);
-      result.polygons = polygons;
-      return result;
     }
-
     function generateTopAndBottom$1(result, triangles) {
-      var indices = [];
-      var count = result.count;
-
-      for (var i = 0, len = triangles.length; i < len; i += 3) {
-        // top
-        var a = triangles[i],
-            b = triangles[i + 1],
-            c = triangles[i + 2];
-        indices[i] = a;
-        indices[i + 1] = b;
-        indices[i + 2] = c; // bottom
-
-        var idx = len + i;
-        var a1 = count + a,
-            b1 = count + b,
-            c1 = count + c;
-        indices[idx] = a1;
-        indices[idx + 1] = b1;
-        indices[idx + 2] = c1;
-      }
-
-      result.indices = indices;
+        const indices = [];
+        const { count } = result;
+        for (let i = 0, len = triangles.length; i < len; i += 3) {
+            // top
+            const a = triangles[i], b = triangles[i + 1], c = triangles[i + 2];
+            indices[i] = a;
+            indices[i + 1] = b;
+            indices[i + 2] = c;
+            // bottom
+            const idx = len + i;
+            const a1 = count + a, b1 = count + b, c1 = count + c;
+            indices[idx] = a1;
+            indices[idx + 1] = b1;
+            indices[idx + 2] = c1;
+        }
+        result.indices = indices;
     }
-
     function generateSides$1(result, options) {
-      var points = result.points,
-          indices = result.indices,
-          polygon = result.polygon,
-          uv = result.uv;
-      var depth = options.depth;
-      var pIndex = points.length - 1;
-      var iIndex = indices.length - 1;
-
-      for (var i = 0, len = polygon.length; i < len; i++) {
-        var ring = polygon[i];
-        var j = 0;
-        var len1 = ring.length;
-
-        while (j < len1) {
-          var v1 = ring[j];
-          var v2 = ring[j + 1];
-
-          if (j === len1 - 1) {
-            v2 = ring[0];
-          }
-
-          var idx = points.length / 3;
-          var x1 = v1[0],
-              y1 = v1[1],
-              z1 = v1[2] || 0,
-              x2 = v2[0],
-              y2 = v2[1],
-              z2 = v2[2] || 0;
-          points[++pIndex] = x1;
-          points[++pIndex] = y1;
-          points[++pIndex] = z1 + depth;
-          points[++pIndex] = x2;
-          points[++pIndex] = y2;
-          points[++pIndex] = z2 + depth;
-          points[++pIndex] = x1;
-          points[++pIndex] = y1;
-          points[++pIndex] = z1;
-          points[++pIndex] = x2;
-          points[++pIndex] = y2;
-          points[++pIndex] = z2; // points.push(x1, y1, z, x2, y2, z, x1, y1, 0, x2, y2, 0);
-
-          var a = idx + 2,
-              b = idx + 3,
-              c = idx,
-              d = idx + 1; // points.push(p3, p4, p1, p2);
-          // index.push(a, c, b, c, d, b);
-
-          indices[++iIndex] = a;
-          indices[++iIndex] = c;
-          indices[++iIndex] = b;
-          indices[++iIndex] = c;
-          indices[++iIndex] = d;
-          indices[++iIndex] = b; // index.push(c, d, b);
-
-          generateSideWallUV(uv, points, a, b, c, d);
-          j++;
+        const { points, indices, polygon, uv } = result;
+        const depth = options.depth;
+        let pIndex = points.length - 1;
+        let iIndex = indices.length - 1;
+        for (let i = 0, len = polygon.length; i < len; i++) {
+            const ring = polygon[i];
+            let j = 0;
+            const len1 = ring.length;
+            while (j < len1) {
+                const v1 = ring[j];
+                let v2 = ring[j + 1];
+                if (j === len1 - 1) {
+                    v2 = ring[0];
+                }
+                const idx = points.length / 3;
+                const x1 = v1[0], y1 = v1[1], z1 = v1[2] || 0, x2 = v2[0], y2 = v2[1], z2 = v2[2] || 0;
+                points[++pIndex] = x1;
+                points[++pIndex] = y1;
+                points[++pIndex] = z1 + depth;
+                points[++pIndex] = x2;
+                points[++pIndex] = y2;
+                points[++pIndex] = z2 + depth;
+                points[++pIndex] = x1;
+                points[++pIndex] = y1;
+                points[++pIndex] = z1;
+                points[++pIndex] = x2;
+                points[++pIndex] = y2;
+                points[++pIndex] = z2;
+                // points.push(x1, y1, z, x2, y2, z, x1, y1, 0, x2, y2, 0);
+                const a = idx + 2, b = idx + 3, c = idx, d = idx + 1;
+                // points.push(p3, p4, p1, p2);
+                // index.push(a, c, b, c, d, b);
+                indices[++iIndex] = a;
+                indices[++iIndex] = c;
+                indices[++iIndex] = b;
+                indices[++iIndex] = c;
+                indices[++iIndex] = d;
+                indices[++iIndex] = b;
+                // index.push(c, d, b);
+                generateSideWallUV(uv, points, a, b, c, d);
+                j++;
+            }
         }
-      }
     }
-
     function calPolygonPointsCount(polygon) {
-      var count = 0;
-      var i = 0;
-      var len = polygon.length;
-
-      while (i < len) {
-        count += polygon[i].length;
-        i++;
-      }
-
-      return count;
+        let count = 0;
+        let i = 0;
+        const len = polygon.length;
+        while (i < len) {
+            count += (polygon[i].length);
+            i++;
+        }
+        return count;
     }
-
     function flatVertices(polygon, options) {
-      var count = calPolygonPointsCount(polygon);
-      var len = polygon.length;
-      var holes = [],
-          flatVertices = new Float32Array(count * 2),
-          points = [],
-          uv = [];
-      var pOffset = count * 3,
-          uOffset = count * 2;
-      var depth = options.depth;
-      var idx0 = 0,
-          idx1 = 0,
-          idx2 = 0;
-
-      for (var i = 0; i < len; i++) {
-        var ring = polygon[i];
-
-        if (i > 0) {
-          holes.push(idx0 / 2);
+        const count = calPolygonPointsCount(polygon);
+        const len = polygon.length;
+        const holes = [], flatVertices = new Float32Array(count * 2), points = [], uv = [];
+        const pOffset = count * 3, uOffset = count * 2;
+        const depth = options.depth;
+        let idx0 = 0, idx1 = 0, idx2 = 0;
+        for (let i = 0; i < len; i++) {
+            const ring = polygon[i];
+            if (i > 0) {
+                holes.push(idx0 / 2);
+            }
+            let j = 0;
+            const len1 = ring.length;
+            while (j < len1) {
+                const c = ring[j];
+                const x = c[0], y = c[1], z = c[2] || 0;
+                flatVertices[idx0++] = x;
+                flatVertices[idx0++] = y;
+                // top vertices
+                points[idx1] = x;
+                points[idx1 + 1] = y;
+                points[idx1 + 2] = depth + z;
+                // bottom vertices
+                points[pOffset + idx1] = x;
+                points[pOffset + idx1 + 1] = y;
+                points[pOffset + idx1 + 2] = z;
+                uv[idx2] = x;
+                uv[idx2 + 1] = y;
+                uv[uOffset + idx2] = x;
+                uv[uOffset + idx2 + 1] = y;
+                idx1 += 3;
+                idx2 += 2;
+                j++;
+            }
         }
-
-        var j = 0;
-        var len1 = ring.length;
-
-        while (j < len1) {
-          var c = ring[j];
-          var x = c[0],
-              y = c[1],
-              z = c[2] || 0;
-          flatVertices[idx0++] = x;
-          flatVertices[idx0++] = y; // top vertices
-
-          points[idx1] = x;
-          points[idx1 + 1] = y;
-          points[idx1 + 2] = depth + z; // bottom vertices
-
-          points[pOffset + idx1] = x;
-          points[pOffset + idx1 + 1] = y;
-          points[pOffset + idx1 + 2] = z;
-          uv[idx2] = x;
-          uv[idx2 + 1] = y;
-          uv[uOffset + idx2] = x;
-          uv[uOffset + idx2 + 1] = y;
-          idx1 += 3;
-          idx2 += 2;
-          j++;
-        }
-      }
-
-      return {
-        flatVertices: flatVertices,
-        holes: holes,
-        points: points,
-        count: count,
-        uv: uv
-      };
+        return {
+            flatVertices,
+            holes,
+            points,
+            count,
+            uv
+        };
     }
-
     function validateRing(ring) {
-      if (!isClosedRing(ring)) {
-        ring.push(ring[0]);
-      }
+        if (!isClosedRing(ring)) {
+            ring.push(ring[0]);
+        }
     }
-
     function isClosedRing(ring) {
-      var len = ring.length;
-      var _ring$ = ring[0],
-          x1 = _ring$[0],
-          y1 = _ring$[1],
-          _ring = ring[len - 1],
-          x2 = _ring[0],
-          y2 = _ring[1];
-      return x1 === x2 && y1 === y2;
+        const len = ring.length;
+        const [x1, y1] = ring[0], [x2, y2] = ring[len - 1];
+        return (x1 === x2 && y1 === y2);
     }
 
     function checkOptions(options) {
-      options.lineWidth = Math.max(0, options.lineWidth);
-      options.depth = Math.max(0, options.depth);
-      options.sideDepth = Math.max(0, options.sideDepth);
+        options.lineWidth = Math.max(0, options.lineWidth);
+        options.depth = Math.max(0, options.depth);
+        options.sideDepth = Math.max(0, options.sideDepth);
     }
-
     function extrudePolylines(lines, options) {
-      options = Object.assign({}, {
-        depth: 2,
-        lineWidth: 1,
-        bottomStickGround: false,
-        pathUV: false
-      }, options);
-      checkOptions(options);
-      var results = lines.map(function (line) {
-        var result = expandLine(line, options);
-        result.line = line;
-        generateTopAndBottom(result, options);
-        generateSides(result, options);
-        result.position = new Float32Array(result.points);
-        result.indices = new Uint32Array(result.indices);
-        result.uv = new Float32Array(result.uv);
-        result.normal = generateNormal(result.indices, result.position);
+        options = Object.assign({}, { depth: 2, lineWidth: 1, bottomStickGround: false, pathUV: false }, options);
+        checkOptions(options);
+        const results = lines.map(line => {
+            const result = expandLine(line, options);
+            result.line = line;
+            generateTopAndBottom(result, options);
+            generateSides(result, options);
+            result.position = new Float32Array(result.points);
+            result.indices = new Uint32Array(result.indices);
+            result.uv = new Float32Array(result.uv);
+            result.normal = generateNormal(result.indices, result.position);
+            return result;
+        });
+        const result = merge(results);
+        result.lines = lines;
         return result;
-      });
-      var result = merge(results);
-      result.lines = lines;
-      return result;
     }
     function extrudeSlopes(lines, options) {
-      options = Object.assign({}, {
-        depth: 2,
-        lineWidth: 1,
-        side: 'left',
-        sideDepth: 0,
-        bottomStickGround: false,
-        pathUV: false,
-        isSlope: true
-      }, options);
-      checkOptions(options);
-      var _options = options,
-          depth = _options.depth,
-          side = _options.side,
-          sideDepth = _options.sideDepth;
-      var results = lines.map(function (line) {
-        var tempResult = expandLine(line, options);
-        tempResult.line = line;
-        var leftPoints = tempResult.leftPoints,
-            rightPoints = tempResult.rightPoints;
-        var result = {
-          line: line
-        };
-        var depths;
-
-        for (var i = 0, len = line.length; i < len; i++) {
-          line[i][2] = line[i][2] || 0;
-        }
-
-        if (side === 'left') {
-          result.leftPoints = leftPoints;
-          result.rightPoints = line;
-          depths = [sideDepth, depth];
-        } else {
-          result.leftPoints = line;
-          result.rightPoints = rightPoints;
-          depths = [depth, sideDepth];
-        }
-
-        result.depths = depths;
-        generateTopAndBottom(result, options);
-        generateSides(result, options);
-        result.position = new Float32Array(result.points);
-        result.indices = new Uint32Array(result.indices);
-        result.uv = new Float32Array(result.uv);
-        result.normal = generateNormal(result.indices, result.position);
+        options = Object.assign({}, { depth: 2, lineWidth: 1, side: 'left', sideDepth: 0, bottomStickGround: false, pathUV: false, isSlope: true }, options);
+        checkOptions(options);
+        const { depth, side, sideDepth } = options;
+        const results = lines.map(line => {
+            const tempResult = expandLine(line, options);
+            tempResult.line = line;
+            const { leftPoints, rightPoints } = tempResult;
+            const result = { line };
+            let depths;
+            for (let i = 0, len = line.length; i < len; i++) {
+                line[i][2] = line[i][2] || 0;
+            }
+            if (side === 'left') {
+                result.leftPoints = leftPoints;
+                result.rightPoints = line;
+                depths = [sideDepth, depth];
+            }
+            else {
+                result.leftPoints = line;
+                result.rightPoints = rightPoints;
+                depths = [depth, sideDepth];
+            }
+            result.depths = depths;
+            generateTopAndBottom(result, options);
+            generateSides(result, options);
+            result.position = new Float32Array(result.points);
+            result.indices = new Uint32Array(result.indices);
+            result.uv = new Float32Array(result.uv);
+            result.normal = generateNormal(result.indices, result.position);
+            return result;
+        });
+        const result = merge(results);
+        result.lines = lines;
         return result;
-      });
-      var result = merge(results);
-      result.lines = lines;
-      return result;
     }
-
     function generateTopAndBottom(result, options) {
-      var bottomStickGround = options.bottomStickGround;
-      var z = options.depth;
-      var depths = result.depths;
-      var lz = z,
-          rz = z;
-
-      if (depths) {
-        lz = depths[0];
-        rz = depths[1];
-      }
-
-      var leftPoints = result.leftPoints,
-          rightPoints = result.rightPoints;
-      var line = result.line;
-      var pathUV = options.pathUV;
-
-      if (pathUV) {
-        calLineDistance(line);
-
-        for (var _i = 0, _len = line.length; _i < _len; _i++) {
-          leftPoints[_i].distance = rightPoints[_i].distance = line[_i].distance;
+        const bottomStickGround = options.bottomStickGround;
+        const z = options.depth;
+        const depths = result.depths;
+        let lz = z, rz = z;
+        if (depths) {
+            lz = depths[0];
+            rz = depths[1];
         }
-      }
-
-      var i = 0,
-          len = leftPoints.length;
-      var points = [],
-          indices = [],
-          uv = [];
-
-      while (i < len) {
-        // top left
-        var idx0 = i * 3;
-        var _leftPoints$i = leftPoints[i],
-            x1 = _leftPoints$i[0],
-            y1 = _leftPoints$i[1],
-            z1 = _leftPoints$i[2];
-        points[idx0] = x1;
-        points[idx0 + 1] = y1;
-        points[idx0 + 2] = lz + z1; // top right
-
-        var _rightPoints$i = rightPoints[i],
-            x2 = _rightPoints$i[0],
-            y2 = _rightPoints$i[1],
-            z2 = _rightPoints$i[2];
-        var idx1 = len * 3 + idx0;
-        points[idx1] = x2;
-        points[idx1 + 1] = y2;
-        points[idx1 + 2] = rz + z2; // bottom left
-
-        var idx2 = len * 2 * 3 + idx0;
-        points[idx2] = x1;
-        points[idx2 + 1] = y1;
-        points[idx2 + 2] = z1;
-
-        if (bottomStickGround) {
-          points[idx2 + 2] = 0;
-        } // bottom right
-
-
-        var idx3 = len * 2 * 3 + len * 3 + idx0;
-        points[idx3] = x2;
-        points[idx3 + 1] = y2;
-        points[idx3 + 2] = z2;
-
-        if (bottomStickGround) {
-          points[idx3 + 2] = 0;
-        } // generate path uv
-
-
+        const { leftPoints, rightPoints } = result;
+        const line = result.line;
+        const pathUV = options.pathUV;
         if (pathUV) {
-          var p = line[i];
-          var uvx = p.distance;
-          var uIndex0 = i * 2;
-          uv[uIndex0] = uvx;
-          uv[uIndex0 + 1] = 1;
-          var uIndex1 = len * 2 + uIndex0;
-          uv[uIndex1] = uvx;
-          uv[uIndex1 + 1] = 0;
-          var uIndex2 = len * 2 * 2 + uIndex0;
-          uv[uIndex2] = uvx;
-          uv[uIndex2 + 1] = 1;
-          var uIndex3 = len * 2 * 2 + len * 2 + uIndex0;
-          uv[uIndex3] = uvx;
-          uv[uIndex3 + 1] = 0;
+            calLineDistance(line);
+            for (let i = 0, len = line.length; i < len; i++) {
+                leftPoints[i].distance = rightPoints[i].distance = line[i].distance;
+            }
         }
-
-        i++;
-      }
-
-      if (!pathUV) {
-        i = 0;
-        len = points.length;
-        var uIndex = uv.length - 1;
-
+        let i = 0, len = leftPoints.length;
+        const points = [], indices = [], uv = [];
         while (i < len) {
-          var x = points[i],
-              y = points[i + 1];
-          uv[++uIndex] = x;
-          uv[++uIndex] = y; // uvs.push(x, y);
-
-          i += 3;
+            // top left
+            const idx0 = i * 3;
+            const [x1, y1, z1] = leftPoints[i];
+            points[idx0] = x1;
+            points[idx0 + 1] = y1;
+            points[idx0 + 2] = lz + z1;
+            // top right
+            const [x2, y2, z2] = rightPoints[i];
+            const idx1 = len * 3 + idx0;
+            points[idx1] = x2;
+            points[idx1 + 1] = y2;
+            points[idx1 + 2] = rz + z2;
+            // bottom left
+            const idx2 = (len * 2) * 3 + idx0;
+            points[idx2] = x1;
+            points[idx2 + 1] = y1;
+            points[idx2 + 2] = z1;
+            if (bottomStickGround) {
+                points[idx2 + 2] = 0;
+            }
+            // bottom right
+            const idx3 = (len * 2) * 3 + len * 3 + idx0;
+            points[idx3] = x2;
+            points[idx3 + 1] = y2;
+            points[idx3 + 2] = z2;
+            if (bottomStickGround) {
+                points[idx3 + 2] = 0;
+            }
+            // generate path uv
+            if (pathUV) {
+                const p = line[i];
+                const uvx = p.distance;
+                const uIndex0 = i * 2;
+                uv[uIndex0] = uvx;
+                uv[uIndex0 + 1] = 1;
+                const uIndex1 = len * 2 + uIndex0;
+                uv[uIndex1] = uvx;
+                uv[uIndex1 + 1] = 0;
+                const uIndex2 = (len * 2) * 2 + uIndex0;
+                uv[uIndex2] = uvx;
+                uv[uIndex2 + 1] = 1;
+                const uIndex3 = (len * 2) * 2 + len * 2 + uIndex0;
+                uv[uIndex3] = uvx;
+                uv[uIndex3 + 1] = 0;
+            }
+            i++;
         }
-      }
-
-      i = 0;
-      len = leftPoints.length;
-      var iIndex = indices.length - 1;
-
-      while (i < len - 1) {
-        // top
-        // left1 left2 right1,right2
-        var a1 = i,
-            b1 = i + 1,
-            c1 = a1 + len,
-            d1 = b1 + len;
-        indices[++iIndex] = a1;
-        indices[++iIndex] = c1;
-        indices[++iIndex] = b1;
-        indices[++iIndex] = c1;
-        indices[++iIndex] = d1;
-        indices[++iIndex] = b1; // index.push(a1, c1, b1);
-        // index.push(c1, d1, b1);
-        // bottom
-        // left1 left2 right1,right2
-
-        var len2 = len * 2;
-        var a2 = i + len2,
-            b2 = a2 + 1,
-            c2 = a2 + len,
-            d2 = b2 + len;
-        indices[++iIndex] = a2;
-        indices[++iIndex] = c2;
-        indices[++iIndex] = b2;
-        indices[++iIndex] = c2;
-        indices[++iIndex] = d2;
-        indices[++iIndex] = b2; // index.push(a2, c2, b2);
-        // index.push(c2, d2, b2);
-
-        i++;
-      }
-
-      result.indices = indices;
-      result.points = points;
-      result.uv = uv;
-
-      if (depths) {
-        len = leftPoints.length;
-        i = 0;
-
-        while (i < len) {
-          leftPoints[i].depth = lz;
-          rightPoints[i].depth = rz;
-          i++;
-        }
-      }
-    }
-
-    function generateSides(result, options) {
-      var points = result.points,
-          indices = result.indices,
-          leftPoints = result.leftPoints,
-          rightPoints = result.rightPoints,
-          uv = result.uv;
-      var z = options.depth;
-      var bottomStickGround = options.bottomStickGround;
-      var rings = [leftPoints, rightPoints];
-      var depthsEnable = result.depths;
-      var pathUV = options.pathUV;
-      var lineWidth = options.lineWidth;
-      var pIndex = points.length - 1;
-      var iIndex = indices.length - 1;
-      var uIndex = uv.length - 1;
-
-      function addOneSideIndex(v1, v2) {
-        var idx = points.length / 3; // let pIndex = points.length - 1;
-
-        var v1Depth = depthsEnable ? v1.depth : z;
-        var v2Depth = depthsEnable ? v2.depth : z; // top
-
-        points[++pIndex] = v1[0];
-        points[++pIndex] = v1[1];
-        points[++pIndex] = v1Depth + v1[2];
-        points[++pIndex] = v2[0];
-        points[++pIndex] = v2[1];
-        points[++pIndex] = v2Depth + v2[2]; // points.push(v1[0], v1[1], (depthsEnable ? v1.depth : z) + v1[2], v2[0], v2[1], (depthsEnable ? v2.depth : z) + v2[2]);
-        // bottom
-
-        points[++pIndex] = v1[0];
-        points[++pIndex] = v1[1];
-        points[++pIndex] = bottomStickGround ? 0 : v1[2];
-        points[++pIndex] = v2[0];
-        points[++pIndex] = v2[1];
-        points[++pIndex] = bottomStickGround ? 0 : v2[2]; // points.push(v1[0], v1[1], v1[2], v2[0], v2[1], v2[2]);
-
-        var a = idx + 2,
-            b = idx + 3,
-            c = idx,
-            d = idx + 1;
-        indices[++iIndex] = a;
-        indices[++iIndex] = c;
-        indices[++iIndex] = b;
-        indices[++iIndex] = c;
-        indices[++iIndex] = d;
-        indices[++iIndex] = b; // index.push(a, c, b, c, d, b);
-
         if (!pathUV) {
-          generateSideWallUV(uv, points, a, b, c, d);
-        } else {
-          uv[++uIndex] = v1.distance;
-          uv[++uIndex] = v1Depth / lineWidth;
-          uv[++uIndex] = v2.distance;
-          uv[++uIndex] = v2Depth / lineWidth;
-          uv[++uIndex] = v1.distance;
-          uv[++uIndex] = 0;
-          uv[++uIndex] = v2.distance;
-          uv[++uIndex] = 0;
+            i = 0;
+            len = points.length;
+            let uIndex = uv.length - 1;
+            while (i < len) {
+                const x = points[i], y = points[i + 1];
+                uv[++uIndex] = x;
+                uv[++uIndex] = y;
+                // uvs.push(x, y);
+                i += 3;
+            }
         }
-      }
-
-      for (var i = 0, _len2 = rings.length; i < _len2; i++) {
-        var ring = rings[i];
-
-        if (i > 0) {
-          ring = ring.map(function (p) {
-            return p;
-          });
-          ring = ring.reverse();
+        i = 0;
+        len = leftPoints.length;
+        let iIndex = indices.length - 1;
+        while (i < len - 1) {
+            // top
+            // left1 left2 right1,right2
+            const a1 = i, b1 = i + 1, c1 = a1 + len, d1 = b1 + len;
+            indices[++iIndex] = a1;
+            indices[++iIndex] = c1;
+            indices[++iIndex] = b1;
+            indices[++iIndex] = c1;
+            indices[++iIndex] = d1;
+            indices[++iIndex] = b1;
+            // index.push(a1, c1, b1);
+            // index.push(c1, d1, b1);
+            // bottom
+            // left1 left2 right1,right2
+            const len2 = len * 2;
+            const a2 = i + len2, b2 = a2 + 1, c2 = a2 + len, d2 = b2 + len;
+            indices[++iIndex] = a2;
+            indices[++iIndex] = c2;
+            indices[++iIndex] = b2;
+            indices[++iIndex] = c2;
+            indices[++iIndex] = d2;
+            indices[++iIndex] = b2;
+            // index.push(a2, c2, b2);
+            // index.push(c2, d2, b2);
+            i++;
         }
-
-        var j = 0;
-        var len1 = ring.length - 1;
-
-        while (j < len1) {
-          var v1 = ring[j];
-          var v2 = ring[j + 1];
-          addOneSideIndex(v1, v2);
-          j++;
+        result.indices = indices;
+        result.points = points;
+        result.uv = uv;
+        if (depths) {
+            len = leftPoints.length;
+            i = 0;
+            while (i < len) {
+                leftPoints[i].depth = lz;
+                rightPoints[i].depth = rz;
+                i++;
+            }
         }
-      }
-
-      var len = leftPoints.length;
-      var vs = [rightPoints[0], leftPoints[0], leftPoints[len - 1], rightPoints[len - 1]];
-
-      for (var _i2 = 0; _i2 < vs.length; _i2 += 2) {
-        var _v = vs[_i2],
-            _v2 = vs[_i2 + 1];
-        addOneSideIndex(_v, _v2);
-      }
     }
-
-    var TEMPV1 = {
-      x: 0,
-      y: 0
-    },
-        TEMPV2 = {
-      x: 0,
-      y: 0
-    };
+    function generateSides(result, options) {
+        const { points, indices, leftPoints, rightPoints, uv } = result;
+        const z = options.depth;
+        const bottomStickGround = options.bottomStickGround;
+        const rings = [leftPoints, rightPoints];
+        const depthsEnable = result.depths;
+        const pathUV = options.pathUV;
+        const lineWidth = options.lineWidth;
+        let pIndex = points.length - 1;
+        let iIndex = indices.length - 1;
+        let uIndex = uv.length - 1;
+        function addOneSideIndex(v1, v2) {
+            const idx = points.length / 3;
+            // let pIndex = points.length - 1;
+            const v1Depth = (depthsEnable ? v1.depth : z);
+            const v2Depth = (depthsEnable ? v2.depth : z);
+            // top
+            points[++pIndex] = v1[0];
+            points[++pIndex] = v1[1];
+            points[++pIndex] = v1Depth + v1[2];
+            points[++pIndex] = v2[0];
+            points[++pIndex] = v2[1];
+            points[++pIndex] = v2Depth + v2[2];
+            // points.push(v1[0], v1[1], (depthsEnable ? v1.depth : z) + v1[2], v2[0], v2[1], (depthsEnable ? v2.depth : z) + v2[2]);
+            // bottom
+            points[++pIndex] = v1[0];
+            points[++pIndex] = v1[1];
+            points[++pIndex] = bottomStickGround ? 0 : v1[2];
+            points[++pIndex] = v2[0];
+            points[++pIndex] = v2[1];
+            points[++pIndex] = bottomStickGround ? 0 : v2[2];
+            // points.push(v1[0], v1[1], v1[2], v2[0], v2[1], v2[2]);
+            const a = idx + 2, b = idx + 3, c = idx, d = idx + 1;
+            indices[++iIndex] = a;
+            indices[++iIndex] = c;
+            indices[++iIndex] = b;
+            indices[++iIndex] = c;
+            indices[++iIndex] = d;
+            indices[++iIndex] = b;
+            // index.push(a, c, b, c, d, b);
+            if (!pathUV) {
+                generateSideWallUV(uv, points, a, b, c, d);
+            }
+            else {
+                uv[++uIndex] = v1.distance;
+                uv[++uIndex] = v1Depth / lineWidth;
+                uv[++uIndex] = v2.distance;
+                uv[++uIndex] = v2Depth / lineWidth;
+                uv[++uIndex] = v1.distance;
+                uv[++uIndex] = 0;
+                uv[++uIndex] = v2.distance;
+                uv[++uIndex] = 0;
+            }
+        }
+        for (let i = 0, len = rings.length; i < len; i++) {
+            let ring = rings[i];
+            if (i > 0) {
+                ring = ring.map(p => {
+                    return p;
+                });
+                ring = ring.reverse();
+            }
+            let j = 0;
+            const len1 = ring.length - 1;
+            while (j < len1) {
+                const v1 = ring[j];
+                const v2 = ring[j + 1];
+                addOneSideIndex(v1, v2);
+                j++;
+            }
+        }
+        const len = leftPoints.length;
+        const vs = [rightPoints[0], leftPoints[0], leftPoints[len - 1], rightPoints[len - 1]];
+        for (let i = 0; i < vs.length; i += 2) {
+            const v1 = vs[i], v2 = vs[i + 1];
+            addOneSideIndex(v1, v2);
+        }
+    }
+    const TEMPV1 = { x: 0, y: 0 }, TEMPV2 = { x: 0, y: 0 };
     function expandLine(line, options) {
-      // let preAngle = 0;
-      var radius = options.lineWidth / 2;
-
-      if (options.isSlope) {
-        radius *= 2;
-      }
-
-      var points = [],
-          leftPoints = [],
-          rightPoints = [];
-      var len = line.length;
-      var i = 0;
-
-      while (i < len) {
-        var p1 = line[i],
-            p2 = line[i + 1];
-        var currentp = line[i]; // last vertex
-
-        if (i === len - 1) {
-          p1 = line[len - 2];
-          p2 = line[len - 1];
+        // let preAngle = 0;
+        let radius = options.lineWidth / 2;
+        if (options.isSlope) {
+            radius *= 2;
         }
-
-        var dy = p2[1] - p1[1],
-            dx = p2[0] - p1[0];
-        var rAngle = 0;
-        var rad = Math.atan(dy / dx);
-        var angle = radToDeg(rad); // preAngle = angle;
-
-        if (i === 0 || i === len - 1) {
-          rAngle = angle;
-          rAngle -= 90;
-        } else {
-          // 至少3个顶点才会触发
-          var p0 = line[i - 1];
-          TEMPV1.x = p0[0] - p1[0];
-          TEMPV1.y = p0[1] - p1[1];
-          TEMPV2.x = p2[0] - p1[0];
-          TEMPV2.y = p2[1] - p1[1];
-          var vAngle = getAngle(TEMPV1, TEMPV2);
-          rAngle = angle - vAngle / 2;
+        const points = [], leftPoints = [], rightPoints = [];
+        const len = line.length;
+        let i = 0;
+        while (i < len) {
+            let p1 = line[i], p2 = line[i + 1];
+            const currentp = line[i];
+            // last vertex
+            if (i === len - 1) {
+                p1 = line[len - 2];
+                p2 = line[len - 1];
+            }
+            const dy = p2[1] - p1[1], dx = p2[0] - p1[0];
+            let rAngle = 0;
+            const rad = Math.atan(dy / dx);
+            const angle = radToDeg(rad);
+            // preAngle = angle;
+            if (i === 0 || i === len - 1) {
+                rAngle = angle;
+                rAngle -= 90;
+            }
+            else {
+                // 至少3个顶点才会触发
+                const p0 = line[i - 1];
+                TEMPV1.x = p0[0] - p1[0];
+                TEMPV1.y = p0[1] - p1[1];
+                TEMPV2.x = p2[0] - p1[0];
+                TEMPV2.y = p2[1] - p1[1];
+                const vAngle = getAngle(TEMPV1, TEMPV2);
+                rAngle = angle - vAngle / 2;
+            }
+            const rRad = degToRad(rAngle);
+            const p3 = currentp;
+            const x = Math.cos(rRad) + p3[0], y = Math.sin(rRad) + p3[1];
+            const p4 = [x, y];
+            const [line1, line2] = translateLine(p1, p2, radius);
+            let op1 = lineIntersection(line1[0], line1[1], p3, p4);
+            let op2 = lineIntersection(line2[0], line2[1], p3, p4);
+            // 平行，回头路
+            if (!op1 || !op2) {
+                const len1 = points.length;
+                const point1 = points[len1 - 2];
+                const point2 = points[len1 - 1];
+                if (!point1 || !point2) {
+                    continue;
+                }
+                op1 = [point1[0], point1[1]];
+                op2 = [point2[0], point2[1]];
+            }
+            op1[2] = currentp[2] || 0;
+            op2[2] = currentp[2] || 0;
+            // const [op1, op2] = calOffsetPoint(rRad, radius, p1);
+            points.push(op1, op2);
+            if (leftOnLine(op1, p1, p2)) {
+                leftPoints.push(op1);
+                rightPoints.push(op2);
+            }
+            else {
+                leftPoints.push(op2);
+                rightPoints.push(op1);
+            }
+            i++;
         }
-
-        var rRad = degToRad(rAngle);
-        var p3 = currentp;
-        var x = Math.cos(rRad) + p3[0],
-            y = Math.sin(rRad) + p3[1];
-        var p4 = [x, y];
-
-        var _translateLine = translateLine(p1, p2, radius),
-            line1 = _translateLine[0],
-            line2 = _translateLine[1];
-
-        var op1 = lineIntersection(line1[0], line1[1], p3, p4);
-        var op2 = lineIntersection(line2[0], line2[1], p3, p4); // 平行，回头路
-
-        if (!op1 || !op2) {
-          var len1 = points.length;
-          var point1 = points[len1 - 2];
-          var point2 = points[len1 - 1];
-
-          if (!point1 || !point2) {
-            continue;
-          }
-
-          op1 = [point1[0], point1[1]];
-          op2 = [point2[0], point2[1]];
-        }
-
-        op1[2] = currentp[2] || 0;
-        op2[2] = currentp[2] || 0; // const [op1, op2] = calOffsetPoint(rRad, radius, p1);
-
-        points.push(op1, op2);
-
-        if (leftOnLine(op1, p1, p2)) {
-          leftPoints.push(op1);
-          rightPoints.push(op2);
-        } else {
-          leftPoints.push(op2);
-          rightPoints.push(op1);
-        }
-
-        i++;
-      }
-
-      return {
-        offsetPoints: points,
-        leftPoints: leftPoints,
-        rightPoints: rightPoints,
-        line: line
-      };
-    } // eslint-disable-next-line no-unused-vars
-
-    var getAngle = function getAngle(_ref, _ref2) {
-      var x1 = _ref.x,
-          y1 = _ref.y;
-      var x2 = _ref2.x,
-          y2 = _ref2.y;
-      var dot = x1 * x2 + y1 * y2;
-      var det = x1 * y2 - y1 * x2;
-      var angle = Math.atan2(det, dot) / Math.PI * 180;
-      return (angle + 360) % 360;
+        return { offsetPoints: points, leftPoints, rightPoints, line };
+    }
+    const getAngle = ({ x: x1, y: y1 }, { x: x2, y: y2 }) => {
+        const dot = x1 * x2 + y1 * y2;
+        const det = x1 * y2 - y1 * x2;
+        const angle = Math.atan2(det, dot) / Math.PI * 180;
+        return (angle + 360) % 360;
     };
-
     function leftOnLine(p, p1, p2) {
-      var x1 = p1[0],
-          y1 = p1[1];
-      var x2 = p2[0],
-          y2 = p2[1];
-      var x = p[0],
-          y = p[1];
-      return (y1 - y2) * x + (x2 - x1) * y + x1 * y2 - x2 * y1 > 0;
+        const [x1, y1] = p1;
+        const [x2, y2] = p2;
+        const [x, y] = p;
+        return (y1 - y2) * x + (x2 - x1) * y + x1 * y2 - x2 * y1 > 0;
     }
     /**
      * 平移线
@@ -2698,22 +2478,19 @@
      * @param {*} distance
      * @returns
      */
-
     function translateLine(p1, p2, distance) {
-      var dy = p2[1] - p1[1],
-          dx = p2[0] - p1[0];
-      var rad = Math.atan2(dy, dx);
-      var rad1 = rad + Math.PI / 2;
-      var offsetX = Math.cos(rad1) * distance,
-          offsetY = Math.sin(rad1) * distance;
-      var tp1 = [p1[0] + offsetX, p1[1] + offsetY];
-      var tp2 = [p2[0] + offsetX, p2[1] + offsetY];
-      var rad2 = rad - Math.PI / 2;
-      offsetX = Math.cos(rad2) * distance;
-      offsetY = Math.sin(rad2) * distance;
-      var tp3 = [p1[0] + offsetX, p1[1] + offsetY];
-      var tp4 = [p2[0] + offsetX, p2[1] + offsetY];
-      return [[tp1, tp2], [tp3, tp4]];
+        const dy = p2[1] - p1[1], dx = p2[0] - p1[0];
+        const rad = Math.atan2(dy, dx);
+        const rad1 = rad + Math.PI / 2;
+        let offsetX = Math.cos(rad1) * distance, offsetY = Math.sin(rad1) * distance;
+        const tp1 = [p1[0] + offsetX, p1[1] + offsetY];
+        const tp2 = [p2[0] + offsetX, p2[1] + offsetY];
+        const rad2 = rad - Math.PI / 2;
+        offsetX = Math.cos(rad2) * distance;
+        offsetY = Math.sin(rad2) * distance;
+        const tp3 = [p1[0] + offsetX, p1[1] + offsetY];
+        const tp4 = [p2[0] + offsetX, p2[1] + offsetY];
+        return [[tp1, tp2], [tp3, tp4]];
     }
     /**
      * 直线交点
@@ -2723,186 +2500,148 @@
      * @param {*} p4
      * @returns
      */
-
-
     function lineIntersection(p1, p2, p3, p4) {
-      var dx1 = p2[0] - p1[0],
-          dy1 = p2[1] - p1[1];
-      var dx2 = p4[0] - p3[0],
-          dy2 = p4[1] - p3[1];
-
-      if (dx1 === 0 && dx2 === 0) {
-        return null;
-      }
-
-      if (dy1 === 0 && dy2 === 0) {
-        return null;
-      }
-
-      var k1 = dy1 / dx1;
-      var k2 = dy2 / dx2;
-      var b1 = p1[1] - k1 * p1[0];
-      var b2 = p3[1] - k2 * p3[0];
-      var x, y;
-
-      if (dx1 === 0) {
-        x = p1[0];
-        y = k2 * x + b2;
-      } else if (dx2 === 0) {
-        x = p3[0];
-        y = k1 * x + b1;
-      } else if (dy1 === 0) {
-        y = p1[1];
-        x = (y - b2) / k2;
-      } else if (dy2 === 0) {
-        y = p3[1];
-        x = (y - b1) / k1;
-      } else {
-        x = (b2 - b1) / (k1 - k2);
-        y = k1 * x + b1;
-      }
-
-      return [x, y];
+        const dx1 = p2[0] - p1[0], dy1 = p2[1] - p1[1];
+        const dx2 = p4[0] - p3[0], dy2 = p4[1] - p3[1];
+        if (dx1 === 0 && dx2 === 0) {
+            return null;
+        }
+        if (dy1 === 0 && dy2 === 0) {
+            return null;
+        }
+        const k1 = dy1 / dx1;
+        const k2 = dy2 / dx2;
+        const b1 = p1[1] - k1 * p1[0];
+        const b2 = p3[1] - k2 * p3[0];
+        let x, y;
+        if (dx1 === 0) {
+            x = p1[0];
+            y = k2 * x + b2;
+        }
+        else if (dx2 === 0) {
+            x = p3[0];
+            y = k1 * x + b1;
+        }
+        else if (dy1 === 0) {
+            y = p1[1];
+            x = (y - b2) / k2;
+        }
+        else if (dy2 === 0) {
+            y = p3[1];
+            x = (y - b1) / k1;
+        }
+        else {
+            x = (b2 - b1) / (k1 - k2);
+            y = k1 * x + b1;
+        }
+        return [x, y];
     }
 
     function cylinder(point, options) {
-      if (options === void 0) {
-        options = {};
-      }
-
-      options = Object.assign({}, {
-        radius: 1,
-        height: 2,
-        radialSegments: 6
-      }, options);
-      var radialSegments = Math.round(Math.max(4, options.radialSegments));
-      var _options = options,
-          radius = _options.radius,
-          height = _options.height;
-      var aRad = 360 / radialSegments / 360 * Math.PI * 2;
-      var circlePointsLen = radialSegments + 1;
-      var points = new Float32Array(circlePointsLen * 3 * 2);
-      var centerx = point[0],
-          centery = point[1];
-      var idx = 0,
-          uIdx = 0;
-      var offset = circlePointsLen * 3,
-          uOffset = circlePointsLen * 2;
-      var indices = [],
-          uv = [];
-      var iIndex = indices.length - 1;
-
-      for (var i = -1; i < radialSegments; i++) {
-        var rad = aRad * i;
-        var x = Math.cos(rad) * radius + centerx,
-            y = Math.sin(rad) * radius + centery; // bottom vertices
-
-        points[idx] = x;
-        points[idx + 1] = y;
-        points[idx + 2] = 0; // top vertices
-
-        points[idx + offset] = x;
-        points[idx + 1 + offset] = y;
-        points[idx + 2 + offset] = height;
-        var u = 0,
-            v = 0;
-        u = 0.5 + x / radius / 2;
-        v = 0.5 + y / radius / 2;
-        uv[uIdx] = u;
-        uv[uIdx + 1] = v;
-        uv[uIdx + uOffset] = u;
-        uv[uIdx + 1 + uOffset] = v;
-        idx += 3;
-        uIdx += 2;
-
-        if (i > 1) {
-          // bottom indices
-          // indices.push(0, i - 1, i);
-          indices[++iIndex] = 0;
-          indices[++iIndex] = i - 1;
-          indices[++iIndex] = i;
+        options = Object.assign({}, { radius: 1, height: 2, radialSegments: 6 }, options);
+        const radialSegments = Math.round(Math.max(4, options.radialSegments));
+        let { radius, height } = options;
+        radius = radius;
+        height = height;
+        const aRad = 360 / radialSegments / 360 * Math.PI * 2;
+        const circlePointsLen = (radialSegments + 1);
+        const points = new Float32Array(circlePointsLen * 3 * 2);
+        const [centerx, centery] = point;
+        let idx = 0, uIdx = 0;
+        const offset = circlePointsLen * 3, uOffset = circlePointsLen * 2;
+        const indices = [], uv = [];
+        let iIndex = indices.length - 1;
+        for (let i = -1; i < radialSegments; i++) {
+            const rad = aRad * i;
+            const x = Math.cos(rad) * radius + centerx, y = Math.sin(rad) * radius + centery;
+            // bottom vertices
+            points[idx] = x;
+            points[idx + 1] = y;
+            points[idx + 2] = 0;
+            // top vertices
+            points[idx + offset] = x;
+            points[idx + 1 + offset] = y;
+            points[idx + 2 + offset] = height;
+            let u = 0, v = 0;
+            u = 0.5 + x / radius / 2;
+            v = 0.5 + y / radius / 2;
+            uv[uIdx] = u;
+            uv[uIdx + 1] = v;
+            uv[uIdx + uOffset] = u;
+            uv[uIdx + 1 + uOffset] = v;
+            idx += 3;
+            uIdx += 2;
+            if (i > 1) {
+                // bottom indices
+                // indices.push(0, i - 1, i);
+                indices[++iIndex] = 0;
+                indices[++iIndex] = i - 1;
+                indices[++iIndex] = i;
+            }
         }
-      }
-
-      idx -= 3;
-      points[idx] = points[0];
-      points[idx + 1] = points[1];
-      points[idx + 2] = points[2];
-      var pointsLen = points.length;
-      points[pointsLen - 3] = points[0];
-      points[pointsLen - 2] = points[1];
-      points[pointsLen - 1] = height;
-      var indicesLen = indices.length; // top indices
-
-      iIndex = indices.length - 1;
-
-      for (var _i = 0; _i < indicesLen; _i++) {
-        var index = indices[_i];
-        indices[++iIndex] = index + circlePointsLen; // indices.push(index + circlePointsLen);
-      }
-
-      var sidePoints = new Float32Array((circlePointsLen * 3 * 2 - 6) * 2);
-      var pIndex = -1;
-      idx = circlePointsLen * 2;
-      uIdx = 0;
-      iIndex = indices.length - 1;
-      var uvIndex = uv.length - 1;
-
-      for (var _i2 = 0, len = points.length / 2; _i2 < len - 3; _i2 += 3) {
-        var x1 = points[_i2],
-            y1 = points[_i2 + 1],
-            x2 = points[_i2 + 3],
-            y2 = points[_i2 + 4];
-        sidePoints[++pIndex] = x1;
-        sidePoints[++pIndex] = y1;
-        sidePoints[++pIndex] = height;
-        sidePoints[++pIndex] = x2;
-        sidePoints[++pIndex] = y2;
-        sidePoints[++pIndex] = height;
-        sidePoints[++pIndex] = x1;
-        sidePoints[++pIndex] = y1;
-        sidePoints[++pIndex] = 0;
-        sidePoints[++pIndex] = x2;
-        sidePoints[++pIndex] = y2;
-        sidePoints[++pIndex] = 0;
-        var a = idx + 2,
-            b = idx + 3,
-            c = idx,
-            d = idx + 1; // indices.push(a, c, b, c, d, b);
-
-        indices[++iIndex] = c;
-        indices[++iIndex] = a;
-        indices[++iIndex] = d;
-        indices[++iIndex] = a;
-        indices[++iIndex] = b;
-        indices[++iIndex] = d; // indices.push(c, a, d, a, b, d);
-
-        idx += 4;
-        var u1 = uIdx / circlePointsLen,
-            u2 = (uIdx + 1) / circlePointsLen;
-        uv[++uvIndex] = u1;
-        uv[++uvIndex] = height / radius / 2;
-        uv[++uvIndex] = u2;
-        uv[++uvIndex] = height / radius / 2;
-        uv[++uvIndex] = u1;
-        uv[++uvIndex] = 0;
-        uv[++uvIndex] = u2;
-        uv[++uvIndex] = 0; // uvs.push(u1, height / radius / 2, u2, height / radius / 2, u1, 0, u2, 0);
-
-        uIdx++;
-      }
-
-      var position = new Float32Array(points.length + sidePoints.length);
-      position.set(points, 0);
-      position.set(sidePoints, points.length);
-      var normal = generateNormal(indices, position);
-      return {
-        points: points,
-        indices: new Uint32Array(indices),
-        position: position,
-        normal: normal,
-        uv: new Float32Array(uv)
-      };
+        idx -= 3;
+        points[idx] = points[0];
+        points[idx + 1] = points[1];
+        points[idx + 2] = points[2];
+        const pointsLen = points.length;
+        points[pointsLen - 3] = points[0];
+        points[pointsLen - 2] = points[1];
+        points[pointsLen - 1] = height;
+        const indicesLen = indices.length;
+        // top indices
+        iIndex = indices.length - 1;
+        for (let i = 0; i < indicesLen; i++) {
+            const index = indices[i];
+            indices[++iIndex] = index + circlePointsLen;
+            // indices.push(index + circlePointsLen);
+        }
+        const sidePoints = new Float32Array((circlePointsLen * 3 * 2 - 6) * 2);
+        let pIndex = -1;
+        idx = circlePointsLen * 2;
+        uIdx = 0;
+        iIndex = indices.length - 1;
+        let uvIndex = uv.length - 1;
+        for (let i = 0, len = points.length / 2; i < len - 3; i += 3) {
+            const x1 = points[i], y1 = points[i + 1], x2 = points[i + 3], y2 = points[i + 4];
+            sidePoints[++pIndex] = x1;
+            sidePoints[++pIndex] = y1;
+            sidePoints[++pIndex] = height;
+            sidePoints[++pIndex] = x2;
+            sidePoints[++pIndex] = y2;
+            sidePoints[++pIndex] = height;
+            sidePoints[++pIndex] = x1;
+            sidePoints[++pIndex] = y1;
+            sidePoints[++pIndex] = 0;
+            sidePoints[++pIndex] = x2;
+            sidePoints[++pIndex] = y2;
+            sidePoints[++pIndex] = 0;
+            const a = idx + 2, b = idx + 3, c = idx, d = idx + 1;
+            // indices.push(a, c, b, c, d, b);
+            indices[++iIndex] = c;
+            indices[++iIndex] = a;
+            indices[++iIndex] = d;
+            indices[++iIndex] = a;
+            indices[++iIndex] = b;
+            indices[++iIndex] = d;
+            // indices.push(c, a, d, a, b, d);
+            idx += 4;
+            const u1 = uIdx / circlePointsLen, u2 = (uIdx + 1) / circlePointsLen;
+            uv[++uvIndex] = u1;
+            uv[++uvIndex] = height / radius / 2;
+            uv[++uvIndex] = u2;
+            uv[++uvIndex] = height / radius / 2;
+            uv[++uvIndex] = u1;
+            uv[++uvIndex] = 0;
+            uv[++uvIndex] = u2;
+            uv[++uvIndex] = 0;
+            // uvs.push(u1, height / radius / 2, u2, height / radius / 2, u1, 0, u2, 0);
+            uIdx++;
+        }
+        const position = new Float32Array(points.length + sidePoints.length);
+        position.set(points, 0);
+        position.set(sidePoints, points.length);
+        const normal = generateNormal(indices, position);
+        return { points, indices: new Uint32Array(indices), position, normal, uv: new Float32Array(uv) };
     }
 
     /* eslint-disable no-tabs */
@@ -4197,539 +3936,504 @@
       return PathPointList;
     }();
 
-    var UP$1 = new Vector3(0, 0, 1);
-    var right = new Vector3();
-    var left = new Vector3(); // for sharp corners
-
-    var leftOffset = new Vector3();
-    var rightOffset = new Vector3();
-    var tempPoint1 = new Vector3();
-    var tempPoint2 = new Vector3();
+    const UP$1 = new Vector3(0, 0, 1);
+    const right = new Vector3();
+    const left = new Vector3();
+    // for sharp corners
+    const leftOffset = new Vector3();
+    const rightOffset = new Vector3();
+    const tempPoint1 = new Vector3();
+    const tempPoint2 = new Vector3();
     function expandPaths(lines, options) {
-      options = Object.assign({}, {
-        lineWidth: 1,
-        cornerRadius: 0,
-        cornerSplit: 10
-      }, options);
-      var results = lines.map(function (line) {
-        var points = line2Vectors(line);
-        var pathPointList = new PathPointList();
-        pathPointList.set(points, options.cornerRadius, options.cornerSplit, UP$1);
-        var result = generatePathVertexData(pathPointList, options);
-        result.line = line;
-        result.position = new Float32Array(result.position);
-        result.indices = new Uint32Array(result.indices);
-        result.uv = new Float32Array(result.uv);
-        result.normal = new Float32Array(result.normal);
+        options = Object.assign({}, { lineWidth: 1, cornerRadius: 0, cornerSplit: 10 }, options);
+        const results = lines.map(line => {
+            const points = line2Vectors(line);
+            const pathPointList = new PathPointList();
+            //@ts-ignore
+            pathPointList.set(points, options.cornerRadius, options.cornerSplit, UP$1);
+            const params = generatePathVertexData(pathPointList, options);
+            const result = {
+                position: new Float32Array(params.position),
+                indices: new Uint32Array(params.indices),
+                uv: new Float32Array(params.uv),
+                normal: new Float32Array(params.normal),
+                line,
+                count: params.count
+            };
+            return result;
+        });
+        const result = merge(results);
+        result.lines = lines;
         return result;
-      });
-      var result = merge(results);
-      result.lines = lines;
-      return result;
-    } // Vertex Data Generate Functions
+    }
+    // Vertex Data Generate Functions
     // code copy from https://github.com/shawn0326/three.path/blob/master/src/PathGeometry.js
-
     function generatePathVertexData(pathPointList, options) {
-      var width = options.lineWidth || 0.1;
-      var progress = 1;
-      var halfWidth = width / 2;
-      var sideWidth = width;
-      var totalDistance = pathPointList.distance();
-      var progressDistance = progress * totalDistance;
-
-      if (totalDistance === 0) {
-        return null;
-      }
-
-      var sharpUvOffset = halfWidth / sideWidth; // const sharpUvOffset2 = halfWidth / totalDistance;
-
-      var count = 0; // modify data
-
-      var position = [];
-      var normal = [];
-      var uv = [];
-      var indices = [];
-      var verticesCount = 0;
-      var pIndex = position.length - 1;
-      var nIndex = normal.length - 1;
-      var uIndex = uv.length - 1;
-      var iIndex = indices.length - 1;
-
-      function addVertices(pathPoint) {
-        var first = position.length === 0;
-        var sharpCorner = pathPoint.sharp && !first;
-        var uvDist = pathPoint.dist / sideWidth; // const uvDist2 = pathPoint.dist / totalDistance;
-
-        var dir = pathPoint.dir;
-        var up = pathPoint.up;
-        var _right = pathPoint.right;
-
-        {
-          right.copy(_right).multiplyScalar(halfWidth * pathPoint.widthScale);
+        const width = options.lineWidth || 0.1;
+        const progress = 1;
+        const halfWidth = width / 2;
+        const sideWidth = (width);
+        const totalDistance = pathPointList.distance();
+        const progressDistance = progress * totalDistance;
+        let count = 0;
+        // modify data
+        const position = [];
+        const normal = [];
+        const uv = [];
+        const indices = [];
+        let verticesCount = 0;
+        if (totalDistance === 0) {
+            return {
+                position: position,
+                normal,
+                uv: uv,
+                indices: indices,
+                count
+            };
         }
-
-        {
-          left.copy(_right).multiplyScalar(-halfWidth * pathPoint.widthScale);
+        const sharpUvOffset = halfWidth / sideWidth;
+        // const sharpUvOffset2 = halfWidth / totalDistance;
+        let pIndex = position.length - 1;
+        let nIndex = normal.length - 1;
+        let uIndex = uv.length - 1;
+        let iIndex = indices.length - 1;
+        function addVertices(pathPoint) {
+            const first = position.length === 0;
+            const sharpCorner = pathPoint.sharp && !first;
+            const uvDist = pathPoint.dist / sideWidth;
+            // const uvDist2 = pathPoint.dist / totalDistance;
+            const dir = pathPoint.dir;
+            const up = pathPoint.up;
+            const _right = pathPoint.right;
+            //@ts-ignore
+            {
+                right.copy(_right).multiplyScalar(halfWidth * pathPoint.widthScale);
+            }
+            //@ts-ignore
+            {
+                left.copy(_right).multiplyScalar(-halfWidth * pathPoint.widthScale);
+            }
+            right.add(pathPoint.pos);
+            left.add(pathPoint.pos);
+            if (sharpCorner) {
+                leftOffset.fromArray(position, position.length - 6).sub(left);
+                rightOffset.fromArray(position, position.length - 3).sub(right);
+                const leftDist = leftOffset.length();
+                const rightDist = rightOffset.length();
+                const sideOffset = leftDist - rightDist;
+                let longerOffset, longEdge;
+                if (sideOffset > 0) {
+                    longerOffset = leftOffset;
+                    longEdge = left;
+                }
+                else {
+                    longerOffset = rightOffset;
+                    longEdge = right;
+                }
+                tempPoint1.copy(longerOffset).setLength(Math.abs(sideOffset)).add(longEdge);
+                // eslint-disable-next-line prefer-const
+                let _cos = tempPoint2.copy(longEdge).sub(tempPoint1).normalize().dot(dir);
+                // eslint-disable-next-line prefer-const
+                let _len = tempPoint2.copy(longEdge).sub(tempPoint1).length();
+                // eslint-disable-next-line prefer-const
+                let _dist = _cos * _len * 2;
+                tempPoint2.copy(dir).setLength(_dist).add(tempPoint1);
+                if (sideOffset > 0) {
+                    position[++pIndex] = tempPoint1.x;
+                    position[++pIndex] = tempPoint1.y;
+                    position[++pIndex] = tempPoint1.z;
+                    position[++pIndex] = right.x;
+                    position[++pIndex] = right.y;
+                    position[++pIndex] = right.z;
+                    position[++pIndex] = left.x;
+                    position[++pIndex] = left.y;
+                    position[++pIndex] = left.z;
+                    position[++pIndex] = right.x;
+                    position[++pIndex] = right.y;
+                    position[++pIndex] = right.z;
+                    position[++pIndex] = tempPoint2.x;
+                    position[++pIndex] = tempPoint2.y;
+                    position[++pIndex] = tempPoint2.z;
+                    position[++pIndex] = right.x;
+                    position[++pIndex] = right.y;
+                    position[++pIndex] = right.z;
+                    // position.push(
+                    //     tempPoint1.x, tempPoint1.y, tempPoint1.z, // 6
+                    //     right.x, right.y, right.z, // 5
+                    //     left.x, left.y, left.z, // 4
+                    //     right.x, right.y, right.z, // 3
+                    //     tempPoint2.x, tempPoint2.y, tempPoint2.z, // 2
+                    //     right.x, right.y, right.z // 1
+                    // );
+                    verticesCount += 6;
+                    indices[++iIndex] = verticesCount - 6;
+                    indices[++iIndex] = verticesCount - 8;
+                    indices[++iIndex] = verticesCount - 7;
+                    indices[++iIndex] = verticesCount - 6;
+                    indices[++iIndex] = verticesCount - 7;
+                    indices[++iIndex] = verticesCount - 5;
+                    indices[++iIndex] = verticesCount - 4;
+                    indices[++iIndex] = verticesCount - 6;
+                    indices[++iIndex] = verticesCount - 5;
+                    indices[++iIndex] = verticesCount - 2;
+                    indices[++iIndex] = verticesCount - 4;
+                    indices[++iIndex] = verticesCount - 1;
+                    // indices.push(
+                    //     verticesCount - 6, verticesCount - 8, verticesCount - 7,
+                    //     verticesCount - 6, verticesCount - 7, verticesCount - 5,
+                    //     verticesCount - 4, verticesCount - 6, verticesCount - 5,
+                    //     verticesCount - 2, verticesCount - 4, verticesCount - 1
+                    // );
+                    count += 12;
+                }
+                else {
+                    position[++pIndex] = left.x;
+                    position[++pIndex] = left.y;
+                    position[++pIndex] = left.z;
+                    position[++pIndex] = tempPoint1.x;
+                    position[++pIndex] = tempPoint1.y;
+                    position[++pIndex] = tempPoint1.z;
+                    position[++pIndex] = left.x;
+                    position[++pIndex] = left.y;
+                    position[++pIndex] = left.z;
+                    position[++pIndex] = right.x;
+                    position[++pIndex] = right.y;
+                    position[++pIndex] = right.z;
+                    position[++pIndex] = left.x;
+                    position[++pIndex] = left.y;
+                    position[++pIndex] = left.z;
+                    position[++pIndex] = tempPoint2.x;
+                    position[++pIndex] = tempPoint2.y;
+                    position[++pIndex] = tempPoint2.z;
+                    // position.push(
+                    //     left.x, left.y, left.z, // 6
+                    //     tempPoint1.x, tempPoint1.y, tempPoint1.z, // 5
+                    //     left.x, left.y, left.z, // 4
+                    //     right.x, right.y, right.z, // 3
+                    //     left.x, left.y, left.z, // 2
+                    //     tempPoint2.x, tempPoint2.y, tempPoint2.z // 1
+                    // );
+                    verticesCount += 6;
+                    indices[++iIndex] = verticesCount - 6;
+                    indices[++iIndex] = verticesCount - 8;
+                    indices[++iIndex] = verticesCount - 7;
+                    indices[++iIndex] = verticesCount - 6;
+                    indices[++iIndex] = verticesCount - 7;
+                    indices[++iIndex] = verticesCount - 5;
+                    indices[++iIndex] = verticesCount - 6;
+                    indices[++iIndex] = verticesCount - 5;
+                    indices[++iIndex] = verticesCount - 3;
+                    indices[++iIndex] = verticesCount - 2;
+                    indices[++iIndex] = verticesCount - 3;
+                    indices[++iIndex] = verticesCount - 1;
+                    // indices.push(
+                    //     verticesCount - 6, verticesCount - 8, verticesCount - 7,
+                    //     verticesCount - 6, verticesCount - 7, verticesCount - 5,
+                    //     verticesCount - 6, verticesCount - 5, verticesCount - 3,
+                    //     verticesCount - 2, verticesCount - 3, verticesCount - 1
+                    // );
+                    count += 12;
+                }
+                for (let i = 0; i < 6; i++) {
+                    normal[++nIndex] = up.x;
+                    normal[++nIndex] = up.y;
+                    normal[++nIndex] = up.z;
+                }
+                // normal.push(
+                //     up.x, up.y, up.z,
+                //     up.x, up.y, up.z,
+                //     up.x, up.y, up.z,
+                //     up.x, up.y, up.z,
+                //     up.x, up.y, up.z,
+                //     up.x, up.y, up.z
+                // );
+                uv[++uIndex] = uvDist - sharpUvOffset;
+                uv[++uIndex] = 0;
+                uv[++uIndex] = uvDist - sharpUvOffset;
+                uv[++uIndex] = 1;
+                uv[++uIndex] = uvDist;
+                uv[++uIndex] = 0;
+                uv[++uIndex] = uvDist;
+                uv[++uIndex] = 1;
+                uv[++uIndex] = uvDist + sharpUvOffset;
+                uv[++uIndex] = 0;
+                uv[++uIndex] = uvDist + sharpUvOffset;
+                uv[++uIndex] = 1;
+                // uv.push(
+                //     uvDist - sharpUvOffset, 0,
+                //     uvDist - sharpUvOffset, 1,
+                //     uvDist, 0,
+                //     uvDist, 1,
+                //     uvDist + sharpUvOffset, 0,
+                //     uvDist + sharpUvOffset, 1
+                // );
+                // if (generateUv2) {
+                //     uv2.push(
+                //         uvDist2 - sharpUvOffset2, 0,
+                //         uvDist2 - sharpUvOffset2, 1,
+                //         uvDist2, 0,
+                //         uvDist2, 1,
+                //         uvDist2 + sharpUvOffset2, 0,
+                //         uvDist2 + sharpUvOffset2, 1
+                //     );
+                // }
+            }
+            else {
+                position[++pIndex] = left.x;
+                position[++pIndex] = left.y;
+                position[++pIndex] = left.z;
+                position[++pIndex] = right.x;
+                position[++pIndex] = right.y;
+                position[++pIndex] = right.z;
+                // position.push(
+                //     left.x, left.y, left.z,
+                //     right.x, right.y, right.z
+                // );
+                normal[++nIndex] = up.x;
+                normal[++nIndex] = up.y;
+                normal[++nIndex] = up.z;
+                normal[++nIndex] = up.x;
+                normal[++nIndex] = up.y;
+                normal[++nIndex] = up.z;
+                // normal.push(
+                //     up.x, up.y, up.z,
+                //     up.x, up.y, up.z
+                // );
+                uv[++uIndex] = uvDist;
+                uv[++uIndex] = 0;
+                uv[++uIndex] = uvDist;
+                uv[++uIndex] = 1;
+                // uv.push(
+                //     uvDist, 0,
+                //     uvDist, 1
+                // );
+                // if (generateUv2) {
+                //     uv2.push(
+                //         uvDist2, 0,
+                //         uvDist2, 1
+                //     );
+                // }
+                verticesCount += 2;
+                if (!first) {
+                    indices[++iIndex] = verticesCount - 2;
+                    indices[++iIndex] = verticesCount - 4;
+                    indices[++iIndex] = verticesCount - 3;
+                    indices[++iIndex] = verticesCount - 2;
+                    indices[++iIndex] = verticesCount - 3;
+                    indices[++iIndex] = verticesCount - 1;
+                    // indices.push(
+                    //     verticesCount - 2, verticesCount - 4, verticesCount - 3,
+                    //     verticesCount - 2, verticesCount - 3, verticesCount - 1
+                    // );
+                    count += 6;
+                }
+            }
         }
-
-        right.add(pathPoint.pos);
-        left.add(pathPoint.pos);
-
-        if (sharpCorner) {
-          leftOffset.fromArray(position, position.length - 6).sub(left);
-          rightOffset.fromArray(position, position.length - 3).sub(right);
-          var leftDist = leftOffset.length();
-          var rightDist = rightOffset.length();
-          var sideOffset = leftDist - rightDist;
-          var longerOffset, longEdge;
-
-          if (sideOffset > 0) {
-            longerOffset = leftOffset;
-            longEdge = left;
-          } else {
-            longerOffset = rightOffset;
-            longEdge = right;
-          }
-
-          tempPoint1.copy(longerOffset).setLength(Math.abs(sideOffset)).add(longEdge); // eslint-disable-next-line prefer-const
-
-          var _cos = tempPoint2.copy(longEdge).sub(tempPoint1).normalize().dot(dir); // eslint-disable-next-line prefer-const
-
-
-          var _len = tempPoint2.copy(longEdge).sub(tempPoint1).length(); // eslint-disable-next-line prefer-const
-
-
-          var _dist = _cos * _len * 2;
-
-          tempPoint2.copy(dir).setLength(_dist).add(tempPoint1);
-
-          if (sideOffset > 0) {
-            position[++pIndex] = tempPoint1.x;
-            position[++pIndex] = tempPoint1.y;
-            position[++pIndex] = tempPoint1.z;
-            position[++pIndex] = right.x;
-            position[++pIndex] = right.y;
-            position[++pIndex] = right.z;
-            position[++pIndex] = left.x;
-            position[++pIndex] = left.y;
-            position[++pIndex] = left.z;
-            position[++pIndex] = right.x;
-            position[++pIndex] = right.y;
-            position[++pIndex] = right.z;
-            position[++pIndex] = tempPoint2.x;
-            position[++pIndex] = tempPoint2.y;
-            position[++pIndex] = tempPoint2.z;
-            position[++pIndex] = right.x;
-            position[++pIndex] = right.y;
-            position[++pIndex] = right.z; // position.push(
-            //     tempPoint1.x, tempPoint1.y, tempPoint1.z, // 6
-            //     right.x, right.y, right.z, // 5
-            //     left.x, left.y, left.z, // 4
-            //     right.x, right.y, right.z, // 3
-            //     tempPoint2.x, tempPoint2.y, tempPoint2.z, // 2
-            //     right.x, right.y, right.z // 1
-            // );
-
-            verticesCount += 6;
-            indices[++iIndex] = verticesCount - 6;
-            indices[++iIndex] = verticesCount - 8;
-            indices[++iIndex] = verticesCount - 7;
-            indices[++iIndex] = verticesCount - 6;
-            indices[++iIndex] = verticesCount - 7;
-            indices[++iIndex] = verticesCount - 5;
-            indices[++iIndex] = verticesCount - 4;
-            indices[++iIndex] = verticesCount - 6;
-            indices[++iIndex] = verticesCount - 5;
-            indices[++iIndex] = verticesCount - 2;
-            indices[++iIndex] = verticesCount - 4;
-            indices[++iIndex] = verticesCount - 1; // indices.push(
-            //     verticesCount - 6, verticesCount - 8, verticesCount - 7,
-            //     verticesCount - 6, verticesCount - 7, verticesCount - 5,
-            //     verticesCount - 4, verticesCount - 6, verticesCount - 5,
-            //     verticesCount - 2, verticesCount - 4, verticesCount - 1
-            // );
-
-            count += 12;
-          } else {
-            position[++pIndex] = left.x;
-            position[++pIndex] = left.y;
-            position[++pIndex] = left.z;
-            position[++pIndex] = tempPoint1.x;
-            position[++pIndex] = tempPoint1.y;
-            position[++pIndex] = tempPoint1.z;
-            position[++pIndex] = left.x;
-            position[++pIndex] = left.y;
-            position[++pIndex] = left.z;
-            position[++pIndex] = right.x;
-            position[++pIndex] = right.y;
-            position[++pIndex] = right.z;
-            position[++pIndex] = left.x;
-            position[++pIndex] = left.y;
-            position[++pIndex] = left.z;
-            position[++pIndex] = tempPoint2.x;
-            position[++pIndex] = tempPoint2.y;
-            position[++pIndex] = tempPoint2.z; // position.push(
-            //     left.x, left.y, left.z, // 6
-            //     tempPoint1.x, tempPoint1.y, tempPoint1.z, // 5
-            //     left.x, left.y, left.z, // 4
-            //     right.x, right.y, right.z, // 3
-            //     left.x, left.y, left.z, // 2
-            //     tempPoint2.x, tempPoint2.y, tempPoint2.z // 1
-            // );
-
-            verticesCount += 6;
-            indices[++iIndex] = verticesCount - 6;
-            indices[++iIndex] = verticesCount - 8;
-            indices[++iIndex] = verticesCount - 7;
-            indices[++iIndex] = verticesCount - 6;
-            indices[++iIndex] = verticesCount - 7;
-            indices[++iIndex] = verticesCount - 5;
-            indices[++iIndex] = verticesCount - 6;
-            indices[++iIndex] = verticesCount - 5;
-            indices[++iIndex] = verticesCount - 3;
-            indices[++iIndex] = verticesCount - 2;
-            indices[++iIndex] = verticesCount - 3;
-            indices[++iIndex] = verticesCount - 1; // indices.push(
-            //     verticesCount - 6, verticesCount - 8, verticesCount - 7,
-            //     verticesCount - 6, verticesCount - 7, verticesCount - 5,
-            //     verticesCount - 6, verticesCount - 5, verticesCount - 3,
-            //     verticesCount - 2, verticesCount - 3, verticesCount - 1
-            // );
-
-            count += 12;
-          }
-
-          for (var i = 0; i < 6; i++) {
-            normal[++nIndex] = up.x;
-            normal[++nIndex] = up.y;
-            normal[++nIndex] = up.z;
-          } // normal.push(
-          //     up.x, up.y, up.z,
-          //     up.x, up.y, up.z,
-          //     up.x, up.y, up.z,
-          //     up.x, up.y, up.z,
-          //     up.x, up.y, up.z,
-          //     up.x, up.y, up.z
-          // );
-
-
-          uv[++uIndex] = uvDist - sharpUvOffset;
-          uv[++uIndex] = 0;
-          uv[++uIndex] = uvDist - sharpUvOffset;
-          uv[++uIndex] = 1;
-          uv[++uIndex] = uvDist;
-          uv[++uIndex] = 0;
-          uv[++uIndex] = uvDist;
-          uv[++uIndex] = 1;
-          uv[++uIndex] = uvDist + sharpUvOffset;
-          uv[++uIndex] = 0;
-          uv[++uIndex] = uvDist + sharpUvOffset;
-          uv[++uIndex] = 1; // uv.push(
-          //     uvDist - sharpUvOffset, 0,
-          //     uvDist - sharpUvOffset, 1,
-          //     uvDist, 0,
-          //     uvDist, 1,
-          //     uvDist + sharpUvOffset, 0,
-          //     uvDist + sharpUvOffset, 1
-          // );
-          // if (generateUv2) {
-          //     uv2.push(
-          //         uvDist2 - sharpUvOffset2, 0,
-          //         uvDist2 - sharpUvOffset2, 1,
-          //         uvDist2, 0,
-          //         uvDist2, 1,
-          //         uvDist2 + sharpUvOffset2, 0,
-          //         uvDist2 + sharpUvOffset2, 1
-          //     );
-          // }
-        } else {
-          position[++pIndex] = left.x;
-          position[++pIndex] = left.y;
-          position[++pIndex] = left.z;
-          position[++pIndex] = right.x;
-          position[++pIndex] = right.y;
-          position[++pIndex] = right.z; // position.push(
-          //     left.x, left.y, left.z,
-          //     right.x, right.y, right.z
-          // );
-
-          normal[++nIndex] = up.x;
-          normal[++nIndex] = up.y;
-          normal[++nIndex] = up.z;
-          normal[++nIndex] = up.x;
-          normal[++nIndex] = up.y;
-          normal[++nIndex] = up.z; // normal.push(
-          //     up.x, up.y, up.z,
-          //     up.x, up.y, up.z
-          // );
-
-          uv[++uIndex] = uvDist;
-          uv[++uIndex] = 0;
-          uv[++uIndex] = uvDist;
-          uv[++uIndex] = 1; // uv.push(
-          //     uvDist, 0,
-          //     uvDist, 1
-          // );
-          // if (generateUv2) {
-          //     uv2.push(
-          //         uvDist2, 0,
-          //         uvDist2, 1
-          //     );
-          // }
-
-          verticesCount += 2;
-
-          if (!first) {
-            indices[++iIndex] = verticesCount - 2;
-            indices[++iIndex] = verticesCount - 4;
-            indices[++iIndex] = verticesCount - 3;
-            indices[++iIndex] = verticesCount - 2;
-            indices[++iIndex] = verticesCount - 3;
-            indices[++iIndex] = verticesCount - 1; // indices.push(
-            //     verticesCount - 2, verticesCount - 4, verticesCount - 3,
-            //     verticesCount - 2, verticesCount - 3, verticesCount - 1
-            // );
-
-            count += 6;
-          }
+        let lastPoint;
+        if (progressDistance > 0) {
+            for (let i = 0; i < pathPointList.count; i++) {
+                const pathPoint = pathPointList.array[i];
+                if (pathPoint.dist > progressDistance) {
+                    const prevPoint = pathPointList.array[i - 1];
+                    lastPoint = new PathPoint();
+                    // linear lerp for progress
+                    const alpha = (progressDistance - prevPoint.dist) / (pathPoint.dist - prevPoint.dist);
+                    lastPoint.lerpPathPoints(prevPoint, pathPoint, alpha);
+                    addVertices(lastPoint);
+                    break;
+                }
+                else {
+                    addVertices(pathPoint);
+                }
+            }
         }
-      }
-
-      var lastPoint;
-
-      if (progressDistance > 0) {
-        for (var i = 0; i < pathPointList.count; i++) {
-          var pathPoint = pathPointList.array[i];
-
-          if (pathPoint.dist > progressDistance) {
-            var prevPoint = pathPointList.array[i - 1];
-            lastPoint = new PathPoint(); // linear lerp for progress
-
-            var alpha = (progressDistance - prevPoint.dist) / (pathPoint.dist - prevPoint.dist);
-            lastPoint.lerpPathPoints(prevPoint, pathPoint, alpha);
-            addVertices(lastPoint);
-            break;
-          } else {
-            addVertices(pathPoint);
-          }
+        else {
+            lastPoint = pathPointList.array[0];
         }
-      } else {
-        lastPoint = pathPointList.array[0];
-      }
-
-      return {
-        position: position,
-        normal: normal,
-        uv: uv,
-        indices: indices,
-        count: count
-      };
+        return {
+            position: position,
+            normal,
+            uv: uv,
+            indices: indices,
+            count
+        };
     }
 
-    var UP = new Vector3(0, 0, 1);
-    var normalDir = new Vector3();
+    const UP = new Vector3(0, 0, 1);
+    const normalDir = new Vector3();
     function expandTubes(lines, options) {
-      options = Object.assign({}, {
-        radius: 1,
-        cornerSplit: 0,
-        radialSegments: 8,
-        startRad: -Math.PI / 4
-      }, options);
-      var results = lines.map(function (line) {
-        var points = line2Vectors(line);
-        var pathPointList = new PathPointList();
-        pathPointList.set(points, options.cornerRadius, options.cornerSplit, UP);
-        var result = generateTubeVertexData(pathPointList, options);
-        result.line = line;
-        result.position = new Float32Array(result.points);
-        result.indices = new Uint32Array(result.indices);
-        result.uv = new Float32Array(result.uv);
-        result.normal = new Float32Array(result.normal);
+        options = Object.assign({}, { radius: 1, cornerSplit: 0, radialSegments: 8, startRad: -Math.PI / 4 }, options);
+        const results = lines.map(line => {
+            const points = line2Vectors(line);
+            const pathPointList = new PathPointList();
+            //@ts-ignore
+            pathPointList.set(points, 0, options.cornerSplit, UP);
+            const result = generateTubeVertexData(pathPointList, options);
+            result.line = line;
+            result.position = new Float32Array(result.points);
+            result.indices = new Uint32Array(result.indices);
+            result.uv = new Float32Array(result.uv);
+            result.normal = new Float32Array(result.normal);
+            return result;
+        });
+        const result = merge(results);
+        result.lines = lines;
         return result;
-      });
-      var result = merge(results);
-      result.lines = lines;
-      return result;
-    } // Vertex Data Generate Functions
+    }
+    // Vertex Data Generate Functions
     // code copy from https://github.com/shawn0326/three.path/blob/master/src/PathGeometry.js
-
     function generateTubeVertexData(pathPointList, options) {
-      var radius = Math.max(options.radius || 1, 0.00000001);
-      var progress = options.progress !== undefined ? options.progress : 1;
-      var radialSegments = Math.max(3, options.radialSegments || 8);
-      var startRad = options.startRad || 0;
-      var circum = radius * 2 * Math.PI;
-      var totalDistance = pathPointList.distance();
-      var progressDistance = progress * totalDistance;
-
-      if (progressDistance === 0) {
-        return null;
-      }
-
-      var count = 0; // modify data
-
-      var points = [];
-      var normal = [];
-      var uv = []; // const uv2 = [];
-
-      var indices = [];
-      var verticesCount = 0;
-      var pIndex = -1;
-      var nIndex = -1;
-      var uIndex = -1;
-      var iIndex = -1;
-
-      function addVertices(pathPoint, radius, radialSegments) {
-        var first = points.length === 0;
-        var uvDist = pathPoint.dist / circum; // const uvDist2 = pathPoint.dist / totalDistance;
-
-        for (var i = 0; i <= radialSegments; i++) {
-          var r = i;
-
-          if (r === radialSegments) {
-            r = 0;
-          }
-
-          normalDir.copy(pathPoint.up).applyAxisAngle(pathPoint.dir, startRad + Math.PI * 2 * r / radialSegments).normalize();
-          var scale = radius * pathPoint.widthScale;
-          points[++pIndex] = pathPoint.pos.x + normalDir.x * scale;
-          points[++pIndex] = pathPoint.pos.y + normalDir.y * scale;
-          points[++pIndex] = pathPoint.pos.z + normalDir.z * scale;
-          normal[++nIndex] = normalDir.x;
-          normal[++nIndex] = normalDir.y;
-          normal[++nIndex] = normalDir.z;
-          uv[++uIndex] = uvDist;
-          uv[++uIndex] = i / radialSegments; // uvs.push(uvDist, r / radialSegments);
-          // if (generateUv2) {
-          //     uv2.push(uvDist2, r / radialSegments);
-          // }
-
-          verticesCount++;
+        const radius = Math.max(options.radius || 1, 0.00000001);
+        const progress = options.progress !== undefined ? options.progress : 1;
+        const radialSegments = Math.max(3, options.radialSegments || 8);
+        const startRad = options.startRad || 0;
+        const circum = radius * 2 * Math.PI;
+        const totalDistance = pathPointList.distance();
+        const progressDistance = progress * totalDistance;
+        if (progressDistance === 0) {
+            return null;
         }
-
-        if (!first) {
-          var begin1 = verticesCount - (radialSegments + 1) * 2;
-          var begin2 = verticesCount - (radialSegments + 1);
-
-          for (var _i = 0; _i < radialSegments; _i++) {
-            indices[++iIndex] = begin2 + _i;
-            indices[++iIndex] = begin1 + _i;
-            indices[++iIndex] = begin1 + _i + 1;
-            indices[++iIndex] = begin2 + _i;
-            indices[++iIndex] = begin1 + _i + 1;
-            indices[++iIndex] = begin2 + _i + 1; // index.push(
-            //     begin2 + i,
-            //     begin1 + i,
-            //     begin1 + i + 1,
-            //     begin2 + i,
-            //     begin1 + i + 1,
-            //     begin2 + i + 1
-            // );
-
-            count += 6;
-          }
+        let count = 0;
+        // modify data
+        const points = [];
+        const normal = [];
+        const uv = [];
+        // const uv2 = [];
+        const indices = [];
+        let verticesCount = 0;
+        let pIndex = -1;
+        let nIndex = -1;
+        let uIndex = -1;
+        let iIndex = -1;
+        function addVertices(pathPoint, radius, radialSegments) {
+            const first = points.length === 0;
+            const uvDist = pathPoint.dist / circum;
+            // const uvDist2 = pathPoint.dist / totalDistance;
+            for (let i = 0; i <= radialSegments; i++) {
+                let r = i;
+                if (r === radialSegments) {
+                    r = 0;
+                }
+                normalDir.copy(pathPoint.up).applyAxisAngle(pathPoint.dir, startRad + Math.PI * 2 * r / radialSegments).normalize();
+                const scale = radius * pathPoint.widthScale;
+                points[++pIndex] = pathPoint.pos.x + normalDir.x * scale;
+                points[++pIndex] = pathPoint.pos.y + normalDir.y * scale;
+                points[++pIndex] = pathPoint.pos.z + normalDir.z * scale;
+                normal[++nIndex] = normalDir.x;
+                normal[++nIndex] = normalDir.y;
+                normal[++nIndex] = normalDir.z;
+                uv[++uIndex] = uvDist;
+                uv[++uIndex] = i / radialSegments;
+                // uvs.push(uvDist, r / radialSegments);
+                // if (generateUv2) {
+                //     uv2.push(uvDist2, r / radialSegments);
+                // }
+                verticesCount++;
+            }
+            if (!first) {
+                const begin1 = verticesCount - (radialSegments + 1) * 2;
+                const begin2 = verticesCount - (radialSegments + 1);
+                for (let i = 0; i < radialSegments; i++) {
+                    indices[++iIndex] = begin2 + i;
+                    indices[++iIndex] = begin1 + i;
+                    indices[++iIndex] = begin1 + i + 1;
+                    indices[++iIndex] = begin2 + i;
+                    indices[++iIndex] = begin1 + i + 1;
+                    indices[++iIndex] = begin2 + i + 1;
+                    // index.push(
+                    //     begin2 + i,
+                    //     begin1 + i,
+                    //     begin1 + i + 1,
+                    //     begin2 + i,
+                    //     begin1 + i + 1,
+                    //     begin2 + i + 1
+                    // );
+                    count += 6;
+                }
+            }
         }
-      }
-
-      if (progressDistance > 0) {
-        for (var i = 0; i < pathPointList.count; i++) {
-          var pathPoint = pathPointList.array[i];
-
-          if (pathPoint.dist > progressDistance) {
-            var prevPoint = pathPointList.array[i - 1];
-            var lastPoint = new PathPoint(); // linear lerp for progress
-
-            var alpha = (progressDistance - prevPoint.dist) / (pathPoint.dist - prevPoint.dist);
-            lastPoint.lerpPathPoints(prevPoint, pathPoint, alpha);
-            addVertices(lastPoint, radius, radialSegments);
-            break;
-          } else {
-            addVertices(pathPoint, radius, radialSegments);
-          }
+        if (progressDistance > 0) {
+            for (let i = 0; i < pathPointList.count; i++) {
+                const pathPoint = pathPointList.array[i];
+                if (pathPoint.dist > progressDistance) {
+                    const prevPoint = pathPointList.array[i - 1];
+                    const lastPoint = new PathPoint();
+                    // linear lerp for progress
+                    const alpha = (progressDistance - prevPoint.dist) / (pathPoint.dist - prevPoint.dist);
+                    lastPoint.lerpPathPoints(prevPoint, pathPoint, alpha);
+                    addVertices(lastPoint, radius, radialSegments);
+                    break;
+                }
+                else {
+                    addVertices(pathPoint, radius, radialSegments);
+                }
+            }
         }
-      }
-
-      return {
-        points: points,
-        normal: normal,
-        uv: uv,
-        // uv2,
-        indices: indices,
-        count: count
-      };
+        return {
+            points,
+            normal,
+            uv,
+            // uv2,
+            indices,
+            count
+        };
     }
 
     function plane(width, height, devideW, devideH) {
-      devideW = Math.max(1, devideW);
-      devideH = Math.max(1, devideH);
-      var dx = width / devideW,
-          dy = height / devideH;
-      var minX = -width / 2,
-          maxY = height / 2,
-          minY = -height / 2;
-      var len = (devideW + 1) * (devideH + 1);
-      var position = new Float32Array(len * 3),
-          uv = new Float32Array(len * 2),
-          normal = new Float32Array(len * 3),
-          indices = new Uint32Array(len * 10);
-      var index = 0,
-          uIndex = 0,
-          iIndex = 0;
-
-      for (var j = 0; j <= devideH; j++) {
-        for (var i = 0; i <= devideW; i++) {
-          var x = minX + dx * i;
-          var y = maxY - dy * j;
-          position[index] = x;
-          position[index + 1] = y;
-          position[index + 2] = 0;
-          normal[index] = 0;
-          normal[index + 1] = 0;
-          normal[index + 2] = 1; // position.push(x, y, 0);
-          // normal.push(0, 0, 1);
-
-          var uvx = (x - minX) / width,
-              uvy = (y - minY) / height; // uv.push(uvx, uvy);
-
-          uv[uIndex] = uvx;
-          uv[uIndex + 1] = uvy;
-          index += 3;
-          uIndex += 2;
-
-          if (i < devideW && j < devideH) {
-            var a = j * (devideW + 1) + i,
-                b = a + 1,
-                c = (devideW + 1) * (j + 1) + i,
-                d = c + 1;
-            indices[iIndex] = a;
-            indices[iIndex + 1] = c;
-            indices[iIndex + 2] = b;
-            indices[iIndex + 3] = c;
-            indices[iIndex + 4] = d;
-            indices[iIndex + 5] = b;
-            iIndex += 6; // indexs.push(a, c, b, c, d, b);
-          }
+        devideW = Math.max(1, devideW);
+        devideH = Math.max(1, devideH);
+        const dx = width / devideW, dy = height / devideH;
+        const minX = -width / 2, maxY = height / 2, minY = -height / 2;
+        const len = (devideW + 1) * (devideH + 1);
+        const position = new Float32Array(len * 3), uv = new Float32Array(len * 2), normal = new Float32Array(len * 3), indices = new Uint32Array(len * 10);
+        let index = 0, uIndex = 0, iIndex = 0;
+        for (let j = 0; j <= devideH; j++) {
+            for (let i = 0; i <= devideW; i++) {
+                const x = minX + dx * i;
+                const y = maxY - dy * j;
+                position[index] = x;
+                position[index + 1] = y;
+                position[index + 2] = 0;
+                normal[index] = 0;
+                normal[index + 1] = 0;
+                normal[index + 2] = 1;
+                // position.push(x, y, 0);
+                // normal.push(0, 0, 1);
+                const uvx = (x - minX) / width, uvy = (y - minY) / height;
+                // uv.push(uvx, uvy);
+                uv[uIndex] = uvx;
+                uv[uIndex + 1] = uvy;
+                index += 3;
+                uIndex += 2;
+                if (i < devideW && j < devideH) {
+                    const a = j * (devideW + 1) + i, b = a + 1, c = (devideW + 1) * (j + 1) + i, d = c + 1;
+                    indices[iIndex] = a;
+                    indices[iIndex + 1] = c;
+                    indices[iIndex + 2] = b;
+                    indices[iIndex + 3] = c;
+                    indices[iIndex + 4] = d;
+                    indices[iIndex + 5] = b;
+                    iIndex += 6;
+                    // indexs.push(a, c, b, c, d, b);
+                }
+            }
         }
-      }
-
-      var indexArray = new Uint32Array(iIndex);
-
-      for (var _i = 0, _len = indexArray.length; _i < _len; _i++) {
-        indexArray[_i] = indices[_i];
-      } // for (let j = 0; j < devideH; j++) {
-      //     for (let i = 0; i < devideW; i++) {
-      //         const a = j * (devideW + 1) + i, b = a + 1, c = (devideW + 1) * (j + 1) + i, d = c + 1;
-      //         indexs.push(a, c, b, c, d, b);
-      //     }
-      // }
-
-
-      return {
-        position: position,
-        uv: uv,
-        normal: normal,
-        indices: indexArray
-      };
+        const indexArray = new Uint32Array(iIndex);
+        for (let i = 0, len = indexArray.length; i < len; i++) {
+            indexArray[i] = indices[i];
+        }
+        // for (let j = 0; j < devideH; j++) {
+        //     for (let i = 0; i < devideW; i++) {
+        //         const a = j * (devideW + 1) + i, b = a + 1, c = (devideW + 1) * (j + 1) + i, d = c + 1;
+        //         indexs.push(a, c, b, c, d, b);
+        //     }
+        // }
+        return {
+            position,
+            uv,
+            normal,
+            indices: indexArray
+        };
     }
 
     exports.cylinder = cylinder;
@@ -4739,9 +4443,12 @@
     exports.extrudePolygons = extrudePolygons;
     exports.extrudePolylines = extrudePolylines;
     exports.extrudeSlopes = extrudeSlopes;
+    exports.isClockwise = isClockwise;
     exports.leftOnLine = leftOnLine;
+    exports.merge = merge;
     exports.plane = plane;
 
     Object.defineProperty(exports, '__esModule', { value: true });
 
 }));
+//# sourceMappingURL=poly-extrude.js.map
