@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    :root {
+        --space: 0.25rem;
+    }
+
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        /* margin-left: -5%; */
+
+        /* background-image: linear-gradient(45deg, #eee 25%, transparent 25%, transparent 75%, #eee 75%, #eee 100%), linear-gradient(45deg, #eee 25%, #fff 25%, #fff 75%, #eee 75%, #eee 100%);
+        background-position: 0 0, calc(2* var(--space)) calc(2* var(--space));
+        background-size: calc(4* var(--space)) calc(4* var(--space)); */
+        /* border: 1px dashed #c9c9c9; */
+
+        /* background-color: black; */
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.tileclip.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const maskId = 'beijing';
+        const tileActor = maptalks.getTileActor();
+        let areaGeoJSON;
+        const subAreaSymbol = {
+            lineColor: '#10d1b1',
+            lineWidth: 2,
+            polygonOpacity: 0.0,
+            polygonFill: '#053766',
+            shadowBlur: 4,
+            shadowColor: '#0011ff'
+        }
+
+        const height = 6000, offset = 100, altitude = (-height - 200);
+
+        const material = new THREE.MeshPhongMaterial({ color: '#fff' });
+
+        var map = new maptalks.Map('map', {
+            center: [116.46755129, 39.86160898],
+            zoom: 9,
+            pitch: 60,
+            zoomControl: true
+        });
+
+
+        const baseTileLayer = new maptalks.TileLayer('base1', {
+            urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+            altitude: altitude,
+            zIndex: -2,
+            maxZoom:9.5
+        });
+        const tileLayer = new maptalks.TileLayer('base', {
+            urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+            altitude
+        });
+
+        let extrudePolygons;
+
+        tileLayer.on('renderercreate', function (e) {
+            //load tile image
+            //   img(Image): an Image object
+            //   url(String): the url of the tile
+            e.renderer.loadTileBitmap = function (url, tile, callback) {
+                //get Tile data
+                tileActor.getTile({
+                    url: maptalks.Util.getAbsoluteURL(url),
+                    // filter: 'sepia(100%) invert(90%)'
+                }).then(imagebitmap => {
+
+                    //clip tile
+                    tileActor.clipTile({
+                        tile: imagebitmap,
+                        tileBBOX: tileLayer._getTileBBox(tile),
+                        projection: tileLayer.getProjection().code,
+                        tileSize: tileLayer.getTileSize().width,
+                        maskId,
+                    }).then(image => {
+                        callback(image);
+                    }).catch(error => {
+                        //do some things
+                        console.error(error);
+                    })
+                }).catch(error => {
+                    //do some things
+                    console.error(error);
+                })
+            };
+        });
+
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            identifyCountOnEvent: 1
+            // forceRenderOnMoving: true,
+            // forceRenderOnRotating: true
+        });
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            scene.add(new THREE.AmbientLight('#fff', 0.3));
+            loadTexture();
+            addAreas();
+            animation();
+            initGui();
+
+        };
+
+        // 添加到GroupGLLayer中
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true },
+                bloom: {
+                    enable: true,
+                    threshold: 0,
+                    factor: 1,
+                    radius: 0.02,
+                },
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [], { sceneConfig });
+        groupLayer.addTo(map);
+
+        const testLayer = new maptalks.VectorLayer('test').addTo(map);
+
+        const point = new maptalks.Marker(map.getCenter()).addTo(testLayer)
+
+
+
+        function loadTexture() {
+            // const textureLoader = new THREE.TextureLoader();
+            // textureLoader.load('./../assets/image/2024-10-26_205458.png', (texture) => {
+            //     texture.needsUpdate = true; //使用贴图时进行更新
+            //     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            //     texture.repeat.set(0.002, 0.006);
+            //     // texture.repeat.set(100, 100);
+            //     material.map = texture;
+            //     material.needsUpdate = true;
+            // });
+        }
+
+        function addAreas() {
+            const polygons = maptalks.GeoJSON.toGeometry(areaGeoJSON);
+            extrudePolygons = polygons.map((p, index) => {
+                const id = maptalks.Util.GUID();
+                const extrudePolygon = threeLayer.toExtrudePolygon(p, {
+                    height,
+                    topColor: '#fff',
+                    asynchronous: true,
+                    altitude: altitude * 2,
+                    maxZoom: 12
+                }, material);
+                // extrudePolygon.on('mouseover', polygonUp);
+                // extrudePolygon.on('mouseout', polygonDown);
+                extrudePolygon.setId(id);
+                return extrudePolygon;
+            });
+
+            threeLayer.addMesh(extrudePolygons);
+        }
+
+        function animation() {
+            // layer animation support Skipping frames
+            threeLayer._needsUpdate = !threeLayer._needsUpdate;
+            if (threeLayer._needsUpdate) {
+                threeLayer.redraw();
+            }
+            requestAnimationFrame(animation);
+        }
+
+
+
+        fetch('./../assets/data/beijing.geojson').then(res => res.json()).then(geojson => {
+            areaGeoJSON = geojson;
+            const feature = geojson.features[0];
+            tileActor.injectMask(maskId, feature).then(data => {
+                baseTileLayer.addTo(groupLayer);
+                baseTileLayer.setZIndex(-2);
+                threeLayer.addTo(groupLayer);
+                threeLayer.setZIndex(-1);
+                tileLayer.addTo(groupLayer);
+            }).catch(error => {
+                console.error(error);
+            })
+        })
+
+
+        function upAnimation() {
+            var targetStyles = {
+                symbol: {
+                    //from 0 to 6000
+                    altitude: -altitude
+                },
+            };
+
+            // animate by maptalks.animation.Animation
+            var player = maptalks.animate(
+                targetStyles,
+                {
+                    duration: 1000,
+                    easing: "out",
+                },
+                // callback of each frame
+                function step(frame) {
+                    const alt = frame.styles.symbol.altitude + altitude;
+                    tileLayer.options.altitude = alt;
+                    // tileLayer1.options.altitude = alt + altitude;
+                    extrudePolygons.forEach(extrudePolygon => {
+                        extrudePolygon.setAltitude(alt + altitude)
+                    });
+                },
+            );
+            player.play();
+        }
+
+        function initGui() {
+            var params = Object.assign({}, {
+                upAnimation
+            });
+            var gui = new lil.GUI();
+            gui.add(params, 'upAnimation').name('animation');
+
+
+        }
+
+
+
+    </script>
+</body>
+
+</html>
