@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+
+    .tools {
+        position: absolute;
+        top: 0px;
+        z-index: 1000;
+        background-color: white;
+        height: 40px;
+        border-bottom: 1px solid #ccc;
+        width: 100%;
+    }
+
+    .cssfilter-select {
+        width: 100px;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.tileclip.js'></script>
+
+
+<body>
+    <div class="tools">
+        <select class="cssfilter-select" name="select" value="grayscale(100%)">
+            <option value="sepia(100%) invert(90%)">blue</option>
+            <option value="grayscale(100%)" selected>gray</option>
+        </select>
+    </div>
+    <div id="map" class="container"></div>
+
+    <script>
+
+        document.querySelector('.cssfilter-select').addEventListener('change', function (e) {
+            cssFilter = e.target.value;
+            baseLayer.forceReload();
+        })
+        const tileActor = maptalks.getTileActor();
+        let cssFilter = 'grayscale(100%)';
+
+        const baseLayer = new maptalks.TileLayer('base', {
+            // debug: true,
+            urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+        })
+
+
+        baseLayer.on('renderercreate', function (e) {
+            //load tile image
+            //   img(Image): an Image object
+            //   url(String): the url of the tile
+            e.renderer.loadTileBitmap = function (url, tile, callback) {
+                //get Tile data
+                tileActor.getTile({
+                    url: maptalks.Util.getAbsoluteURL(url),
+                    filter: cssFilter
+                }).then(imagebitmap => {
+                    callback(imagebitmap)
+
+                }).catch(error => {
+                    //do some things
+                    console.error(error);
+                })
+            };
+        });
+
+        var map = new maptalks.Map('map', {
+            "center": [121.65586045, 31.12453538], "zoom": 9.064897200334302, "pitch": 0, "bearing": 0,
+        });
+
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true }
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [], { sceneConfig });
+        groupLayer.addTo(map);
+        baseLayer.addTo(groupLayer)
+
+    </script>
+</body>
+
+</html>
