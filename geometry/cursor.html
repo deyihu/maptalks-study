@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D - Draw line&#x27;s altitude wall</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+
+        const geojson = { "type": "FeatureCollection", "features": [{ "type": "Feature", "geometry": { "type": "LineString", "coordinates": [[120.62439270213385, 31.16316442575616], [120.65236683267938, 31.164121859966496]] }, "properties": { "name": "01_eb2ad9b0", "_color": "#aac938", "center": [120.6383797674066, 31.16364314286133, 0] } }, { "type": "Feature", "geometry": { "type": "MultiLineString", "coordinates": [[[120.6555638761703, 31.154410292944306], [120.67858258930491, 31.154410292944306]], [[120.65428505877394, 31.148254559115394], [120.68145992844673, 31.149212143966874]]] }, "properties": { "name": "1", "_color": "#66ADEB", "center": [120.66747286317397, 31.15157182224272, 0] } }] };
+
+        var map = new maptalks.Map('map', {
+            center: [120.6366964, 31.14279364],
+            zoom: 13,
+            pitch: 0,
+            bearing: 0
+        });
+
+        const layer = new maptalks.VectorLayer('layer', {
+            enableAltitude: true
+        });
+
+        const groupGLLayer = new maptalks.GroupGLLayer("gl", [], {
+            sceneConfig: {
+                environment: {
+                    enable: true,
+                    mode: 1,
+                    level: 0,
+                    brightness: 0.915
+                },
+                postProcess: {
+                    enable: true
+                }
+            }
+        }).addTo(map);
+
+        const baseLaeyr = new maptalks.TileLayer('base', {
+            urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+            attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+        }).addTo(groupGLLayer);
+
+        const lineLayer = new maptalks.LineStringLayer('line').addTo(groupGLLayer)
+
+        layer.addTo(map);
+
+        const lineOpitons = {
+            symbol: {
+                lineColor: '#000',
+                lineWidth: 6
+            },
+            cursor: 'help',
+        }
+
+
+
+        const line1 = new maptalks.LineString(geojson.features[0].geometry.coordinates, {
+            ...lineOpitons
+        })
+        const line2 = new maptalks.MultiLineString(geojson.features[1].geometry.coordinates, {
+            ...lineOpitons
+        })
+
+
+
+
+        line1.addTo(lineLayer);
+
+        line2.addTo(layer);
+
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
