@@ -1,5 +1,5 @@
 /*!
- * maptalks.routeplayer v1.0.0
+ * maptalks.routeplayer v1.1.0
  * LICENSE : MIT
  * (c) 2016-2024 maptalks.org
  */
@@ -1193,6 +1193,11 @@
         b *= R;
         return b;
     }
+    //distance for Cartesian
+    function measureLenBetweenOfCartesian(c1, c2) {
+        const dx = c2[0] - c1[0], dy = c2[1] - c1[1];
+        return Math.sqrt(dx * dx + dy * dy);
+    }
     function coordinateEqual(c1, c2) {
         const x1 = c1[0], y1 = c1[1], z1 = c1[2];
         const x2 = c2[0], y2 = c2[1], z2 = c2[2];
@@ -1200,6 +1205,14 @@
     }
     function calDistance(c1, c2) {
         const d = measureLenBetween(c1, c2);
+        const dz = c2[2] - c1[2];
+        if (dz === 0) {
+            return d;
+        }
+        return Math.sqrt(d * d + dz * dz);
+    }
+    function calDistanceOfCartesian(c1, c2) {
+        const d = measureLenBetweenOfCartesian(c1, c2);
         const dz = c2[2] - c1[2];
         if (dz === 0) {
             return d;
@@ -1216,21 +1229,36 @@
         if (coordinateEqual(c1, c2)) {
             return routePlayer.tempRotationZ;
         }
+        const options = routePlayer.options;
+        if (options.isCartesian) {
+            const dx = c2[0] - c1[0], dy = c2[1] - c1[1];
+            const rad = Math.atan2(dy, dx);
+            const rotationZ = rad / Math.PI * 180 - 90;
+            routePlayer.tempRotationZ = rotationZ;
+            return rotationZ;
+        }
         const bearing = default_1(c1, c2);
-        const rotaionZ = -bearing;
-        routePlayer.tempRotationZ = rotaionZ;
-        return rotaionZ;
+        const rotationZ = -bearing;
+        routePlayer.tempRotationZ = rotationZ;
+        return rotationZ;
     }
     function getRotationX(c1, c2, routePlayer) {
         if (coordinateEqual(c1, c2)) {
-            return routePlayer.tempRotaionX;
+            return routePlayer.tempRotationX;
         }
         const z1 = c1[2], z2 = c2[2];
         const dz = z2 - z1;
         if (dz === 0) {
-            return routePlayer.tempRotaionX;
+            return routePlayer.tempRotationX;
         }
-        const distance = measureLenBetween(c1, c2);
+        const options = routePlayer.options;
+        let distance;
+        if (options.isCartesian) {
+            distance = measureLenBetweenOfCartesian(c1, c2);
+        }
+        else {
+            distance = measureLenBetween(c1, c2);
+        }
         const rad = Math.atan2(dz, distance);
         const value = -rad / Math.PI * 180;
         if (Math.abs(value) === 90) {
@@ -1239,13 +1267,20 @@
                 console.warn('dz:', dz);
                 console.warn('dx', distance);
             }
-            return routePlayer.tempRotaionX;
+            return routePlayer.tempRotationX;
         }
-        routePlayer.tempRotaionX = value;
+        routePlayer.tempRotationX = value;
         return value;
     }
+    function getDistanceFunc(options) {
+        if (options.isCartesian) {
+            return calDistanceOfCartesian;
+        }
+        //other,if need
+        return calDistance;
+    }
     function formatRouteData(data, options) {
-        options = extend({ duration: 0, coordinateKey: 'coordinate', timeKey: 'time', unitTime: 1 }, options);
+        options = extend({ duration: 0, coordinateKey: 'coordinate', timeKey: 'time', unitTime: 1, isCartesian: false }, options);
         if (!isArray(data)) {
             console.error('data is not array ', data);
             return [];
@@ -1332,8 +1367,9 @@
                 return [];
             }
             coordinate[2] = coordinate[2] || 0;
+            const distanceFunc = getDistanceFunc(options);
             if (i > 0) {
-                const distance = totalDistance + calDistance(tempCoordinate, coordinate);
+                const distance = totalDistance + distanceFunc(tempCoordinate, coordinate);
                 obj._distance = distance;
                 totalDistance = distance;
             }
@@ -1369,7 +1405,8 @@
         unitTime: 1,
         debug: false,
         autoPlay: false,
-        repeat: false
+        repeat: false,
+        isCartesian: false
     };
     const RoutePlayers = [];
     const EVENT_PLAYING = 'playing';
@@ -1404,7 +1441,7 @@
             this.playing = false;
             this.playend = false;
             this.index = -1;
-            this.tempRotaionX = 0;
+            this.tempRotationX = 0;
             this.tempRotationZ = 0;
             this.coordinate = this.data[0].coordinate;
             for (let i = 0, len = data.length; i < len; i++) {
@@ -1851,7 +1888,7 @@
 
     Object.defineProperty(exports, '__esModule', { value: true });
 
-    typeof console !== 'undefined' && console.log('maptalks.routeplayer v1.0.0');
+    typeof console !== 'undefined' && console.log('maptalks.routeplayer v1.1.0');
 
 }));
 //# sourceMappingURL=maptalks.routeplayer.js.map
