@@ -6,6 +6,7 @@
       "properties": {
         "adcode": 110101,
         "name": "东城区",
+        "color":"notin",
         "center": [
           116.418757,
           39.917544
@@ -247,6 +248,7 @@
       "type": "Feature",
       "properties": {
         "adcode": 110102,
+        "color":"in",
         "name": "西城区",
         "center": [
           116.366794,
