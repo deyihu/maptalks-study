@@ -40,33 +40,48 @@
 
         const funtype = {
             stops: [
-                ['东城区', 'red'],
-                ['西城区', 'green'],
-                ['朝阳区', 'blue'],
-                ['丰台区', 'gray'],
-                ["石景山区", 'yellow'],
+                // ['东城区', 'red'],
+                // ['西城区', 'green'],
+                // ['朝阳区', 'blue'],
+                // ['丰台区', 'gray'],
+                // ["石景山区", 'yellow'],
+                ["notin", 'black'],
+                ["in", 'red'],
             ],
-            property: "name",
+            property: "color",
             type: "categorical",
             default: '#fff'
         }
 
         const layer = new maptalks.GeoJSONVectorTileLayer("geo", {
             style: {
-                style: [{
-                    name: 'landuse-fill',
-                    filter: true,
-                    renderPlugin: {
-                        dataConfig: {
-                            type: "fill"
+                style: [
+                    {
+                        name: 'landuse-fill',
+                        filter: true,
+                        renderPlugin: {
+                            type: "lit",
+                            dataConfig: {
+                                type: "3d-extrusion",
+                                altitudeProperty: "height",
+                                minHeightProperty: "bottomHeight",
+                                altitudeScale: 1,
+                                defaultAltitude: 1000,
+                                topThickness: 1,
+                                top: true,
+                                side: true
+                            },
+                            sceneConfig: {}
                         },
-                        sceneConfig: {},
-                        type: "fill"
-                    },
-                    symbol: {
-                        polygonFill: funtype
+                        symbol: {
+                            polygonFill: funtype,
+                            // material: {
+                            //     baseColorFactor: [1, 1, 1, 1],
+                            //     roughnessFactor: 0.4,
+                            //     metallicFactor: 0
+                            // }
+                        }
                     }
-                }
                 ]
             },
             features: true,
