@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+<script type="text/javascript" src="//at.alicdn.com/t/font_3330503_allx40pxkxd.js"></script>
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+        const { ResourceProxy } = maptalks;
+        ResourceProxy.proxy['/arcgisonline/'] = {
+            target: 'https://services.arcgisonline.com/ArcGIS/'
+        }
+
+        const map = new maptalks.Map("map", {
+            center: [0, 0],
+            zoom: 1,
+            bearing: 0,
+            pitch: 0,
+            centerCross: true,
+            baseLayer: new maptalks.TileLayer("base", {
+                urlTemplate: '/arcgisonline/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                subdomains: ["a", "b", "c", "d"],
+            }),
+        });
+
+        const layer = new maptalks.VectorLayer('layer', { collision: true, collisionDelay: 250, debug: false }).addTo(map);
+        var bbox = [-180, -85, 180, 85];
+
+        const debugLine = new maptalks.LineString(new maptalks.Extent(bbox).toArray(), {
+            symbol: {
+                lineDasharray: [5, 5]
+            }
+        }).addTo(layer);
+
+
+        // // const debugPolygon = new maptalks.Polygon([])
+        // const polygon = new maptalks.Polygon([
+        //     [
+        //         [171.2109375, 70.50582938421903],
+        //         [-153.28125, 67.75439373171932],
+        //         [-154.3359375, 57.72055958184691],
+        //         [172.265625, 53.3492177615793],
+        //     ]
+        // ], {
+        //     antiMeridian: true
+        // }).addTo(layer);
+
+        // const line = new maptalks.LineString([
+        //     [171.2109375, 70.50582938421903],
+        //     [-153.28125, 70.50582938421903],
+        // ], {
+        //     antiMeridian: true,
+        //     arrowStyle: 'classic'
+        // }).addTo(layer);
+        // const line1 = new maptalks.LineString([
+        //     [-153.28125, 70.50582938421903],
+        //     [171.2109375, 70.50582938421903],
+        // ], {
+        //     antiMeridian: true,
+        //     arrowStyle: 'classic'
+        // }).addTo(layer);
+
+        fetch('./../assets/data/mappaint_2025-02-12 16_36_53.geojson').then(res => res.json()).then(geojson => {
+            // geojson.features = geojson.features.filter(f => {
+            //     return f.properties.name === 'Russia';
+            // });
+            geojson.features.forEach((f, index) => {
+                if (index === 0) {
+                    const coordinates = f.geometry.coordinates;
+                    coordinates.forEach(coord => {
+                        coord.forEach(c => {
+                            c[0] += 360;
+                        });
+                    });
+
+                }
+            });
+            const polygons = geojson.features.map(polygon => {
+                return new maptalks.Polygon(polygon.geometry.coordinates, {
+                    // antiMeridian: true
+                });
+            });
+            console.log(polygons);
+            layer.addGeometry(polygons.slice(0, 2));
+        })
+
+
+    </script>
+</body>
+
+</html>
