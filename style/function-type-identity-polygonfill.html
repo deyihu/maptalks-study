@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/randomColor.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            zoomControl: true,
+            "center": [116.33858912, 39.90350666], "zoom": 8.926061112746238, "pitch": 0, "bearing": -1.2000000000000455,
+            // baseLayer: new maptalks.TileLayer('base', {
+            //     urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            //     subdomains: ["a", "b", "c", "d"],
+            // })
+        });
+        const layer = new maptalks.VectorLayer('layer', {
+            enableAltitude: true
+        }).addTo(map);
+
+
+        const funtype = {
+            // property: "count",
+            type: "interval",
+            stops: [
+                [0, 'yellow'],
+                [6, '#14263e'],
+                [10, '#14263e'],
+                [17, '#2b3c51'],
+                [20, '#2b3c51'],
+                [25, '#2b3c51']
+            ]
+        }
+
+        fetch('./../assets/data/beijingarea.json').then(res => res.json()).then(geojson => {
+            const polygons = maptalks.GeoJSON.toGeometry(geojson, (p => {
+                p.setSymbol({
+                    polygonFill: funtype,
+                    lineColor: 'black'
+                })
+                return p
+            }));
+            layer.addGeometry(polygons);
+        })
+
+
+
+
+
+    </script>
+</body>
+
+</html>
