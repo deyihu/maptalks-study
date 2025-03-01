@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        background-color: black;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/LineMaterial.js'></script>
+<script type='text/javascript' src='./../assets/lib/poly-extrude.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const geojson = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [
+                            [
+                                [
+                                    120.60936466908132,
+                                    31.330525674437613
+                                ],
+                                [
+                                    120.61175032826827,
+                                    31.331019125311762
+                                ],
+                                [
+                                    120.6117639217679,
+                                    31.330873992970268
+                                ],
+                                [
+                                    120.61192024701376,
+                                    31.330903019456464
+                                ],
+                                [
+                                    120.61196102751268,
+                                    31.330659196694146
+                                ],
+                                [
+                                    120.61297374323593,
+                                    31.330815939971004
+                                ],
+                                [
+                                    120.61319123923016,
+                                    31.3302121866561
+                                ],
+                                [
+                                    120.61375536946528,
+                                    31.33018315995686
+                                ],
+                                [
+                                    120.61389810121149,
+                                    31.32935299256933
+                                ],
+                                [
+                                    120.6137349792158,
+                                    31.32931816021119
+                                ],
+                                [
+                                    120.61391169471113,
+                                    31.32844154162068
+                                ],
+                                [
+                                    120.61351068647173,
+                                    31.328337043495765
+                                ],
+                                [
+                                    120.61361263771906,
+                                    31.327622969870657
+                                ],
+                                [
+                                    120.61180470226684,
+                                    31.327297861385002
+                                ],
+                                [
+                                    120.6106288645479,
+                                    31.327007585002583
+                                ],
+                                [
+                                    120.61008512456227,
+                                    31.326961140698327
+                                ],
+                                [
+                                    120.60983364481892,
+                                    31.32696694623761
+                                ],
+                                [
+                                    120.60956857157592,
+                                    31.3281338523652
+                                ],
+                                [
+                                    120.60949380732791,
+                                    31.32813965783217
+                                ],
+                                [
+                                    120.6083587501079,
+                                    31.327930660796053
+                                ],
+                                [
+                                    120.60825000211078,
+                                    31.327948077233447
+                                ],
+                                [
+                                    120.60771305887498,
+                                    31.32782616210398
+                                ],
+                                [
+                                    120.60761790437748,
+                                    31.328168685161597
+                                ],
+                                [
+                                    120.60821601836169,
+                                    31.32829059984744
+                                ],
+                                [
+                                    120.60783540037174,
+                                    31.32984644959139
+                                ],
+                                [
+                                    120.60917436008634,
+                                    31.330148327905935
+                                ],
+                                [
+                                    120.6092559210842,
+                                    31.330322488031623
+                                ],
+                                [
+                                    120.60940544958024,
+                                    31.33034570935738
+                                ],
+                                [
+                                    120.60936466908132,
+                                    31.330525674437613
+                                ]
+                            ]
+                        ]
+                    },
+                    "properties": {
+                        "name": "01_77bc88f0",
+                        "_color": "#ed90c5",
+                        "center": [
+                            120.61080679374858,
+                            31.329057114527558,
+                            0
+                        ]
+                    }
+                }
+            ]
+        };
+
+        var map = new maptalks.Map('map', {
+            "center": [
+                120.60936466908132,
+                31.330525674437613
+            ], "zoom": 17.580001967893683, "pitch": 27.750000000000043, "bearing": -1.050000000000864,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+                maxAvailableZoom: 18,
+            })
+        });
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            identifyCountOnEvent: 1
+            // forceRenderOnMoving: true,
+            // forceRenderOnRotating: true
+        });
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            scene.add(new THREE.AmbientLight('#fff', 0.3));
+
+            animation();
+            loadTexture();
+            createWall();
+            // initGui();
+
+        };
+
+        // threeLayer.addTo(map);
+        // 添加到GroupGLLayer中
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true },
+                bloom: {
+                    enable: true,
+                    threshold: 0,
+                    factor: 1,
+                    radius: 0.02,
+                },
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [], { sceneConfig });
+        groupLayer.addTo(map);
+
+        threeLayer.addTo(groupLayer);
+
+
+
+        const material = new THREE.MeshPhongMaterial({ color: '#fff' });
+        const material1 = new THREE.MeshPhongMaterial({ color: '#fff' });
+        // const material2 = new THREE.MeshPhongMaterial({ color: 'gray' });
+
+        function loadTexture() {
+            const textureLoader = new THREE.TextureLoader();
+            textureLoader.load('./../assets/image/grid1.png', (texture) => {
+                texture.needsUpdate = true; //使用贴图时进行更新
+                texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+                // texture.repeat.set(0.002, 0.002);
+                texture.repeat.set(40, 10);
+                material.map = texture;
+                material.needsUpdate = true;
+            });
+
+            textureLoader.load('./../assets/image/wall.jpg', (texture) => {
+                texture.needsUpdate = true; //使用贴图时进行更新
+                texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+                // texture.repeat.set(0.002, 0.002);
+                texture.repeat.set(8, 8);
+                material1.map = texture;
+                material1.needsUpdate = true;
+            });
+
+        }
+
+
+
+        function createWall(lineString) {
+            geojson.features.forEach(f => {
+                const coordinates = f.geometry.coordinates[0];
+                const wall = threeLayer.toExtrudeLine(new maptalks.LineString(coordinates), { width: 0, height: 30 }, material1);
+                threeLayer.addMesh(wall);
+            });
+
+        }
+
+
+        function animation() {
+            // layer animation support Skipping frames
+            threeLayer._needsUpdate = !threeLayer._needsUpdate;
+            if (threeLayer._needsUpdate) {
+                threeLayer.redraw();
+            }
+            requestAnimationFrame(animation);
+        }
+
+
+
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
