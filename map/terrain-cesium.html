@@ -76,8 +76,10 @@
             terrainWidth: 65,
             urlTemplate: './../assets/data/cesiumlab-terrain/{z}/{x}/{y}.terrain',
             shader: "lit",
-            colors:colors4,
+            colors: colors4,
             exaggeration: 4,
+            //强制指定tileSize
+            tileSize: 256,
             material: {
                 baseColorFactor: [1, 1, 1, 1],
                 outputSRGB: 1,
