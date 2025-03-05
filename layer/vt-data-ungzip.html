@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        /* background-color: black; */
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/localforage.min.js'></script>
+<!-- https://github.com/imaya/zlib.js/tree/develop -->
+<script type='text/javascript' src='./../assets/lib/zlib_and_gzip.min.js'></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var dataStore = localforage.createInstance({
+            name: "maptalks-layer-data-store"
+        });
+
+
+        const map = new maptalks.Map("map", {
+            "center": [123.38390193, 41.60921694], "zoom": 8.869700727245263, "pitch": 0, "bearing": 0,
+        });
+
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+        });
+
+        const tileLayer = new maptalks.TileLayer("base", {
+            urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+
+            spatialReference: {
+                projection: 'EPSG:3857'
+            },
+        });
+
+        const groupGLLayer = new maptalks.GroupGLLayer("gl", [tileLayer], {
+            sceneConfig: {
+                environment: {
+                    enable: true,
+                    mode: 1,
+                    level: 0,
+                    brightness: 0
+                },
+                postProcess: {
+                    enable: true,
+                    bloom: {
+                        enable: true,
+                        threshold: 0,
+                        factor: 0.6,
+                        radius: 1,
+                    },
+                }
+            }
+        }).addTo(map);
+
+        const url = `./../assets/data/pbf-gzip/{z}/{x}/{y}.pbf`;
+
+        const layer = new maptalks.VectorTileLayer("vt", {
+            debug: true,
+            debugTileData: true,
+            urlTemplate: url
+        });
+
+        console.log(layer.options)
+
+        layer.on('renderercreate', function (e) {
+            //load tile image
+            //   img(Image): an Image object
+            //   url(String): the url of the tile
+
+            const fetchData = (url, key, callback) => {
+                fetch(url).
+                    then(res => {
+                        if (res.ok) {
+                            return res.arrayBuffer();
+                        } else {
+                            callback(new Error(res.statusText))
+                        }
+                    })
+                    .then(arrayBuffer => {
+                        if (arrayBuffer instanceof ArrayBuffer) {
+                            var gunzip = new Zlib.Gunzip(new Uint8Array(arrayBuffer));
+                            var plain = gunzip.decompress();
+                            dataStore.setItem(key, plain.buffer);
+                            callback(null, plain.buffer);
+                        } else {
+                            callback({ message: 'some error' });
+                        }
+                    }).catch(error => {
+                        callback(error);
+                    })
+            }
+
+
+            e.renderer.loadTileArrayBuffer = function (url, tile, callback, options) {
+                console.log(options.command);
+                const { x, y, z } = tile;
+                const id = layer.getId();
+                const version = layer.options.version;
+                const key = `vectortilelayer_${id}_${version}_${x}_${y}_${z}`;
+
+                dataStore.getItem(key).then(arraybuffer => {
+                    if (arraybuffer) {
+                        console.log('cache hit,key:', key);
+                        callback(null, arraybuffer);
+                    } else {
+                        fetchData(url, key, callback);
+                    }
+                }).catch((error) => {
+                    console.error(error);
+                    fetchData(url, key, callback);
+                });
+
+
+
+            };
+        });
+        groupGLLayer.addLayer(layer);
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
