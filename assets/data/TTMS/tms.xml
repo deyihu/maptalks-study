@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<TileMap tilemapservice="" version="1.0.0">
+    <Title>未命名(4)</Title>
+    <Abstract>WeMap Export TMS</Abstract>
+    <SRS>EPSG:4326</SRS>
+    <vsrs />
+    <BoundingBox minx="119.882812500" miny="29.970703125" maxx="120.498046875" maxy="30.410156250" />
+    <Origin x="119.882812500" y="29.970703125" />
+    <TileFormat extension="jpg" mime-type="image/jpg" width="256" height="256" />
+    <TileSets profile="global-geodetic">
+        <TileSet href="0" order="0" units-per-pixel="0.703125000" />
+        <TileSet href="1" order="1" units-per-pixel="0.351562500" />
+        <TileSet href="2" order="2" units-per-pixel="0.175781250" />
+        <TileSet href="3" order="3" units-per-pixel="0.087890625" />
+        <TileSet href="4" order="4" units-per-pixel="0.043945313" />
+        <TileSet href="5" order="5" units-per-pixel="0.021972656" />
+        <TileSet href="6" order="6" units-per-pixel="0.010986328" />
+        <TileSet href="7" order="7" units-per-pixel="0.005493164" />
+        <TileSet href="8" order="8" units-per-pixel="0.002746582" />
+        <TileSet href="9" order="9" units-per-pixel="0.001373291" />
+        <TileSet href="10" order="10" units-per-pixel="0.000686646" />
+        <TileSet href="11" order="11" units-per-pixel="0.000343323" />
+        <TileSet href="12" order="12" units-per-pixel="0.000171661" />
+        <TileSet href="13" order="13" units-per-pixel="0.000085831" />
+        <TileSet href="14" order="14" units-per-pixel="0.000042915" />
+        <TileSet href="15" order="15" units-per-pixel="0.000021458" />
+        <TileSet href="16" order="16" units-per-pixel="0.000010729" />
+        <TileSet href="17" order="17" units-per-pixel="0.000005364" />
+        <TileSet href="18" order="18" units-per-pixel="0.000002682" />
+        <TileSet href="19" order="19" units-per-pixel="0.000001341" />
+        <TileSet href="20" order="20" units-per-pixel="0.000000671" />
+    </TileSets>
+</TileMap>

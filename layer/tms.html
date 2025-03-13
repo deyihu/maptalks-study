@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TileLayer and Geo-Projections - TileLayer&#x27;s CSS filter</title>
+<style type="text/css">
+	html,
+	body {
+		margin: 0px;
+		height: 100%;
+		width: 100%
+	}
+
+	.container {
+		width: 100%;
+		height: 100%
+	}
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/gcoord.js'></script>
+
+<body>
+	<div id="map" class="container"></div>
+
+	<script>
+
+		var resols = [1.40625, 0.703125000, 0.351562500, 0.175781250, 0.087890625, 0.043945313, 0.021972656, 0.010986328, 0.005493164,
+			0.002746582, 0.001373291, 0.000686646, 0.000343323, 0.000171661, 0.000085831, 0.000042915, 0.000021458,
+			0.000010729, 0.000005364, 0.000002682, 0.000001341, 0.000000671
+		]
+		var spatialReference = {
+			projection: 'EPSG:4326',
+			resolutions: resols
+			// 'fullExtent': {
+			//     'top': -20037508.339999999850988,
+			//     'left': -20037508.339999999850988,
+			//     'bottom': 20037508.339999999850988,
+			//     'right': 20037508.339999999850988
+			// }
+		}
+
+		var baseLayer = new maptalks.TileLayer('base', {
+			tileSystem: [1, 1, -180, -90],
+			// resolutions: resolutions,
+			// urlTemplate: 'http://10.10.20.219:10804/hangzhou-tms/hangzhou-tms-png-20240425/{z}/{x}/{y}.png',
+			urlTemplate: './../assets/data/TTMS/{z}/{x}/{y}.jpg',
+			// debug: true,
+			spatialReference: spatialReference,
+			zoomOffset: -1,
+
+		})
+
+
+		const baseLayer1 = new maptalks.TileLayer('base', {
+			// debug: true,
+			urlTemplate: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+			subdomains: ["a", "b", "c", "d"],
+		});
+		var map = new maptalks.Map('map', {
+			"center": [120.37070272, 30.20482251], "zoom": 9.684056666708022, "pitch": 0, "bearing": 0,
+			zoomControl: true,
+
+			baseLayer: baseLayer1
+		});
+		baseLayer.addTo(map)
+		var line = new maptalks.LineString([
+			[
+				120.19421079097486,
+				30.24477063744447
+			],
+			[
+				120.19423601325761,
+				30.24363430108562
+			],
+			[
+				120.19460041538295,
+				30.243028842672476
+			],
+			[
+				120.19769121194074,
+				30.240598813508946
+			],
+			[
+				120.19880935031819,
+				30.240005354785797
+			],
+			[
+				120.20908481674739,
+				30.23249834403797
+			],
+			[
+				120.21901800568017,
+				30.22539895715498
+			],
+			[
+				120.22431957578264,
+				30.221624121832487
+			],
+			[
+				120.22572547926956,
+				30.220769088099363
+			],
+			[
+				120.22719278219304,
+				30.22017925740738
+			],
+			[
+				120.22876540317444,
+				30.219794034938648
+			],
+			[
+				120.2307507813332,
+				30.219560575877843
+			],
+			[
+				120.23183124031978,
+				30.219553732679582
+			]
+		], {
+			arrowStyle: null, // arrow-style : now we only have classic
+			arrowPlacement: 'vertex-last', // arrow's placement: vertex-first, vertex-last, vertex-firstlast, point
+			visible: true,
+			editable: true,
+			cursor: null,
+			draggable: false,
+			dragShadow: false, // display a shadow during dragging
+			drawOnAxis: null, // force dragging stick on a axis, can be: x, y
+			symbol: {
+				'lineColor': 'red',
+				'lineWidth': 3
+			}
+		});
+
+		new maptalks.VectorLayer('vector', line).addTo(map);
+		map.on('click', function (e) {
+			console.log('00000000000', e)
+		})
+	</script>
+</body>
+
+</html>
