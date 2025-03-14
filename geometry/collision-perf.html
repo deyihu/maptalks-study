@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D - Draw line&#x27;s altitude wall</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+        var map = new maptalks.Map('map', {
+            center: [120.6366964, 31.14279364],
+            zoom: 11,
+            pitch: 56,
+            bearing: 0,
+            // baseLayer: new maptalks.TileLayer('base', {
+            //     urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            //     subdomains: ["a", "b", "c", "d"],
+            //     attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+            // })
+        });
+
+        const layer = new maptalks.VectorLayer('layer', {
+            'collision': true,
+            'collisionDelay': 250,
+            'forceRenderOnMoving': true,
+            'forceRenderOnZooming': true,
+            'forceRenderOnRotating': true,
+        }).addTo(map);
+
+
+
+        function randomCoordinates() {
+            var coordinates = [];
+            var center = map.getCenter();
+            var x = center.x, y = center.y;
+            while (coordinates.length < 20000) {
+                var lng = x + Math.random() - 0.5,
+                    lat = y + Math.random() * 0.6 - 0.3;
+                coordinates.push([lng, lat]);
+            }
+            return coordinates;
+        }
+
+        var points = randomCoordinates().map(function (c, index) {
+            var point = new maptalks.Marker(c, {
+                zIndex: 2000 - index,
+                symbol: {
+                    markerType: 'ellipse',
+                    markerWidth: 20,
+                    markerHeight: 20,
+                }
+            });
+            return point;
+        });
+
+        layer.addGeometry(points);
+
+
+
+
+    </script>
+</body>
+
+</html>
