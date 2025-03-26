@@ -54,6 +54,34 @@
             },
         });
 
+        function updateLight() {
+            const lightManager = map.getLightManager();
+            if (lightManager) {
+                lightManager.setConfig({
+                    directional: {
+                        direction: [1, 0, -1],
+                        color: [1, 1, 1]
+                    },
+                    // ambient: {
+                    //     resource: {
+                    //         url: {
+                    //             front: `${r}posz.jpg`,
+                    //             back: `${r}negz.jpg`,
+                    //             left: `${r}negx.jpg`,
+                    //             right: `${r}posx.jpg`,
+                    //             top: `${r}posy.jpg`,
+                    //             bottom: `${r}negy.jpg`,
+                    //         },
+                    //         prefilterCubeSize: 256
+                    //     },
+                    //     exposure: 0.8,
+                    //     hsv: [0, 0.34, 0],
+                    //     orientation: 1
+                    // }
+                })
+            }
+        }
+
         const baseLayer = new maptalks.TileLayer('tile', {
             urlTemplate: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
             subdomains: ['a', 'b', 'c', 'd'],
