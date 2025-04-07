@@ -26,7 +26,8 @@
 <script type='text/javascript' src='./../assets/lib/gcoord.js'></script>
 
 <body>
-
+    <input type="file" accept=".geojson,.json" id="file" />
+    <br>
     <script>
 
         const imageSize = 200, padding = [25, 25];
@@ -84,6 +85,7 @@
             return [minx, miny, maxx, maxy];
         }
 
+        //计算图片的ax, ay
         function getImageAxAy(imageMBBOX) {
             const [minx, miny, maxx, maxy] = imageMBBOX;
             const dx = (maxx - minx), dy = (maxy - miny);
@@ -115,6 +117,7 @@
         }
 
 
+        //计算瓦片集合
         function calTiles(imageMBBOX) {
             let [xmin, ymin, xmax, ymax] = imageMBBOX;
 
@@ -173,6 +176,7 @@
             return list;
         }
 
+        //加载瓦片
         function loadTiles(tiles, callback) {
             const temps = [];
             const isEnd = () => {
@@ -195,6 +199,7 @@
             });
         }
 
+        //绘制瓦片
         function drawTiles(ctx, tiles, imageMBBOX) {
             const [ax, ay] = getImageAxAy(imageMBBOX);
             const [minx, miny, maxx, maxy] = imageMBBOX;
@@ -209,6 +214,7 @@
             });
         }
 
+        //绘制路线
         function drawLineString(ctx, feature) {
             const type = feature.geometry.type;
             let paths = feature.pixels;
@@ -230,11 +236,21 @@
 
         }
 
-        fetch('./../assets/data/taihu-bike-ride-data.geojson').then(res => res.json()).then(geojson => {
+        let canvas;
+
+        function create(geojson) {
+            if (!geojson || !geojson.features) {
+                alert('geojson数据格式不正确');
+                return;
+            }
             geojson.features = geojson.features.filter(f => {
                 const type = f.geometry.type;
                 return type === 'MultiLineString' || type === 'LineString';
-            })
+            });
+            if (!geojson.features.length) {
+                alert('geojson数据没有有效的LineString或MultiLineString');
+                return;
+            }
             geojson.features.forEach((f, index) => {
                 f.mcoordinates = coordinatesToMercator(f);
                 f.geometry.coordinates = f.mcoordinates;
@@ -247,17 +263,17 @@
 
             const tiles = calTiles(imageMBBOX);
             loadTiles(tiles, () => {
-
-                const canvas = document.createElement('canvas');
-
-                const [paddingX, paddingY] = padding;
-
-                const width = imageSize + paddingX * 2;
-                const height = imageSize + paddingY * 2;
-                canvas.width = width;
-                canvas.height = height;
-                document.body.appendChild(canvas);
+                if (!canvas) {
+                    canvas = document.createElement('canvas');
+                    const [paddingX, paddingY] = padding;
+                    const width = imageSize + paddingX * 2;
+                    const height = imageSize + paddingY * 2;
+                    canvas.width = width;
+                    canvas.height = height;
+                    document.body.appendChild(canvas);
+                }
                 const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
 
                 drawTiles(ctx, tiles, imageMBBOX);
 
@@ -268,12 +284,31 @@
                 });
 
             })
+        }
 
-
-
-
-
+        fetch('./../assets/data/taihu-bike-ride-data.geojson').then(res => res.json()).then(geojson => {
+            create(geojson);
         });
+
+
+        document.querySelector('#file').addEventListener('change', e => {
+            const file = e.target.files[0];
+            console.log(file);
+            const fileReader = new FileReader();
+            fileReader.onload = () => {
+                const result = fileReader.result;
+                try {
+                    const geojson = JSON.parse(result);
+                    create(geojson);
+                } catch (e) {
+                    console.log(e);
+                    alert('读取geojson文件出错');
+                    return;
+                }
+            };
+            fileReader.readAsText(file);
+
+        })
 
 
 
