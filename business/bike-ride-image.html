@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        /* background-color: black; */
+    }
+
+    canvas {
+        border: 1px solid #e1dfdf;
+    }
+</style>
+
+<script type='text/javascript' src='./../assets/bundle/maptalks-study.js'></script>
+<script type='text/javascript' src='./../assets/lib/gcoord.js'></script>
+
+<body>
+
+    <script>
+
+        const imageSize = 200, padding = [25, 25];
+        const TILEURL = 'https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}';
+
+        const merc = new study.SphericalMercator({
+            size: 256,
+            antimeridian: true
+        });
+
+
+        function coordinatesToMercator(feature) {
+            const coordinates = feature.geometry.coordinates;
+            const transform = (coords) => {
+                if (Array.isArray(coords[0])) {
+                    return coords.map(coord => {
+                        return transform(coord);
+                    });
+                } else {
+                    return gcoord.transform(
+                        coords,
+                        gcoord.WGS84,
+                        gcoord.WebMercator
+                    );
+                }
+            }
+            return transform(coordinates);
+        }
+
+        //计算整个图片的包围盒
+        function calImageMBBOX(mbbox) {
+            let [minx, miny, maxx, maxy] = mbbox;
+            const dx = (maxx - minx), dy = (maxy - miny);
+            const maxOffset = Math.max(dx, dy);
+            let xoffset = 0, yoffset = 0;
+            if (maxOffset === dx) {
+                yoffset = (dx - dy) / 2;
+            } else {
+                xoffset = (dy - dx) / 2;
+            }
+            minx -= xoffset;
+            maxx += xoffset;
+            miny -= yoffset;
+            maxy += yoffset;
+
+
+            let ax = (maxx - minx) / imageSize;
+            let ay = (maxy - miny) / imageSize;
+
+            const [paddingX, paddingY] = padding;
+            minx -= ax * paddingX;
+            maxx += ax * paddingX;
+            miny -= ay * paddingY;
+            maxy += ay * paddingY;
+            return [minx, miny, maxx, maxy];
+        }
+
+        function getImageAxAy(imageMBBOX) {
+            const [minx, miny, maxx, maxy] = imageMBBOX;
+            const dx = (maxx - minx), dy = (maxy - miny);
+
+            const [paddingX, paddingY] = padding;
+
+            const ax = dx / (imageSize + paddingX * 2);
+            const ay = dy / (imageSize + paddingY * 2);
+            return [ax, ay];
+        }
+
+        //计算坐标到像素的转换
+        function coordinatesToPixel(feature, imageMBBOX) {
+            const [ax, ay] = getImageAxAy(imageMBBOX);
+            const [minx, miny, maxx, maxy] = imageMBBOX;
+            const transform = (coords) => {
+                if (Array.isArray(coords[0])) {
+                    return coords.map(coord => {
+                        return transform(coord);
+                    });
+                } else {
+                    const [x, y] = coords;
+                    const px = (x - minx) / ax;
+                    const py = (maxy - y) / ay;
+                    return [px, py];
+                }
+            }
+            return transform(feature.mcoordinates);
+        }
+
+
+        function calTiles(imageMBBOX) {
+            let [xmin, ymin, xmax, ymax] = imageMBBOX;
+
+            const p1 = gcoord.transform(
+                [xmin, ymin],
+                gcoord.WebMercator,
+                gcoord.WGS84
+            );
+
+            const p2 = gcoord.transform(
+                [xmax, ymax],
+                gcoord.WebMercator,
+                gcoord.WGS84
+            );
+
+            const [minx, miny] = p1;
+            const [maxx, maxy] = p2;
+
+            const coordinates = [
+                [minx, miny],
+                [maxx, miny],
+                [maxx, maxy],
+                [minx, maxy],
+                [minx, miny]
+            ];
+            const polygon = {
+                type: 'Polygon',
+                coordinates: [coordinates]
+            };
+
+            let zoom = 18;
+            let tiles;
+            while (zoom > 0) {
+                tiles = study.TileCover.tiles(polygon, {
+                    min_zoom: zoom,
+                    max_zoom: zoom
+                });
+                const len = tiles.length;
+                if (!len || (len <= 8)) {
+                    break;
+                } else {
+                    zoom--;
+                }
+            }
+            const list = [];
+            tiles.forEach(tile => {
+                const [x, y, z] = tile;
+                const mbbox = merc.bbox(x, y, z, false, '900913');
+                list.push({
+                    x,
+                    y,
+                    z,
+                    mbbox
+                })
+            });
+            return list;
+        }
+
+        function loadTiles(tiles, callback) {
+            const temps = [];
+            const isEnd = () => {
+                return temps.length === tiles.length;
+            }
+
+            tiles.forEach(tile => {
+                const { x, y, z } = tile;
+                const url = TILEURL.replace('{x}', x).replace('{y}', y).replace('{z}', z);
+                const image = new Image();
+                image.crossOrigin = 'anonymous';
+                image.onload = () => {
+                    tile.image = image;
+                    temps.push(1);
+                    if (isEnd()) {
+                        callback();
+                    }
+                }
+                image.src = url;
+            });
+        }
+
+        function drawTiles(ctx, tiles, imageMBBOX) {
+            const [ax, ay] = getImageAxAy(imageMBBOX);
+            const [minx, miny, maxx, maxy] = imageMBBOX;
+            tiles.forEach(tile => {
+                const { image, mbbox } = tile;
+                const [tileminx, tileminy, tilemaxx, tilemaxy] = mbbox;
+                const px1 = (tileminx - minx) / ax;
+                const py1 = (maxy - tilemaxy) / ay;
+                const px2 = (tilemaxx - minx) / ax;
+                const py2 = (maxy - tileminy) / ay;
+                ctx.drawImage(image, px1, py1, px2 - px1 + 1, py2 - py1 + 1);
+            });
+        }
+
+        function drawLineString(ctx, feature) {
+            const type = feature.geometry.type;
+            let paths = feature.pixels;
+            if (type === 'LineString') {
+                paths = [paths];
+            }
+            ctx.beginPath();
+            paths.forEach(path => {
+                for (let i = 0, len = path.length; i < len; i++) {
+                    const [x, y] = path[i];
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+            });
+            ctx.stroke();
+
+        }
+
+        fetch('./../assets/data/taihu-bike-ride-data.geojson').then(res => res.json()).then(geojson => {
+            geojson.features = geojson.features.filter(f => {
+                const type = f.geometry.type;
+                return type === 'MultiLineString' || type === 'LineString';
+            })
+            geojson.features.forEach((f, index) => {
+                f.mcoordinates = coordinatesToMercator(f);
+                f.geometry.coordinates = f.mcoordinates;
+            });
+            const datambbox = study.GeoJSONBBOX(geojson);
+            const imageMBBOX = calImageMBBOX(datambbox);
+            geojson.features.forEach(f => {
+                f.pixels = coordinatesToPixel(f, imageMBBOX);
+            });
+
+            const tiles = calTiles(imageMBBOX);
+            loadTiles(tiles, () => {
+
+                const canvas = document.createElement('canvas');
+
+                const [paddingX, paddingY] = padding;
+
+                const width = imageSize + paddingX * 2;
+                const height = imageSize + paddingY * 2;
+                canvas.width = width;
+                canvas.height = height;
+                document.body.appendChild(canvas);
+                const ctx = canvas.getContext('2d');
+
+                drawTiles(ctx, tiles, imageMBBOX);
+
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#ff0000';
+                geojson.features.forEach(f => {
+                    drawLineString(ctx, f);
+                });
+
+            })
+
+
+
+
+
+        });
+
+
+
+
+
+    </script>
+</body>
+
+</html>
