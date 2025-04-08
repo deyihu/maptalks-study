@@ -38,6 +38,8 @@
             antimeridian: true
         });
 
+        let debug = false;
+
 
         function coordinatesToMercator(feature) {
             const coordinates = feature.geometry.coordinates;
@@ -221,10 +223,15 @@
             if (type === 'LineString') {
                 paths = [paths];
             }
+            let minx = Infinity, miny = Infinity, maxx = -Infinity, maxy = -Infinity;
             ctx.beginPath();
             paths.forEach(path => {
                 for (let i = 0, len = path.length; i < len; i++) {
                     const [x, y] = path[i];
+                    minx = Math.min(minx, x);
+                    miny = Math.min(miny, y);
+                    maxx = Math.max(maxx, x);
+                    maxy = Math.max(maxy, y);
                     if (i === 0) {
                         ctx.moveTo(x, y);
                     } else {
@@ -233,6 +240,21 @@
                 }
             });
             ctx.stroke();
+            if (debug) {
+                const strokeStyle = ctx.strokeStyle;
+                const [paddingX, paddingY] = padding;
+
+                ctx.beginPath();
+                ctx.strokeStyle = 'blue';
+                ctx.rect(paddingX, paddingY, imageSize, imageSize);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.strokeStyle = 'green';
+                ctx.rect(minx, miny, maxx - minx, maxy - miny);
+                ctx.stroke();
+                ctx.strokeStyle = strokeStyle;
+            }
 
         }
 
