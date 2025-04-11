@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        background-color: black;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+<script type="text/javascript" src="//at.alicdn.com/t/font_3330503_allx40pxkxd.js"></script>
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            center: [482745.387, 4336361.4449],
+            zoom: 4.7,
+            minZoom: 2,
+            pitch: 0,
+            spatialReference: {
+                projection: 'identity',
+                fullExtent: {
+                    top: 0,
+                    left: 0,
+                    bottom: 0,
+                    right: 1
+                }
+            }
+        });
+
+        const layer = new maptalks.PolygonLayer('layer');
+
+        const groupLayer = new maptalks.GroupGLLayer('group', [layer]).addTo(map);
+
+        const center = map.getCenter(), radius = 2000;
+   
+        const circle = new maptalks.Circle(center, radius);
+        layer.addGeometry(circle);
+
+        const extent = circle.getExtent();
+        console.log(extent);
+
+
+        const coord = [extent.xmin, extent.ymax]
+        circle.setSymbol({
+            lineColor: '#00FF00',
+            lineWidth: 2,
+            polygonFill: '#00FF00',
+            polygonOpacity: 0.5,
+            polygonPatternFile: './../assets/image/icon_famen.png',
+            polygonPatternFileOrigin: coord,
+            // uvOffset: [0.9, 1],
+            polygonPatternFileWidth: radius * 2, // 与圆直径相同
+            polygonPatternFileHeight: radius * 2, // 与圆直径相同
+        })
+
+
+
+
+
+    </script>
+</body>
+
+</html>
