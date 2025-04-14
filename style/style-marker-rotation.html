@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+
+
+        var map = new maptalks.Map('map', {
+            center: [121.47400292, 31.22976969],
+            zoom: 11,
+            pitch: 0,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+            })
+        });
+
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+        })
+        const layer = new maptalks.VectorLayer('layer', {
+            enableAltitude: true,
+            // collision: true
+        }).addTo(map);
+
+        const point = new maptalks.Marker(map.getCenter(), {
+            symbol: {
+                markerFile: './../assets/icon/avatar-women.png'
+            }
+        }).addTo(layer);
+
+        const point1 = new maptalks.Marker(map.getCenter(), {
+            zIndex: 1,
+            symbol: {
+                markerType: 'ellipse',
+                markerWidth: 10,
+                markerHeight: 10
+            }
+        }).addTo(layer);
+
+        const point2 = new maptalks.Marker(map.getCenter().add(0.1, 0), {
+            symbol: {
+                markerFile: './../assets/icon/avatar-women.png',
+                markerVerticalAlignment: 'middle',
+            }
+        }).addTo(layer);
+
+        const point3 =  new maptalks.Marker(map.getCenter().add(0.1, 0), {
+            zIndex: 1,
+            symbol: {
+                markerType: 'ellipse',
+                markerWidth: 10,
+                markerHeight: 10
+            }
+        }).addTo(layer);
+
+
+        let rotation = 0;
+        function animation() {
+            rotation++;
+            point.updateSymbol({
+                markerRotation: rotation
+            });
+            point2.updateSymbol({
+                markerRotation: rotation
+            });
+
+            requestAnimationFrame(animation);
+        }
+
+        animation();
+
+
+
+
+
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
