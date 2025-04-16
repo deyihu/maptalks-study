@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        background-color: black;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/LineMaterial.js'></script>
+<script type="text/javascript" src="../assets/lib/geojsondataset.js"></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+
+        var map = new maptalks.Map('map', {
+            "center": [111.72875621, 34.46122778], "zoom": 10.783169231318313, "pitch": 41.450000000000124, "bearing": -89.08138416612826,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+                maxAvailableZoom: 18,
+            })
+        });
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            identifyCountOnEvent: 1
+            // forceRenderOnMoving: true,
+            // forceRenderOnRotating: true
+        });
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            scene.add(new THREE.AmbientLight('#fff', 0.3));
+            animation();
+            getData();
+        };
+
+        // threeLayer.addTo(map);
+        // 添加到GroupGLLayer中
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true },
+                bloom: {
+                    enable: true,
+                    threshold: 0,
+                    factor: 1,
+                    radius: 0.02,
+                },
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [], { sceneConfig });
+        groupLayer.addTo(map);
+
+        threeLayer.addTo(groupLayer);
+
+
+
+        const material = new THREE.LineBasicMaterial({ color: '#fff' });
+
+        const colors = [
+            'rgb(255,255,227)',
+            'rgb(255,247,185)',
+            'rgb(254,228,144)',
+            'rgb(255,195,80)',
+            'rgb(254,152,41)',
+            'rgb(236,113,20)',
+            'rgb(204,76,3)',
+            'rgb(151,53,6)',
+            'rgb(105,37,2)',
+            'rgb(105,37,2)',
+            'rgb(255,255,255)',
+            'rgb(255,255,255)',
+        ]
+
+        function getData() {
+            fetch('./../assets/data/1.geojson').then(res => res.json()).then(geojson => {
+                geoDataSet.addGeoData(dataGroupId, geojson);
+                // console.log(geojson);
+                // const group = {};
+                // geojson.features.forEach(f => {
+                //     const altitude = f.properties.altitude || 0;
+                //     const t = Math.floor(altitude / 400);
+                //     group[t] = group[t] || [];
+                //     group[t].push(f);
+                //     const coordinates = f.geometry.coordinates;
+                //     for (let i = 0, len = coordinates.length; i < len; i++) {
+                //         coordinates[i][2] = altitude;
+                //     }
+
+                // });
+                // const keys = Object.keys(group);
+                // keys.forEach((k, i) => {
+                //     const color = colors[i];
+                //     const features = group[k];
+                //     const material = new THREE.LineBasicMaterial({ color });
+                //     const line = threeLayer.toLines(features, {  asynchronous: true }, material);
+                //     threeLayer.addMesh(line);
+                // })
+            })
+        }
+
+        const geoDataSet = new geojsondataset.GeoDataSet({ coordinateCount: 10000, loopFPS: 2 });
+        const dataGroupId = 'terrain-line';
+
+        let total = 0, dataCount = 0;
+        const altitudeMap = {};
+        geoDataSet.on(dataGroupId, (geojson) => {
+            try {
+                geojson.features.forEach(f => {
+                    const altitude = f.properties.altitude || 0;
+                    altitudeMap[altitude] = 1;
+                    const coordinates = f.geometry.coordinates;
+                    for (let i = 0, len = coordinates.length; i < len; i++) {
+                        coordinates[i][2] = altitude;
+                    }
+                });
+
+                const line = threeLayer.toLines(geojson.features, { topColor: '#fff', asynchronous: true }, material);
+
+                threeLayer.addMesh(line);
+
+                total += geojson.coordinateCount;
+                dataCount += geojson.features.length;
+                console.log('coordiantes count:', total, 'data count:', dataCount);
+            } catch (e) {
+                console.error(e);
+                console.log(geojson);
+            }
+
+        })
+
+
+        function animation() {
+            // layer animation support Skipping frames
+            threeLayer._needsUpdate = !threeLayer._needsUpdate;
+            if (threeLayer._needsUpdate) {
+                threeLayer.redraw();
+            }
+            requestAnimationFrame(animation);
+        }
+
+        function initGui() {
+            var params = {
+                add: true,
+                color: linematerial.color.getStyle(),
+                show: true,
+                opacity: 1,
+                altitude: 0
+            };
+            var gui = new lil.GUI();
+            gui.addColor(params, 'color').name('line color').onChange(function () {
+                linematerial.color.set(params.color);
+
+            });
+        }
+
+
+    </script>
+</body>
+
+</html>

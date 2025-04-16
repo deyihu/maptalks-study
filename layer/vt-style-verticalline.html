@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        /* background-color: black; */
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const map = new maptalks.Map("map", {
+            center: [121.49363786, 31.19593063],
+            zoom: 14,
+            bearing: 0,
+            pitch: 0,
+            zoomControl: true
+        });
+
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+        });
+        const style = {
+            style: [{
+                filter: ["all", ["==", "$type", "LineString"]],
+                name: 'areas',
+                renderPlugin: {
+                    dataConfig: {
+                        type: "line",
+                    },
+                    sceneConfig: {
+                        // minZoom: 8,
+                        // maxZoom: 12
+                    },
+                    type: "line",
+                },
+                symbol: {
+                    lineColor: 'yellow',
+                    lineWidth: 2,
+                },
+            },
+            {
+                filter: ["all", ["==", "$type", "Point"]],
+                name: 'areas-border',
+                renderPlugin: {
+                    dataConfig: {
+                        type: "point",
+                    },
+                    sceneConfig: {
+                        // minZoom: 8,
+                        // maxZoom: 12
+                    },
+                    type: "icon",
+                },
+                symbol: {
+                    textName: '{name}',
+                    textFill: 'white',
+                    textHaloFill: 'black',
+                    textHaloRadius: 2,
+                    textSize: 12,
+                },
+            },
+            ],
+
+        };
+
+        const tilelayer = new maptalks.TileLayer('base', {
+            urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+            maxAvailableZoom: 18,
+        });
+
+        const layer = new maptalks.GeoJSONVectorTileLayer("geo", {
+            data: './../assets/data/shanghai-poi.geojson',
+            style,
+        });
+
+        layer.on("dataload", (e) => {
+            map.setView({
+              "center":[121.47614865,31.18287363],"zoom":16.803984655068717,"pitch":62.59999999999998,"bearing":113.15426652079873
+            });
+
+            // setTimeout(() => {
+            //     layer.updateSymbol('areas-border', {
+            //         visible: false
+            //     })
+            // }, 2000);
+        });
+
+        const groupGLLayer = new maptalks.GroupGLLayer("gl", [tilelayer, layer], {
+            sceneConfig: {
+                environment: {
+                    enable: true,
+                    mode: 1,
+                    level: 0,
+                    brightness: 0
+                },
+                postProcess: {
+                    enable: true,
+                    bloom: {
+                        enable: true,
+                        threshold: 0,
+                        factor: 0.6,
+                        radius: 1,
+                    },
+                }
+            }
+        }).addTo(map);
+
+        // fetch('./../assets/data/mappaint_2025-04-16 14_44_08.geojson').then(res => res.json()).then(geojson => {
+        //     const features = geojson.features.map(f => {
+        //         const coordinates = f.geometry.coordinates;
+        //         const height = Math.random() * 50 + 50;
+        //         coordinates[2] = height;
+        //         return f;
+        //     });
+        //     features.forEach(f => {
+        //         const f1 = structuredClone(f);
+        //         const coordinates = f1.geometry.coordinates;
+        //         const [x, y] = coordinates;
+
+        //         const coordinates1 = [[x, y, 0], [...coordinates]];
+        //         f1.geometry.coordinates = coordinates1;
+        //         f1.geometry.type = 'LineString';
+        //         geojson.features.push(f1);
+        //     });
+        //     console.log(JSON.stringify(geojson));
+
+        // });
+
+
+
+    </script>
+</body>
+
+</html>
