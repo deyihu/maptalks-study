@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        background-color: black;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+
+        var map = new maptalks.Map('map', {
+            "center": [111.72875621, 34.46122778], "zoom": 17.783169231318313, "pitch": 41.450000000000124, "bearing": -89.08138416612826,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+                maxAvailableZoom: 18,
+            })
+        });
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            identifyCountOnEvent: 1
+            // forceRenderOnMoving: true,
+            // forceRenderOnRotating: true
+        });
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            scene.add(new THREE.AmbientLight('#fff', 0.3));
+            animation();
+            loadTexture();
+            test();
+        };
+
+        // threeLayer.addTo(map);
+        // 添加到GroupGLLayer中
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true },
+                bloom: {
+                    enable: true,
+                    threshold: 0,
+                    factor: 1,
+                    radius: 0.02,
+                },
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [], { sceneConfig });
+        groupLayer.addTo(map);
+
+        threeLayer.addTo(groupLayer);
+
+
+
+        const material = new THREE.MeshBasicMaterial({ color: '#fff' });
+
+
+        function loadTexture() {
+            const textureLoader = new THREE.TextureLoader();
+            textureLoader.load('./../assets/image/icon_famen.png', (texture) => {
+                texture.needsUpdate = true; //使用贴图时进行更新
+                texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+                // texture.repeat.set(0.002, 0.002);
+                texture.repeat.set(1, 1);
+                material.map = texture;
+                material.needsUpdate = true;
+            });
+
+
+
+        }
+
+        const circleList = [];
+        function test() {
+            const center = map.getCenter();
+            const circle = new Circle(center, {}, material, threeLayer);
+            threeLayer.addMesh(circle);
+            circleList.push(circle);
+        }
+
+
+
+        let rotation = 0;
+        function animation() {
+            // layer animation support Skipping frames
+            threeLayer._needsUpdate = !threeLayer._needsUpdate;
+            if (threeLayer._needsUpdate) {
+                threeLayer.redraw();
+            }
+            circleList.forEach(circle => {
+                // const material = circle.getObject3d().material;
+                circle.getObject3d().rotation.z = rotation
+            });
+            rotation += 0.1;
+            requestAnimationFrame(animation);
+        }
+
+        const BaseObject = maptalks.BaseObject;
+        //default values
+        var OPTIONS = {
+            radius: 100,
+            altitude: 0
+        };
+
+        /**
+         * custom Circle component
+         * 
+         * you can customize your own components
+         * */
+
+        class Circle extends BaseObject {
+            constructor(coordinate, options, material, layer) {
+                options = maptalks.Util.extend({}, OPTIONS, options, {
+                    layer,
+                    coordinate
+                });
+                super();
+                //Initialize internal configuration
+                // https://github.com/maptalks/maptalks.three/blob/1e45f5238f500225ada1deb09b8bab18c1b52cf2/src/BaseObject.js#L135
+                this._initOptions(options);
+                const {
+                    altitude,
+                    radius
+                } = options;
+                //generate geometry
+                const r = layer.distanceToVector3(radius, radius).x
+                const geometry = new THREE.CircleBufferGeometry(r, 50);
+
+                //Initialize internal object3d
+                // https://github.com/maptalks/maptalks.three/blob/1e45f5238f500225ada1deb09b8bab18c1b52cf2/src/BaseObject.js#L140
+                this._createMesh(geometry, material);
+
+                //set object3d position
+                const z = layer.altitudeToVector3(altitude, altitude).x;
+                const position = layer.coordinateToVector3(coordinate, z);
+                this.getObject3d().position.copy(position);
+                // this.getObject3d().rotation.x = -Math.PI;
+            }
+
+
+        }
+    </script>
+</body>
+
+</html>
