@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>地图 - 显示</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+
+    .panel {
+        position: absolute;
+        z-index: 1;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.tileclip.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+        const tileActor = maptalks.getTileActor();
+        const baseLayer = new maptalks.TileLayer("base", {
+            urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+            // attribution: "&copy; <a href='http://osm.org'>OpenStreetMap</a> contributors, &copy; <a href='https://carto.com/'>CARTO</a>",
+        });
+
+        const urlTemplate = "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}";
+
+        baseLayer.on('renderercreate', function (e) {
+            //load tile image
+            //   img(Image): an Image object
+            //   url(String): the url of the tile
+            e.renderer.loadTileBitmap = function (url, tile, callback) {
+                const { x, y, z } = tile;
+                tileActor.transformTile({
+                    x,
+                    y,
+                    z,
+                    urlTemplate,
+                    projection: 'EPSG:3857',
+                    maxAvailableZoom: 18
+                }).then(imagebitmap => {
+                    callback(imagebitmap);
+                }).catch(error => {
+                    //do some things
+                    console.error(error);
+                })
+            };
+        });
+
+
+        const map = new maptalks.Map("map", {
+            center: [114.3404041441181, 30.548730054693106],
+            zoom: 9,
+            zoomControl: true,
+            spatialReference: {
+                projection: 'EPSG:4326'
+            },
+        });
+
+
+        const colors4 = [
+            [0, '#F0F9E9'],
+            [200, '#D7EFD1'],
+            [400, '#A6DCB6'],
+            [650, '#8FD4BD'],
+            [880, '#67C1CB'],
+            [1100, '#3C9FC8'],
+            [1300, '#1171B1'],
+            [1450, '#085799'],
+            [1600, '#084586'],
+        ];
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: {
+                    enable: true,
+                },
+            },
+        };
+
+
+
+        const terrain = {
+            tileSystem: [1, 1, -180, -90],
+            zoomOffset: -1,
+            maxAvailableZoom: 14,
+            type: 'cesium',
+            terrainWidth: 65,
+            urlTemplate: './../assets/data/cesiumlab-terrain/{z}/{x}/{y}.terrain',
+            shader: "lit",
+            shader: 'lit',
+            colors: colors4,
+            exaggeration: 4,
+            //强制指定tileSize
+            tileSize: 256,
+            material: {
+                baseColorFactor: [1, 1, 1, 1],
+                outputSRGB: 1,
+                roughnessFactor: 0.69,
+                metallicFactor: 0
+            }
+        };
+        const group = new maptalks.GroupGLLayer('group', [
+        baseLayer
+            // tileLayer
+        ], {
+            terrain
+        });
+        group.addTo(map);
+        map.setView({
+            "center": [106.63906041, 29.46901528, 430.3062438964844], "zoom": 12.336833621741476, "pitch": 66.35000000000008, "bearing": 92.20705084326664
+        })
+
+    </script>
+</body>
+
+</html>
