@@ -37,6 +37,7 @@
         let isdblclick = false;
         function clickHandler(e) {
             if (isdblclick) {
+                isdblclick = false;
                 return;
             }
             console.log('click', e);
