@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+
+    .infowindow-template {
+        display: none;
+    }
+
+    #infowindow {
+        text-align: center;
+        width: 300px;
+        font-size: 16px;
+        background-color: white;
+        padding: 10px;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+    <div class="infowindow-template">
+        <div id="infowindow">
+            <h1>《滕王阁序》</h1>
+            <div>
+                　　滕王高阁临江渚，佩玉鸣鸾罢歌舞。<br>
+
+                　　画栋朝飞南浦云，珠帘暮卷西山雨。<br>
+
+                　　闲云潭影日悠悠，物换星移几度秋。<br>
+
+                　　阁中帝子今何在？槛外长江空自流。
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            center: [116.33607780651141,
+                39.89606849343474],
+            zoom: 17,
+            pitch: 60,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+            })
+        });
+        const layer = new maptalks.VectorLayer('layer', {
+            // enableAltitude: true
+        }).addTo(map);
+
+
+        const center = map.getCenter().toArray();
+        const point = new maptalks.Marker(center, {
+            symbol: {
+                markerFile: './../assets/icon/avatar-women.png'
+            }
+        });
+        point.addTo(layer);
+
+        const uiMarker = new maptalks.ui.UIMarker(center, {
+            content: document.getElementById('infowindow'),
+            verticalAlignment: 'top',
+            dx: 0,
+            dy: -70
+        }).addTo(map);
+        uiMarker.hide();
+        // point.setInfoWindow({
+        //     content: document.getElementById('infowindow')
+        // });
+        // point.openInfoWindow();
+
+        point.on('mouseover', e => {
+            uiMarker.show();
+        })
+        point.on('mouseout', e => {
+            uiMarker.hide();
+        })
+
+
+    </script>
+</body>
+
+</html>
