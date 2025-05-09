@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    :root {
+        --space: 0.25rem;
+    }
+
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+
+        /* background-image: linear-gradient(45deg, #eee 25%, transparent 25%, transparent 75%, #eee 75%, #eee 100%), linear-gradient(45deg, #eee 25%, #fff 25%, #fff 75%, #eee 75%, #eee 100%);
+        background-position: 0 0, calc(2* var(--space)) calc(2* var(--space));
+        background-size: calc(4* var(--space)) calc(4* var(--space)); */
+        /* border: 1px dashed #c9c9c9; */
+
+        /* background-color: black; */
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.tileclip.js'></script>
+
+<body>
+    <button onclick="test()">add video</button>
+    <div id="map" class="container"></div>
+
+    <script>
+
+
+
+        const coordinates = [
+            [
+                120.60784925487852,
+                31.329847155933425
+            ],
+            [
+                120.60926326643074,
+                31.330176098348037
+            ],
+            [
+                120.60916555018525,
+                31.33048049179716
+            ],
+            [
+                120.61173491263988,
+                31.331010723196314
+            ],
+            [
+                120.61176940072652,
+                31.330887984712202
+            ],
+            [
+                120.61189585704419,
+                31.330897803796823
+            ],
+            [
+                120.61198782527524,
+                31.330652326374036
+            ],
+            [
+                120.61301671985997,
+                31.330799612904528
+            ],
+            [
+                120.61318916029317,
+                31.33023501328599
+            ],
+            [
+                120.61371797762163,
+                31.330190827085968
+            ],
+            [
+                120.61391341011259,
+                31.329390562318316
+            ],
+            [
+                120.61375821372273,
+                31.329336556475425
+            ],
+            [
+                120.61394215018478,
+                31.32841845240537
+            ],
+            [
+                120.613539789174,
+                31.328310439573084
+            ],
+            [
+                120.61363750541948,
+                31.327588714285653
+            ],
+            [
+                120.61001050830792,
+                31.326911171224967
+            ],
+            [
+                120.6098208238314,
+                31.326955358964533
+            ],
+            [
+                120.60957365921048,
+                31.328138600720855
+            ],
+            [
+                120.6083090960337,
+                31.32788329670401
+            ],
+            [
+                120.60771705054641,
+                31.32785874820433
+            ],
+            [
+                120.6076308303298,
+                31.328168058832087
+            ],
+            [
+                120.60821712780267,
+                31.32830062021855
+            ],
+            [
+                120.60784925487852,
+                31.329847155933425
+            ]
+        ];
+
+        const markerCoordinate = [120.6104565378439, 31.330755687069317];
+
+        const material = new THREE.MeshPhongMaterial({ color: '#fff' });
+        const material1 = new THREE.MeshPhongMaterial({ color: '#fff', depthTest: true });
+
+        var map = new maptalks.Map('map', {
+            "center": [120.61128332, 31.32826453], "zoom": 17.789647324857842, "pitch": 40.50000000000004, "bearing": -6.8999999999995225,
+            zoomControl: true
+        });
+
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+        })
+
+        const tileLayer = new maptalks.TileLayer('base', {
+            urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+            // urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            // urlTemplate: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+            subdomains: ["a", "b", "c", "d"],
+        });
+
+
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            identifyCountOnEvent: 1
+            // forceRenderOnMoving: true,
+            // forceRenderOnRotating: true
+        });
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            scene.add(new THREE.AmbientLight('#fff', 0.3));
+
+            const line = threeLayer.toExtrudeLine(new maptalks.LineString(coordinates), { height: 100, width: 0, topColor: '#fff' }, material);
+            threeLayer.addMesh(line);
+            animation();
+        };
+
+        // 添加到GroupGLLayer中
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true },
+                bloom: {
+                    enable: true,
+                    threshold: 0,
+                    factor: 1,
+                    radius: 0.02,
+                },
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [], { sceneConfig });
+        groupLayer.addTo(map);
+
+        tileLayer.addTo(groupLayer);
+        threeLayer.addTo(groupLayer);
+
+
+        let videoPlane;
+        function test() {
+            if (videoPlane) {
+                return;
+            }
+
+            const video = document.createElement('video');
+            video.src = './../assets/data/sintel.mp4';
+            video.onloadeddata = function () {
+                video.play();
+            };
+            const videoTexture = new THREE.VideoTexture(video);
+            videoTexture.needsUpdate = true;
+            material1.map = videoTexture;
+            material1.side = 2;
+            material1.needsUpdate = true
+            const [x, y] = markerCoordinate;
+            videoPlane = new VideoPlane([x, y - 0.00004], { altitude: 1 }, material1, threeLayer);
+            // videoPlane = new VideoPlane([x, y], { altitude: 1 }, material1, threeLayer);
+            videoPlane.getObject3d().rotation.z = 2.292 / 10;
+            videoPlane.getObject3d().scale.set(2.5, 1.9, 1.9);
+            threeLayer.addMesh(videoPlane);
+            initGui();
+        }
+
+        function animation() {
+            // layer animation support Skipping frames
+            threeLayer._needsUpdate = !threeLayer._needsUpdate;
+            if (threeLayer._needsUpdate) {
+                threeLayer.redraw();
+            }
+            requestAnimationFrame(animation);
+        }
+
+        function initGui() {
+            var params = Object.assign({}, {
+                rotationZ: videoPlane.getObject3d().rotation.z * 10,
+                scaleX: videoPlane.getObject3d().scale.x,
+                scaleY: videoPlane.getObject3d().scale.y,
+                scaleZ: videoPlane.getObject3d().scale.z
+            });
+            var gui = new lil.GUI();
+
+            const update = () => {
+                const object3d = videoPlane.getObject3d();
+                object3d.rotation.z = params.rotationZ / 10;
+                object3d.scale.set(params.scaleX, params.scaleY, params.scaleZ);
+            }
+            gui.add(params, 'rotationZ', -Math.PI, Math.PI, 0.001).onChange(update);
+            gui.add(params, 'scaleX', 1, 3, 0.1).onChange(update);
+            gui.add(params, 'scaleY', 1, 3, 0.1).onChange(update);
+            gui.add(params, 'scaleZ', 1, 3, 0.1).onChange(update);
+        }
+
+
+        const OPTIONS = {
+            width: 100,
+            height: 100,
+            altitude: 0
+        }
+        class VideoPlane extends maptalks.BaseObject {
+            constructor(coordinate, options, material, layer) {
+                options = maptalks.Util.extend({}, OPTIONS, options, { layer, coordinate });
+                const { width, height, altitude } = options;
+                const w = layer.distanceToVector3(width, width).x;
+                const h = layer.altitudeToVector3(height, height).x;
+                console.log(w);
+                const geometry = new THREE.PlaneBufferGeometry(w, h, 2, 2);
+                super();
+                this._initOptions(options);
+                this._createMesh(geometry, material);
+                const position = geometry.attributes.position.array;
+                for (let i = 0, len = position.length; i < len; i += 3) {
+                    const x = position[i], y = position[i + 1];
+                    if (y > 0) {
+                        position[i + 2] = h / 2;
+                        position[i + 1] = 0;
+                    }
+                }
+                const z = layer.altitudeToVector3(altitude, altitude).x;
+                const v = layer.coordinateToVector3(coordinate);
+                v.z = z;
+                this.getObject3d().position.copy(v);
+            }
+        }
+
+
+
+
+
+    </script>
+</body>
+
+</html>
