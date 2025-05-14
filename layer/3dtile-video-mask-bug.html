@@ -67,6 +67,13 @@
             [108.95975819449619, 34.21907283089717]
             ,
             [108.95909036245716, 34.21905613514542]
+        ];
+        //数据来自倾斜identify的结果只
+        const coordinates1 = [
+            [108.95909484552337, 34.21954726777298, 25.13765431459835]
+            , [108.95979126615241, 34.21954304199773, 25.597733250749425]
+            , [108.95975521499965, 34.21908142087485, 34.60665845638324]
+            , [108.95909410965484, 34.219064292575126, 34.24089598135153]
         ]
         // const circle = new maptalks.Circle([108.95938550816857, 34.219794047869385], 100);
         // const coordinates = circle.getShell();
@@ -121,8 +128,20 @@
             }
         }).addTo(map);
 
-        const layer1 = new maptalks.LineStringLayer('layer1').addTo(map);
-        const line = new maptalks.LineString(coordinates).addTo(layer1)
+        const layer1 = new maptalks.LineStringLayer('layer1').addTo(groupGLLayer);
+        const layer2 = new maptalks.PointLayer('layer2').addTo(groupGLLayer);
+        const line = new maptalks.LineString(coordinates1).addTo(layer1)
+        coordinates1.forEach(c => {
+            const p = new maptalks.Marker(c);
+            p.addTo(layer2)
+        });
+
+        function test() {
+            line.getCoordinates().forEach(c => {
+                const result = layer.identify(c);
+                console.log(result[0].coordinate);
+            });
+        }
     </script>
 </body>
 
