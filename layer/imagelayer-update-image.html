@@ -64,6 +64,7 @@
                     console.log(image);
                     idx++;
                     if (idx > max) {
+                        //结束，从头再来
                         idx = 1;
                     }
                     imageLoading = false;
@@ -82,6 +83,7 @@
 
         function animation() {
             const t = now();
+            //模拟2s更新一次图片
             if (t - time >= 2000) {
                 loadImage();
                 time = t;
