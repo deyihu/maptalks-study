@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+
+        const tileLayer = new maptalks.TileLayer('hello', {
+            urlTemplate: 'https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}'
+        })
+
+
+
+        var map = new maptalks.Map('map', {
+           "center":[120.85488147,31.35512441],"zoom":9.302920065034284,"pitch":0,"bearing":0.2252682461482891
+        });
+        tileLayer.addTo(map);
+
+        const extent = new maptalks.Extent([120, 31, 122, 32]);
+
+        const layer = new maptalks.ImageLayer('layer').addTo(map);
+        const debugLayer = new maptalks.VectorLayer('debug').addTo(map);
+        const line = new maptalks.LineString(extent.toArray()).addTo(debugLayer);
+
+
+
+        const max = 6;
+        let idx = 1;
+        let imageLoading = false;
+
+
+        function loadImage() {
+            if (imageLoading) {
+                return;
+            }
+            imageLoading = true;
+            const image = new Image();
+            image.onload = () => {
+
+                createImageBitmap(image).then(bitImage => {
+                    console.log(image);
+                    idx++;
+                    if (idx > max) {
+                        idx = 1;
+                    }
+                    imageLoading = false;
+                    layer.setImages({
+                        url: bitImage,
+                        extent
+                    })
+                })
+            }
+            image.src = `./../assets/image/wendu/${idx}.png`;
+        }
+
+
+        const now = maptalks.Util.now;
+        let time = now();
+
+        function animation() {
+            const t = now();
+            if (t - time >= 2000) {
+                loadImage();
+                time = t;
+            }
+            requestAnimationFrame(animation);
+        }
+
+        requestAnimationFrame(animation);
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
