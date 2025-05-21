@@ -279,6 +279,9 @@
                 player.on('vertex', e => {
                     item.vertexs = item.vertexs || [];
                     item.vertexs.push(e.data.coordinate);
+                    if(item.vertexs.length > 100){
+                        item.vertexs.splice(0, 1);
+                    }
                     // showVertex(e, vertexs, debugLayer);
                 });
                 //播放结束了自动更新数据
