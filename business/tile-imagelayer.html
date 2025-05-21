@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        /* background-color: black; */
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.tileclip.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+        const tileActor = maptalks.getTileActor();
+
+        var map = new maptalks.Map('map', {
+            center: [-100, 40],
+            zoom: 4
+
+        });
+
+        const baseLayer = new maptalks.TileLayer('base', {
+            urlTemplate: "https://sampleserver6.arcgisonline.com/arcgis/rest/services/NLCDLandCover2001/ImageServer/exportImage?f=image&imageSR=102100",
+            subdomains: ["a", "b", "c", "d"],
+            maxAvailableZoom: 18,
+        })
+
+
+        baseLayer.on('renderercreate', function (e) {
+            //load tile image
+            //   img(Image): an Image object
+            //   url(String): the url of the tile
+            e.renderer.loadTileBitmap = function (url, tile, callback) {
+                const bbox = baseLayer._getTileBBox(tile);
+                const [x1, y1, x2, y2] = bbox;
+                const projection = map.getProjection();
+                const min = projection.project(new maptalks.Coordinate(x1, y1));
+                const max = projection.project(new maptalks.Coordinate(x2, y2));
+                const bboxStr = `${min.x},${min.y},${max.x},${max.y}`;
+                const code = projection.code.split(':')[1];
+                const size = baseLayer.getTileSize();
+                url += `&bbox=${bboxStr}&bboxSR=${code}&size=${size.width},${size.height}`;
+
+                //get Tile data
+                tileActor.getTile({
+                    url: maptalks.Util.getAbsoluteURL(url),
+                    // timeout: 10000
+                }).then(imagebitmap => {
+                    callback(imagebitmap);
+
+
+                }).catch(error => {
+                    //do some things
+                    console.error(error);
+                })
+            };
+        });
+
+
+        // threeLayer.addTo(map);
+        // 添加到GroupGLLayer中
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true },
+                bloom: {
+                    enable: true,
+                    threshold: 0,
+                    factor: 1,
+                    radius: 0.02,
+                },
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [baseLayer], { sceneConfig });
+        groupLayer.addTo(map);
+
+
+
+
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
