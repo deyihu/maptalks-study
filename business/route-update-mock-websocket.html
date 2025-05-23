@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        background-color: black;
+    }
+
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+        overflow-x: hidden;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+
+    .tools {
+        background-color: white;
+        z-index: 1000;
+        position: absolute;
+        padding: 6px;
+        border-bottom: 1px solid #dfdfdf;
+        width: 100%;
+        display: flex;
+    }
+
+    .tools .item {
+        margin-right: 10px;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<!-- <script type='text/javascript' src='./../assets/lib/three.min.js'></script> -->
+<script type='text/javascript' src='https://cdn.jsdelivr.net/npm/three@0.140.0/build/three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/LineMaterial.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.routeplayer.js'></script>
+<script type='text/javascript' src='./../assets/lib/geolib.js'></script>
+<script type='text/javascript' src='./../assets/lib/lineseg.js'></script>
+
+<body>
+    <!-- <div class="tools">
+        <div class="item"> <button onclick="start()">play</button></div>
+        <div class="item"> <button onclick="pause()">pause</button></div>
+        <div class="item"> <button onclick="finish()">finish</button></div>
+        <div class="item"> <button onclick="reset()">reset</button></div>
+        <div class="item">
+            <label for="speed">speed</label>
+            <input type="range" id="speed" name="volume" min="1" max="100" value="4" />
+        </div>
+    </div> -->
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            "center": [120.618543, 31.13707357], "zoom": 14.5633488156279, "pitch": 55.65000000000023, "bearing": 0.5999999999988859,
+            baseLayer: new maptalks.TileLayer('base', {
+                // altitude: -offsetHeight,
+                urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+                maxAvailableZoom: 18,
+            })
+        });
+
+        const layer = new maptalks.VectorLayer('v', {
+            enableAltitude: true,
+        }).addTo(map);
+
+
+        const playerList = {};
+        const mockData = [];
+        const now = maptalks.Util.now;
+        const duration = 2000;
+
+
+
+        // const modelSymbol = {
+        //     url: './../assets/data/drone.glb',
+        //     modelHeight: 50
+        // }
+
+        // function loadData() {
+        //     fetch('./../assets/data/mappaint_2025-05-19 13_55_37.geojson').then(res => res.json()).then(geojson => {
+        //         geojson.features.forEach(d => {
+        //             const coordinates = d.geometry.coordinates;
+        //             //mock alitutde
+        //             coordinates.forEach(c => {
+        //                 c[2] = 120 + Math.random() * 20 - offsetHeight
+        //             });
+        //             const len = geolib.getPathLength(coordinates);
+
+        //             const data = maptalks.formatRouteData(coordinates, {
+        //                 //mock time
+        //                 duration: len * 100
+        //             });
+        //             const player = new maptalks.RoutePlayer(data);
+
+        //             const info = player.getStartInfo();
+        //             const drone = new maptalks.GLTFMarker(info.coordinate, {
+        //                 symbol: modelSymbol
+        //             });
+        //             layer.addGeometry(drone);
+
+        //             playerList.push({
+        //                 player,
+        //                 model: drone,
+        //                 len
+        //             });
+        //         });
+        //         listenEvents();
+        //     })
+        // }
+
+
+
+
+
+
+
+
+        // function start() {
+        //     playerList.forEach(d => {
+        //         const { player, model } = d;
+        //         player.play();
+        //     });
+        // }
+        // function pause() {
+        //     playerList.forEach(d => {
+        //         const { player, model } = d;
+        //         player.pause();
+        //     });
+        // }
+
+        // function finish() {
+        //     playerList.forEach(d => {
+        //         const { player, model } = d;
+        //         player.finish();
+        //     });
+        // }
+
+        // function reset() {
+
+        //     playerList.forEach(d => {
+        //         const { player, model } = d;
+        //         player.reset();
+
+        //         updateModelPosition(player.getStartInfo(), model);
+        //         d.vertexs = [];
+        //         updateLine(d);
+        //     });
+
+
+        // }
+
+
+        // document.querySelector('#speed').addEventListener('change', e => {
+        //     playerList.forEach(d => {
+        //         const { player, model } = d;
+        //         player.setSpeed(parseFloat(e.target.value));
+        //     });
+
+        // })
+
+        function filterRepeatCoordiantes(coordinates) {
+            const filter = [];
+            let last = null;
+            coordinates.forEach(c => {
+                if (last && last.join(',') === c.join(',')) {
+                    return;
+                } else {
+                    last = c;
+                    filter.push(c);
+                }
+            });
+            return filter;
+
+        }
+
+        function checkPlayEnd() {
+            const keys = Object.keys(playerList);
+            keys.forEach(key => {
+                const playerItem = playerList[key];
+                const { player, coordinates } = playerItem;
+                if (player && player.isPlayend() && coordinates && coordinates.length) {
+                    const coords = player.getCoordinates();
+                    const last = coords[coords.length - 1];
+                    const newCoordinates = [last, ...coordinates]
+                    const data = maptalks.formatRouteData(newCoordinates, {
+                        //mock time
+                        duration: coordinates.length * duration
+                    });
+                    player.setData(data);
+                    player.play();
+                    playerItem.coordinates = [];
+                    // console.log(`${key} play end, new data`);
+                }
+            });
+        }
+
+
+        function listenEvents(playerItem) {
+            const { player, marker } = playerItem;
+            // player.on('playend', e => {
+            //     console.log(e.type);
+            // })
+
+            player.on('playing', e => {
+                marker.setCoordinates(e.coordinate);
+                // point.setCoordinates(e.coordinate);
+            });
+            // player.on('playstart', e => {
+            //     item.vertexs = [];
+            // });
+            // player.on('vertex', e => {
+            //     item.vertexs.push(e.data.coordinate);
+            //     // showVertex(e, vertexs, debugLayer);
+            // });
+
+        }
+
+        function createPlayer(playerItem) {
+            const { tempCoordinates } = playerItem;
+            const data = maptalks.formatRouteData(tempCoordinates, {
+                //mock time
+                duration: duration,
+                speed: 1
+            });
+            const player = new maptalks.RoutePlayer(data);
+            playerItem.player = player;
+            listenEvents(playerItem);
+            player.play();
+            return player;
+
+        }
+
+        function createMarker(c) {
+            const marker = new maptalks.Marker(c, {
+                symbol: {
+                    markerFile: './../assets/icon/gps.png',
+                }
+            });
+            layer.addGeometry(marker);
+            return marker;
+        }
+
+
+        let time = now();
+
+        //模拟推送数据到前端
+        function mockPushData() {
+            mockData.forEach(item => {
+                const { id, coordinates } = item;
+                if (!playerList[id]) {
+                    playerList[id] = {
+                        player: null,
+                        coordinates: [],
+                        tempCoordinates: [],
+                        marker: null
+                    }
+                }
+                const playerItem = playerList[id];
+                const c = coordinates.shift();
+                if (!playerItem.player) {
+                    playerItem.tempCoordinates.push(c);
+                    if (!playerItem.marker) {
+                        playerItem.marker = createMarker(c);
+                    }
+                    if (playerItem.tempCoordinates.length >= 2) {
+                        createPlayer(playerItem);
+                    }
+                } else {
+                    playerItem.coordinates.push(c);
+                }
+            });
+        }
+
+        let first = true;
+        function animation() {
+            checkPlayEnd();
+            if (first) {
+                mockPushData();
+                first = false;
+            }
+            const currentTime = now();
+            //模拟2s钟推送一次数据
+            if (currentTime - time >= 1000) {
+                time = currentTime;
+                mockPushData();
+            }
+
+            requestAnimationFrame(animation);
+        }
+
+        function loadData() {
+            fetch('./../assets/data/route-line.geojson').then(res => res.json()).then(geojson => {
+                //测试数据
+                geojson.features.slice(0, 100).forEach(f => {
+                    const coordinates = f.geometry.coordinates;
+                    //数据分割，用来模拟每次推送的点位
+                    const segments = lineseg.lineSeg(coordinates, {
+                        segDistance: Math.random() * 200,
+                        isGeo: true
+                    });
+                    let flatCoordinates = [];
+                    segments.forEach(s => {
+                        flatCoordinates.push(...s);
+                    });
+                    flatCoordinates = filterRepeatCoordiantes(flatCoordinates);
+                    mockData.push({
+                        id: maptalks.Util.GUID(),
+                        coordinates: flatCoordinates
+                    })
+
+                });
+            })
+        }
+        animation();
+        loadData();
+
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
