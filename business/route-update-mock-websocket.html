@@ -179,7 +179,7 @@
 
         // })
 
-        function filterRepeatCoordiantes(coordinates) {
+        function filterRepeatCoordinates(coordinates) {
             const filter = [];
             let last = null;
             coordinates.forEach(c => {
@@ -207,9 +207,12 @@
                         //mock time
                         duration: coordinates.length * duration
                     });
+
                     player.setData(data);
                     player.play();
                     playerItem.coordinates = [];
+
+
                     // console.log(`${key} play end, new data`);
                 }
             });
@@ -278,6 +281,9 @@
                 }
                 const playerItem = playerList[id];
                 const c = coordinates.shift();
+                if (!c) {
+                    return;
+                }
                 if (!playerItem.player) {
                     playerItem.tempCoordinates.push(c);
                     if (!playerItem.marker) {
@@ -301,7 +307,7 @@
             }
             const currentTime = now();
             //模拟2s钟推送一次数据
-            if (currentTime - time >= 1000) {
+            if (currentTime - time >= duration) {
                 time = currentTime;
                 mockPushData();
             }
@@ -323,7 +329,7 @@
                     segments.forEach(s => {
                         flatCoordinates.push(...s);
                     });
-                    flatCoordinates = filterRepeatCoordiantes(flatCoordinates);
+                    flatCoordinates = filterRepeatCoordinates(flatCoordinates);
                     mockData.push({
                         id: maptalks.Util.GUID(),
                         coordinates: flatCoordinates
