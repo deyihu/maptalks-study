@@ -301,7 +301,7 @@
         let first = true;
         function animation() {
             checkPlayEnd();
-            if (first) {
+            if (first && mockData.length) {
                 mockPushData();
                 first = false;
             }
@@ -318,6 +318,8 @@
         function loadData() {
             fetch('./../assets/data/route-line.geojson').then(res => res.json()).then(geojson => {
                 //测试数据
+                const time = 'time';
+                console.time(time);
                 geojson.features.slice(0, 100).forEach(f => {
                     const coordinates = f.geometry.coordinates;
                     //数据分割，用来模拟每次推送的点位
@@ -336,6 +338,7 @@
                     })
 
                 });
+                console.timeEnd(time);
             })
         }
         animation();
