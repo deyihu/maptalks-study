@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        background-color: black;
+    }
+
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+        overflow-x: hidden;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+
+    .tools {
+        background-color: white;
+        z-index: 1000;
+        position: absolute;
+        padding: 6px;
+        border-bottom: 1px solid #dfdfdf;
+        width: 100%;
+        display: flex;
+    }
+
+    .tools .item {
+        margin-right: 10px;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/LineMaterial.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.routeplayer.js'></script>
+<script type='text/javascript' src='./../assets/lib/geolib.js'></script>
+<script type='text/javascript' src='./../assets/lib/jsts.min.js'></script>
+
+<body>
+    <div class="tools">
+        <div class="item"> <button onclick="start()">play</button></div>
+        <div class="item"> <button onclick="pause()">pause</button></div>
+        <!-- <div class="item"> <button onclick="finish()">finish</button></div>
+        <div class="item"> <button onclick="reset()">reset</button></div> -->
+        <div class="item">
+            <label for="speed">speed</label>
+            <input type="range" id="speed" name="volume" min="1" max="100" value="4" />
+        </div>
+    </div>
+    <div id="map" class="container"></div>
+
+    <script>
+        const geoJSONRender = new jsts.io.GeoJSONReader();
+        const geoJSONWriter = new jsts.io.GeoJSONWriter();
+        const offsetHeight = 10;
+
+        const geojson = { "type": "Feature", "geometry": { "type": "LineString", "coordinates": [[120.60292295826729, 31.273652046331016], [120.60276942523922, 31.27163977749619], [120.60283691588644, 31.270141423765285], [120.60219244484436, 31.2694360220688], [120.60200200406906, 31.26847313238319], [120.60191240569756, 31.267028995137768], [120.60166478353827, 31.26622669025548], [120.60106383470327, 31.26605968891621], [120.60069898708856, 31.26677726093901], [120.60032866831092, 31.267110509429607], [120.59972658153369, 31.267598159048326], [120.59916329765774, 31.267575453577113], [120.5989171582181, 31.267082731428346], [120.59892299647763, 31.2663741575859], [120.59817446153598, 31.26617185082765], [120.59801745254474, 31.266770482900885], [120.59754972612997, 31.267642854272463], [120.59682460209841, 31.26793877387575], [120.5959858204859, 31.26789014065697], [120.59561242988089, 31.26724159911958], [120.59523687623808, 31.266672888621162], [120.59452540120397, 31.265611098115265], [120.59378162795511, 31.266109469709072], [120.59308749523126, 31.26716911792544], [120.59299510113857, 31.267843743221594], [120.59319662432053, 31.26852395478753], [120.59323518080609, 31.26913009660999], [120.59341545446881, 31.26973345318645], [120.5934238401793, 31.270320986110757], [120.593517304352, 31.270949780743454], [120.5911423102871, 31.270650129540062], [120.59034646037831, 31.269196368270006], [120.58974526433008, 31.271925040555246], [120.5869552433987, 31.275501148481865], [120.58683577948344, 31.277162765638273], [120.58630471429608, 31.2775540806459], [120.58652598176054, 31.278349317077485], [120.58696852899357, 31.279001069953967], [120.58725392769115, 31.279340477043178], [120.58793315242889, 31.27830914579784], [120.58823131508719, 31.277568034706864], [120.58878340129107, 31.27691016597349], [120.59027176905056, 31.27634498817349]] }, "properties": null };
+        geojson.geometry.coordinates.forEach(c => {
+            c[2] = offsetHeight;
+        })
+        const bufferPolygons = [];
+        const lineGeometry = geoJSONRender.read(geojson).geometry;
+
+        var map = new maptalks.Map('map', {
+            "center": [120.60242753, 31.27309644], "zoom": 18.976394607070805, "pitch": 72.45000000000039, "bearing": -59.43460783890145,
+            baseLayer: new maptalks.TileLayer('base', {
+                // altitude: -offsetHeight,
+                urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+                maxAvailableZoom: 18,
+            })
+        });
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            identifyCountOnEvent: 1
+            // forceRenderOnMoving: true,
+            // forceRenderOnRotating: true
+        });
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            scene.add(new THREE.AmbientLight('#fff', 0.3));
+            loadBuilding();
+            loadTexture();
+            animation();
+
+        };
+
+        // threeLayer.addTo(map);
+        // 添加到GroupGLLayer中
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true },
+                bloom: {
+                    enable: true,
+                    threshold: 0,
+                    factor: 1,
+                    radius: 0.02,
+                },
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [], { sceneConfig });
+        groupLayer.addTo(map);
+
+        threeLayer.addTo(groupLayer);
+
+        const layer = new maptalks.GLTFLayer('layer').addTo(groupLayer);
+        const debugLayer = new maptalks.VectorLayer('debug').addTo(map);
+        const lineLayer = new maptalks.LineStringLayer('line').addTo(groupLayer);
+
+
+        var linematerial = new THREE.LineMaterial({
+            color: 'red',
+            // transparent: true,
+            // vertexColors: THREE.VertexColors,
+            // side: THREE.BackSide,
+            linewidth: 4 // in pixels
+            // vertexColors: THREE.VertexColors,
+            // dashed: false
+
+        });
+
+        let player, model, currentPolygon, heightModeling = false;
+
+        const playerList = [];
+
+
+        const modelSymbol = {
+            url: './../assets/data/drone.glb',
+            modelHeight: 6
+        }
+        const material = new THREE.MeshPhongMaterial({ color: '#fff' });
+        function loadTexture() {
+            const textureLoader = new THREE.TextureLoader();
+            textureLoader.load('./../assets/image/building-simaple.webp', (texture) => {
+                texture.needsUpdate = true; //使用贴图时进行更新
+                texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+                // texture.repeat.set(0.002, 0.002);
+                texture.repeat.set(2, 2);
+                material.map = texture;
+                material.needsUpdate = true;
+            });
+
+
+        }
+
+
+        function loadBuilding() {
+            const line = maptalks.GeoJSON.toGeometry(geojson);
+            line.setSymbol({
+                lineColor: 'red',
+                lineWidth: 4,
+
+            });
+            line.addTo(lineLayer);
+
+
+            fetch('../assets/data/buildingsfilter-test.geojson').then(res => res.json()).then(geojson => {
+                const polygons = geojson.features;
+                const topData = [];
+                const extrudePolygons = polygons.map(p => {
+                    const height = p.properties.height;
+                    const bufferPolygon = geoJSONRender.read(p);
+                    const buffer = bufferPolygon.geometry.buffer(15 / 111120);
+                    const c = buffer.intersects(lineGeometry);
+                    if (c && height > offsetHeight) {
+                        bufferPolygons.push({
+                            buffer,
+                            polygon: p,
+                            height: height
+                        });
+                    }
+                    const extrudePolygon = threeLayer.toExtrudePolygon(p, { height, topColor: '#fff', asynchronous: true }, material);
+                    const copy = JSON.parse(JSON.stringify(p));
+                    copy.properties.height = 0.1;
+                    copy.properties.bottomHeight = height;
+                    topData.push(copy);
+                    return extrudePolygon;
+                });
+                threeLayer.addMesh(extrudePolygons);
+                const top = threeLayer.toExtrudePolygons(topData, {
+                    // height: 1,
+                    topColor: '#fff',
+                    asynchronous: true
+                }, new THREE.MeshPhongMaterial({ color: '#fff' }));
+                threeLayer.addMesh(top);
+                createPlayer();
+            })
+        }
+
+        function createPlayer() {
+            const coordinates = geojson.geometry.coordinates;
+            const distance = geolib.getPathLength(coordinates)
+            const data = maptalks.formatRouteData(coordinates, {
+                //mock time
+                duration: distance * 100
+            });
+            player = new maptalks.RoutePlayer(data, {
+                speed: 4,
+                // autoPlay: true,
+            });
+            const info = player.getStartInfo();
+            model = new maptalks.GLTFMarker(info.coordinate, {
+                symbol: modelSymbol
+            }).addTo(layer);
+            listenEvents({ player, model });
+            playerList.push({
+                player,
+                model
+            })
+
+        }
+
+        function listenEvents(item) {
+            const { player, model } = item;
+
+            player.on('playing', e => {
+                isCrossPolygon(e.coordinate);
+                if (!heightModeling) {
+                    updateModelPosition(e, model);
+                }
+                // updateLine(item);
+                // point.setCoordinates(e.coordinate);
+            });
+            player.on('playstart', e => {
+                // item.vertexs = [];
+            });
+            player.play();
+        }
+
+        function isCrossPolygon(coordinate) {
+            const point = {
+                type: 'Feature',
+                geometry: {
+                    type: 'Point',
+                    coordinates: coordinate
+                }
+            }
+            const geo = geoJSONRender.read(point).geometry;
+            let cross;
+            for (let i = 0, len = bufferPolygons.length; i < len; i++) {
+                const { buffer, polygon } = bufferPolygons[i];
+                if (buffer.intersects(geo)) {
+                    cross = bufferPolygons[i];
+                    break;
+                }
+            }
+            if (cross && cross !== currentPolygon) {
+
+                let fromHeight = 0, toHeight = cross.height;
+                if (currentPolygon) {
+                    fromHeight = currentPolygon.height;
+                }
+
+                player.pause();
+                heightModeling = true;
+                animationModelHeight(fromHeight, toHeight, () => {
+                    heightModeling = false;
+                    player.play();
+                });
+
+            }
+            if (!cross && currentPolygon) {
+                player.pause();
+                const height = currentPolygon.height;
+                heightModeling = true;
+                animationModelHeight(height, 0, () => {
+                    heightModeling = false;
+                    player.play();
+                });
+            }
+            currentPolygon = cross;
+        }
+
+        function animationModelHeight(fromHeight, toHeight, callback) {
+            if (fromHeight === toHeight) {
+                callback();
+                return;
+            }
+            console.log('fromHeight', fromHeight, 'toHeight', toHeight);
+            var targetStyles = {
+                'symbol': {
+                    'height': toHeight - fromHeight,
+                    'markerHeight': 200
+                }
+            };
+
+            // animate by maptalks.animation.Animation
+            var player = maptalks.animate(
+                targetStyles,
+                {
+                    duration: 1000,
+                    easing: "out",
+                    // repeat: true,
+                },
+                // callback of each frame
+                function step(frame) {
+                    // console.log(frame);
+                    const coordinate = model.getCoordinates();
+                    const height = fromHeight + frame.symbol.height;
+                    model.setCoordinates([coordinate.x, coordinate.y, height + offsetHeight]);
+                    if (frame.state.playState === 'finished') {
+                        callback();
+
+                    }
+                },
+            );
+            player.play();
+        }
+
+
+        function animation() {
+            // layer animation support Skipping frames
+            threeLayer._needsUpdate = !threeLayer._needsUpdate;
+            if (threeLayer._needsUpdate) {
+                threeLayer.redraw();
+            }
+            requestAnimationFrame(animation);
+        }
+
+        function updateLine(item) {
+            const { tempCoords, line, vertexs } = item;
+            if (line) {
+                threeLayer.removeMesh(line);
+                line.getObject3d().geometry.dispose();
+                item.line = null;
+            }
+            if (tempCoords && vertexs && vertexs.length) {
+                const coordinates = [...vertexs, tempCoords];
+                const line = threeLayer.toFatLine(new maptalks.LineString(coordinates), {}, linematerial);
+                threeLayer.addMesh(line);
+                item.line = line;
+            }
+        }
+
+
+        function updateModelPosition(e, model) {
+            const { coordinate, rotationZ, rotationX } = e;
+            if (!model) {
+                return;
+            }
+            let [x, y, height] = coordinate;
+            if (currentPolygon) {
+                height = currentPolygon.height + offsetHeight;
+            }
+            model.setCoordinates([x, y, height]);
+            // model.setRotation(rotationX, 0, rotationZ + modelOffsetAngle);
+        }
+
+
+
+        function start() {
+            playerList.forEach(d => {
+                const { player, model } = d;
+                player.play();
+            });
+        }
+        function pause() {
+            playerList.forEach(d => {
+                const { player, model } = d;
+                player.pause();
+            });
+        }
+
+        function finish() {
+            playerList.forEach(d => {
+                const { player, model } = d;
+                player.finish();
+            });
+        }
+
+        function reset() {
+
+            playerList.forEach(d => {
+                const { player, model } = d;
+                player.reset();
+
+                updateModelPosition(player.getStartInfo(), model);
+                d.vertexs = [];
+                updateLine(d);
+            });
+
+
+        }
+
+
+        document.querySelector('#speed').addEventListener('change', e => {
+            playerList.forEach(d => {
+                const { player, model } = d;
+                player.setSpeed(parseFloat(e.target.value));
+            });
+
+        })
+
+
+        // var drawTool = new maptalks.DrawTool({
+        //     mode: 'Point',
+        //     // once: true,
+        // }).addTo(map).disable();
+
+        // drawTool.on('drawend', function (param) {
+        //     console.log(param.geometry);
+        //     layer.addGeometry(param.geometry);
+        //     console.log(JSON.stringify(param.geometry.toGeoJSON()));
+        //     //绑定信息框
+        //     param.geometry.setInfoWindow({
+        //         content: param.geometry.getType()
+        //     })
+        // });
+        // // drawTool.on('disable', function (param) {
+        // //     //开启地图的图形事件
+        // //     map.config('geometryEvents', true);
+        // // });
+        // // drawTool.on('enable', function (param) {
+        // //     //关闭地图的图形事件
+        // //     map.config('geometryEvents', false);
+        // // });
+
+
+        // drawTool.on('drawstart', function (param) {
+        //     //设置绘制图形时，图形的样式
+        //     updateGeometrySymbol(param.tempGeometry);
+        // });
+
+        // function updateGeometrySymbol(geometry) {
+        //     const mode = drawTool.getMode();
+        //     if (mode === 'linestring') {
+        //         // if (geometry.getCoordinates().length > 1) {
+        //         geometry.setSymbol({
+        //             lineColor: 'red',
+        //             markerType: 'ellipse',
+        //             markerWidth: 10,
+        //             markerHeight: 10,
+        //             'markerPlacement': 'vertex',
+        //         })
+        //         // }
+
+        //     }
+        //     if (mode === 'polygon') {
+        //         // if (geometry.getCoordinates().length > 1) {
+        //         geometry.setSymbol({
+        //             polygonFill: "white",
+        //             polygonOpacity: 0.7,
+        //             lineColor: 'blue',
+        //             lineWidth: 2,
+        //             markerType: 'ellipse',
+        //             markerWidth: 10,
+        //             markerHeight: 10,
+        //             markerFill: "red",
+        //             'markerPlacement': 'vertex',
+        //         })
+        //         // }
+        //     }
+        //     if (mode === 'point') {
+        //         geometry.setSymbol({
+        //             markerType: 'ellipse',
+        //             markerWidth: 10,
+        //             markerHeight: 10,
+        //             markerFill: "red",
+        //         })
+        //     }
+        // }
+
+        // var items = ['Point', 'LineString', 'Polygon'].map(function (value) {
+        //     return {
+        //         item: value,
+        //         click: function () {
+        //             drawTool.setMode(value).enable();
+        //         }
+        //     };
+        // });
+
+        // var toolbar = new maptalks.control.Toolbar({
+        //     items: [
+        //         {
+        //             item: 'Shape',
+        //             children: items
+        //         },
+        //         {
+        //             item: 'Disable',
+        //             click: function () {
+        //                 drawTool.disable();
+        //             }
+        //         },
+        //         {
+        //             item: 'Clear',
+        //             click: function () {
+        //                 layer.clear();
+        //             }
+        //         }
+        //     ]
+        // }).addTo(map);
+
+
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
