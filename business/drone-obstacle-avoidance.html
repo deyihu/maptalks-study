@@ -71,11 +71,11 @@
     <script>
         const geoJSONRender = new jsts.io.GeoJSONReader();
         const geoJSONWriter = new jsts.io.GeoJSONWriter();
-        const offsetHeight = 10;
+        const offsetHeight = 10, baseHeight = 30;
 
         const geojson = { "type": "Feature", "geometry": { "type": "LineString", "coordinates": [[120.60292295826729, 31.273652046331016], [120.60276942523922, 31.27163977749619], [120.60283691588644, 31.270141423765285], [120.60219244484436, 31.2694360220688], [120.60200200406906, 31.26847313238319], [120.60191240569756, 31.267028995137768], [120.60166478353827, 31.26622669025548], [120.60106383470327, 31.26605968891621], [120.60069898708856, 31.26677726093901], [120.60032866831092, 31.267110509429607], [120.59972658153369, 31.267598159048326], [120.59916329765774, 31.267575453577113], [120.5989171582181, 31.267082731428346], [120.59892299647763, 31.2663741575859], [120.59817446153598, 31.26617185082765], [120.59801745254474, 31.266770482900885], [120.59754972612997, 31.267642854272463], [120.59682460209841, 31.26793877387575], [120.5959858204859, 31.26789014065697], [120.59561242988089, 31.26724159911958], [120.59523687623808, 31.266672888621162], [120.59452540120397, 31.265611098115265], [120.59378162795511, 31.266109469709072], [120.59308749523126, 31.26716911792544], [120.59299510113857, 31.267843743221594], [120.59319662432053, 31.26852395478753], [120.59323518080609, 31.26913009660999], [120.59341545446881, 31.26973345318645], [120.5934238401793, 31.270320986110757], [120.593517304352, 31.270949780743454], [120.5911423102871, 31.270650129540062], [120.59034646037831, 31.269196368270006], [120.58974526433008, 31.271925040555246], [120.5869552433987, 31.275501148481865], [120.58683577948344, 31.277162765638273], [120.58630471429608, 31.2775540806459], [120.58652598176054, 31.278349317077485], [120.58696852899357, 31.279001069953967], [120.58725392769115, 31.279340477043178], [120.58793315242889, 31.27830914579784], [120.58823131508719, 31.277568034706864], [120.58878340129107, 31.27691016597349], [120.59027176905056, 31.27634498817349]] }, "properties": null };
         geojson.geometry.coordinates.forEach(c => {
-            c[2] = offsetHeight;
+            c[2] = baseHeight;
         })
         const bufferPolygons = [];
         const lineGeometry = geoJSONRender.read(geojson).geometry;
@@ -186,7 +186,7 @@
                     const bufferPolygon = geoJSONRender.read(p);
                     const buffer = bufferPolygon.geometry.buffer(15 / 111120);
                     const c = buffer.intersects(lineGeometry);
-                    if (c && height > offsetHeight) {
+                    if (c && height > baseHeight) {
                         bufferPolygons.push({
                             buffer,
                             polygon: p,
@@ -270,9 +270,9 @@
             }
             if (cross && cross !== currentPolygon) {
 
-                let fromHeight = 0, toHeight = cross.height;
+                let fromHeight = baseHeight, toHeight = cross.height + offsetHeight;
                 if (currentPolygon) {
-                    fromHeight = currentPolygon.height;
+                    fromHeight = currentPolygon.height + offsetHeight;
                 }
 
                 player.pause();
@@ -285,9 +285,9 @@
             }
             if (!cross && currentPolygon) {
                 player.pause();
-                const height = currentPolygon.height;
+                const height = currentPolygon.height + offsetHeight;
                 heightModeling = true;
-                animationModelHeight(height, 0, () => {
+                animationModelHeight(height, baseHeight, () => {
                     heightModeling = false;
                     player.play();
                 });
@@ -321,7 +321,7 @@
                     // console.log(frame);
                     const coordinate = model.getCoordinates();
                     const height = fromHeight + frame.symbol.height;
-                    model.setCoordinates([coordinate.x, coordinate.y, height + offsetHeight]);
+                    model.setCoordinates([coordinate.x, coordinate.y, height]);
                     if (frame.state.playState === 'finished') {
                         callback();
 
