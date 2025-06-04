@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        background-color: black;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/gcoord.js'></script>
+
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            center: [116.33607780651141,
+                39.89606849343474],
+            zoom: 17,
+            pitch: 60,
+            // baseLayer: new maptalks.TileLayer('base', {
+            //     urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            //     subdomains: ["a", "b", "c", "d"],
+            // })
+        });
+        const groupGLLayer = new maptalks.GroupGLLayer("gl", [], {
+            sceneConfig: {
+                postProcess: {
+                    enable: true,
+                    antialias: { enable: true },
+                    bloom: {
+                        enable: true,
+                        threshold: 0,
+                        factor: 1,
+                        radius: 0.02,
+                    },
+                }
+
+            }
+        }).addTo(map);
+
+        const layer = new maptalks.LineStringLayer('layer', {
+            enableBloom: true
+        }).addTo(groupGLLayer);
+
+        const coordinates = [
+            [
+                116.33607780651141,
+                39.89606849343474,
+                33
+            ],
+            [
+                116.33887422799637,
+                39.89620964067049,
+                50
+            ]
+        ];
+        const line = new maptalks.LineString(coordinates, {
+            symbol: {
+                lineWidth: 3,
+                lineColor: 'red'
+            }
+        }).addTo(layer);
+
+
+
+
+    </script>
+</body>
+
+</html>
