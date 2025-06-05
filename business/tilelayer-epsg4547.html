@@ -33,6 +33,7 @@
         const tileActor = maptalks.getTileActor();
 
         const TILESIZE = 256;
+        const maskId = '4547';
         const merc = new study.SphericalMercator({
             size: TILESIZE,
             antimeridian: true
@@ -69,6 +70,16 @@
                 }
             }
         });
+
+        const groupGLLayer = new maptalks.GroupGLLayer("gl", [], {
+            sceneConfig: {
+
+                postProcess: {
+                    enable: true
+                },
+
+            }
+        }).addTo(map);
 
         function prjCoordinate(c) {
             return proj4('EPSG:4547', 'EPSG:4326', c)
@@ -264,7 +275,18 @@
                     })
                 }).then(image => {
                     const cImage = clipImage(image, tiles, clipBBOX);
-                    callback(cImage);
+                    tileActor.clipTile({
+                        tile: cImage,
+                        tileBBOX: tileBBOX,
+                        projection: baseLayer.getProjection().code,
+                        tileSize: baseLayer.getTileSize().width,
+                        maskId,
+
+                    }).then(image => {
+                        callback(image);
+                    }).catch(error => {
+                        console.error(error);
+                    })
                 }).catch(error => {
                     console.error(error);
                 })
@@ -272,7 +294,7 @@
             };
         });
 
-        baseLayer.addTo(map);
+
 
         const layer = new maptalks.VectorLayer('layer').addTo(map);
         const point = new maptalks.Marker(map.getCenter()).addTo(layer);
@@ -281,6 +303,19 @@
         fetch('./../assets/data/geojson-4547.geojson').then(res => res.json()).then(geojson => {
             const geos = maptalks.GeoJSON.toGeometry(geojson);
             layer.addGeometry(geos);
+
+            const extent = new maptalks.Extent(MAXBBOX);
+
+            // const line = new maptalks.LineString(extent.toArray());
+            // layer.addGeometry(line);
+
+            const mask = new maptalks.Polygon([extent.toArray()]);
+
+            tileActor.injectMask(maskId, mask.toGeoJSON()).then(() => {
+                baseLayer.addTo(groupGLLayer);
+            })
+
+            // baseLayer.setMask(mask);
             map.fitExtent(layer.getExtent());
         })
 
