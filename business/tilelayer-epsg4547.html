@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.tileclip.js'></script>
+<script type='text/javascript' src='./../assets/lib/proj4.min.js'></script>
+<script type='text/javascript' src='./../assets/bundle/maptalks-study.js'></script>
+
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const { TileCover } = study;
+        const tileActor = maptalks.getTileActor();
+
+        const TILESIZE = 256;
+        const merc = new study.SphericalMercator({
+            size: TILESIZE,
+            antimeridian: true
+        });
+
+        proj4.defs(
+            "EPSG:4547",
+            "+proj=tmerc +lat_0=0 +lon_0=114 +k=1 +x_0=500000 +y_0=0 +ellps=GRS80 +units=m +no_defs +type=crs"
+        );
+
+        const resolutions = []
+        const first = 156543.03392800014;
+        for (let i = 0; i <= 22; i++) {
+            resolutions.push(156543.03392800014 / Math.pow(2, i));
+        }
+        console.log(resolutions);
+        // -20037508.342787,20037508.342787
+        // const width = 20037508;
+
+        //4547 bounds
+        const MAXBBOX = [344577.88, 2380651.49, 655422.12, 5036050.38]
+        var map = new maptalks.Map('map', {
+            center: [529003.4558741893, 3381427.097063985],
+            centerCross: true,
+            zoom: 16,
+            spatialReference: {
+                projection: 'identity',
+                resolutions,
+                fullExtent: {
+                    'top': 5036050.38,
+                    'left': 344577.88,
+                    'bottom': 2380651.49,
+                    'right': 655422.12
+                }
+            }
+        });
+
+        function prjCoordinate(c) {
+            return proj4('EPSG:4547', 'EPSG:4326', c)
+        }
+
+        function prjBBOX(bbox) {
+            const [minx, miny, maxx, maxy] = bbox;
+            const min = prjCoordinate([minx, miny]);
+            const max = prjCoordinate([maxx, maxy]);
+            return [...min, ...max];
+        }
+
+        function bboxToMBBOX(bbox) {
+            const [minx, miny, maxx, maxy] = bbox;
+            const coordinates = [
+                [minx, miny],
+                [maxx, miny],
+                [maxx, maxy],
+                [minx, maxy],
+                [minx, miny]
+            ];
+            let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+            coordinates.forEach(c => {
+                const c1 = proj4('EPSG:4326', 'EPSG:3857', c);
+                const [x, y] = c1;
+                x1 = Math.min(x1, x);
+                y1 = Math.min(y1, y);
+                x2 = Math.max(x2, x);
+                y2 = Math.max(y2, y);
+            });
+            return [x1, y1, x2, y2];
+        }
+
+        function bboxToPolygon(bbox) {
+            const [xmin, ymin, xmax, ymax] = bbox;
+            return {
+                type: 'Polygon',
+                coordinates: [
+                    [
+                        [xmin, ymin],
+                        [xmin, ymax],
+                        [xmax, ymax],
+                        [xmax, ymin],
+                        [xmin, ymin]
+                    ]
+                ]
+            };
+        }
+
+
+        function validateBBOX(bbox) {
+            for (let i = 0, len = bbox.length; i < len; i++) {
+                const v = bbox[i];
+                if (typeof v !== 'number' || Math.abs(v) === Infinity) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function bboxIntersect(bbox1, bbox2) {
+            if (bbox1[2] < bbox2[0]) {
+                return false;
+            }
+            if (bbox1[1] > bbox2[3]) {
+                return false;
+            }
+            if (bbox1[0] > bbox2[2]) {
+                return false;
+            }
+            if (bbox1[3] < bbox2[1]) {
+                return false;
+            }
+            return true;
+        }
+
+
+
+
+        let globalCanvas;
+
+        function getCanvas(tileSize = 256) {
+            if (!globalCanvas && OffscreenCanvas) {
+                globalCanvas = new OffscreenCanvas(1, 1);
+            }
+            if (globalCanvas) {
+                resizeCanvas(globalCanvas, tileSize, tileSize);
+            }
+            return globalCanvas;
+        }
+
+        function resizeCanvas(canvas, width, height) {
+            if (canvas) {
+                canvas.width = width;
+                canvas.height = height;
+            }
+
+        }
+
+        function clearCanvas(ctx) {
+            const canvas = ctx.canvas;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function getCanvasContext(canvas) {
+            const ctx = canvas.getContext('2d', {
+                willReadFrequently: true
+            });
+            clearCanvas(ctx);
+            return ctx;
+        }
+
+
+
+        function clipImage(image, tiles, clipBBOX) {
+            const [x1, y1, x2, y2] = clipBBOX;
+            let minx = Infinity, miny = Infinity, maxx = -Infinity, maxy = -Infinity;
+            tiles.forEach(tile => {
+                const [xmin, ymin, xmax, ymax] = tile.mbbox;
+                minx = Math.min(minx, xmin);
+                miny = Math.min(miny, ymin);
+                maxx = Math.max(maxx, xmax);
+                maxy = Math.max(maxy, ymax);
+            });
+            const { width, height } = image;
+            const ax = (maxx - minx) / width, ay = (maxy - miny) / height;
+            const dx1 = (x1 - minx) / ax;
+            const dx2 = (x2 - minx) / ax;
+            const dy1 = height - (y2 - miny) / ay;
+            const dy2 = height - (y1 - miny) / ay;
+            const canvas = getCanvas();
+            resizeCanvas(canvas, TILESIZE, TILESIZE);
+            const ctx = getCanvasContext(canvas);
+            ctx.drawImage(image, dx1, dy1, dx2 - dx1, dy2 - dy1, 0, 0, TILESIZE, TILESIZE);
+            return canvas.transferToImageBitmap();
+        }
+
+
+
+
+
+        const baseLayer = new maptalks.TileLayer('base0', {
+            // tileSystem: [1, -1, -5273200, 7202100],
+            // spatialReference: {
+            //     projection: 'EPSG:3857'
+            // },
+            // decodeImageInWorker: true,
+            maxAvailableZoom: 18,
+            urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+        });
+
+        baseLayer.on('renderercreate', function (e) {
+            //load tile image
+            //   img(Image): an Image object
+            //   url(String): the url of the tile
+            e.renderer.loadTileBitmap = function (url, tile, callback) {
+                //get tile bbox is 4547
+                const tileBBOX = baseLayer._getTileBBox(tile);
+                if (!bboxIntersect(MAXBBOX, tileBBOX)) {
+                    callback(maptalks.getBlankTile());
+                    return;
+                }
+                //transform 4547 to 4326
+                const bbox = prjBBOX(tileBBOX);
+                if (!validateBBOX(bbox)) {
+                    callback(maptalks.getBlankTile());
+                    return;
+                }
+
+                //tansform 4326 to 3857
+                const clipBBOX = bboxToMBBOX(bbox);
+                const zoom = tile.z;
+                const polygon = bboxToPolygon(bbox);
+                //cal the bbox cover tiles
+                const tiles = TileCover.tiles(polygon, {
+                    min_zoom: zoom,
+                    max_zoom: zoom
+                }).map(tile => {
+                    const [x, y, z] = tile;
+                    const mbbox = merc.bbox(x, y, z, false, '900913');
+                    return {
+                        mbbox,
+                        tile,
+                        x, y, z
+                    }
+                });
+                //layout tiles by maptalks.tileclip plugin
+                tileActor.layoutTiles({
+                    urlTemplate: baseLayer.options.urlTemplate,
+                    tiles: tiles.map(item => {
+                        const { x, y, z } = item;
+                        return [x, y, z]
+                    })
+                }).then(image => {
+                    const cImage = clipImage(image, tiles, clipBBOX);
+                    callback(cImage);
+                }).catch(error => {
+                    console.error(error);
+                })
+
+            };
+        });
+
+        baseLayer.addTo(map);
+
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
+        const point = new maptalks.Marker(map.getCenter()).addTo(layer);
+
+        // test 4547 data
+        fetch('./../assets/data/geojson-4547.geojson').then(res => res.json()).then(geojson => {
+            const geos = maptalks.GeoJSON.toGeometry(geojson);
+            layer.addGeometry(geos);
+            map.fitExtent(layer.getExtent());
+        })
+
+
+
+
+    </script>
+</body>
+
+</html>
