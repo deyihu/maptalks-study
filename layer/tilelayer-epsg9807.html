@@ -64,6 +64,15 @@
         const baseLayer = new maptalks.TileLayer('base0', {
             tileSystem: [1, -1, -5273200, 7202100],
             spatialReference,
+            decodeImageInWorker: true,
+            fetchOptions: {
+                headers: {
+                    token1: '111',
+                    'accept': 'image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.1418.26'
+                }
+
+            },
             // offset,
             urlTemplate: "./../assets/data/suzhou-yuanqu-tiles/{z}/{x}/{y}.png",
         })
