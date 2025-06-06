@@ -80,6 +80,7 @@
             const lines = data.map(d => {
                 const [c1, c2] = d.coordinates;
                 const line = new maptalks.LineString(arcLinePoints(c1, c2), {
+                    properties: { ...d },
                     symbol: {
                         linePatternFile: "./../assets/image/path_007_21.png",
                         // linePatternDx: 0,
@@ -88,6 +89,9 @@
                         lineWidth: 8,
                     },
                 });
+                line.on('click', e => {
+                    console.log(e);
+                })
                 return line;
             });
             layer.addGeometry(lines);
