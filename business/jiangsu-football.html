@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        background-color: #2B2D2C;
+    }
+
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+        overflow-x: hidden;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+
+    .panel {
+        position: absolute;
+        z-index: 1;
+        width: 200px;
+        height: 90%;
+        max-height: 100%;
+        /* border: 1px solid gray; */
+        padding: 10px;
+        margin-top: 20px;
+        overflow: hidden;
+    }
+
+    .panel-left {
+        left: 200px;
+    }
+
+    .panel-right {
+        right: 200px;
+    }
+
+    .panel .item {
+        height: 80px;
+        background-color: #3b3b3bb5;
+        backdrop-filter: blur(10px);
+        margin-bottom: 20px;
+        border: 2px solid #100e0e;
+        box-shadow: 0 0 15px #141414;
+        border-radius: 10px;
+        padding-top: 15px;
+        padding-left: 10px;
+    }
+
+    .panel .item .title {
+        color: #fff;
+        text-align: center;
+        font-size: 20px;
+        font-weight: bold;
+        line-height: 30px;
+        display: flex;
+    }
+
+    .panel .item .title img {
+        height: 30px;
+        margin-right: 6px;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+
+
+<body>
+    <div class="panel panel-left">
+        <div class="item">
+            <div class="title"><img src="./../assets/icon/足球.png" /><span>徐州</span></div>
+        </div>
+        <div class="item">
+            <div class="title"><img src="./../assets/icon/足球.png" /><span>宿迁</span></div>
+        </div>
+        <div class="item">
+
+            <div class="title"><img src="./../assets/icon/足球.png" /><span>淮安</span></div>
+        </div>
+        <div class="item">
+            <div class="title"><img src="./../assets/icon/足球.png" /><span>扬州</span></div>
+
+        </div>
+
+        <div class="item">
+            <div class="title"><img src="./../assets/icon/足球.png" /><span>镇江</span></div>
+
+        </div>
+        <div class="item">
+            <div class="title"><img src="./../assets/icon/足球.png" /><span>南京</span></div>
+        </div>
+        <div class="item">
+            <!-- <div class="title">常州</div> -->
+            <div class="title"><img src="./../assets/icon/小恐龙LOGO.png" /><span>常州</span></div>
+        </div>
+    </div>
+    <div class="panel panel-right">
+        <div class="item">
+            <!-- <div class="title">连云港</div> -->
+            <div class="title"><img src="./../assets/icon/足球.png" /><span>连云港</span></div>
+        </div>
+        <div class="item">
+            <!-- <div class="title">盐城</div> -->
+            <div class="title"><img src="./../assets/icon/足球.png" /><span>盐城</span></div>
+        </div>
+        <div class="item">
+            <!-- <div class="title">泰州</div> -->
+            <div class="title"><img src="./../assets/icon/足球.png" /><span>泰州</span></div>
+        </div>
+        <div class="item">
+            <!-- <div class="title">南通</div> -->
+            <div class="title"><img src="./../assets/icon/足球.png" /><span>南通</span></div>
+        </div>
+        <div class="item">
+            <!-- <div class="title">无锡</div> -->
+            <div class="title"><img src="./../assets/icon/足球.png" /><span>无锡</span></div>
+        </div>
+        <div class="item">
+            <!-- <div class="title">苏州</div> -->
+            <div class="title"><img src="./../assets/icon/足球.png" /><span>苏州</span></div>
+        </div>
+    </div>
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const VectorLayer = maptalks.VectorLayer;
+
+        const options = {
+            'geometryEvents': false,
+            'hitDetect': false,
+            'enableAltitude': true,
+            'forceRenderOnMoving': true,
+            'forceRenderOnZooming': true,
+            'forceRenderOnRotating': true,
+        };
+
+        class LinkLineLayer extends VectorLayer {
+
+        }
+        LinkLineLayer.mergeOptions(options);
+
+
+        const OverlayLayerCanvasRenderer = maptalks.renderer.OverlayLayerCanvasRenderer;
+
+        const LineString = maptalks.LineString;
+
+        class LinkLineLayerCanvasRenderer extends OverlayLayerCanvasRenderer {
+
+            draw() {
+                this._drawLines();
+                return this;
+
+            }
+
+
+            drawOnInteracting() {
+                this._drawLines();
+                return this;
+            }
+
+            _drawLines() {
+                const layer = this.layer;
+                if (!layer) {
+                    return this;
+                }
+                const map = this.layer.getMap();
+                if (!map) {
+                    return this;
+                }
+                this.prepareCanvas();
+                if (!this.context) {
+                    return this;
+                }
+                const lines = this.layer._geoList.filter(g => {
+                    if (g instanceof LineString) {
+                        g._getPainter();
+                        return true;
+                    }
+                    return false;
+                });
+                lines.forEach(line => {
+                    this._drawLinkLine(line);
+                });
+                this.completeRender();
+                return this;
+            }
+
+            _drawLinkLine(line) {
+                const map = this.layer.getMap();
+                const coords = line.getCoordinates();
+                if (!coords || !coords.length) {
+                    return this;
+                }
+                if (!line._painter) {
+                    return this;
+                }
+                const symbolizer = line._painter.symbolizers;
+                const lineSymbol = symbolizer[0];
+                if (!lineSymbol) {
+                    return this;
+                }
+                const altitude = line._painter.getAltitude();
+                const { lineColor, lineWidth, shadowBlur, shadowColor, vertexs, offsetX, offsetY } = lineSymbol.symbol || {};
+                const renderPoints = line._painter.getRenderPoints()[0][0];
+                const glRes = map.getGLRes();
+                const pixel = map._pointAtResToContainerPoint(renderPoints, glRes, altitude);
+                const ctx = this.context;
+                ctx.strokeStyle = lineColor || '#000';
+                ctx.lineWidth = lineWidth || 1;
+                if (shadowBlur) {
+                    ctx.shadowBlur = shadowBlur;
+                    ctx.shadowColor = shadowColor || '#fff';
+                } else {
+                    ctx.shadowBlur = 0;
+                    // delete ctx.shadowColor;
+                }
+                // ctx.shadowColor = shadowColor;
+                ctx.beginPath();
+                ctx.moveTo(pixel.x + (offsetX || 0), pixel.y + (offsetY || 0));
+                if (Array.isArray(vertexs)) {
+                    for (let i = vertexs.length - 1; i >= 0; i--) {
+                        const vertex = vertexs[i];
+                        if (Array.isArray(vertex)) {
+                            const [x, y] = vertex;
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                }
+                ctx.stroke();
+                return this;
+
+            }
+        }
+
+        LinkLineLayer.registerRenderer('canvas', LinkLineLayerCanvasRenderer);
+
+
+
+        var map = new maptalks.Map('map', {
+            "center": [119.15110114, 32.92097946], "zoom": 8.218472659732232, "pitch": 0, "bearing": 0, maxPitch: 0,
+            dragRotatePitch: false, dragRotate: false,
+            // baseLayer: new maptalks.TileLayer('base', {
+            //     urlTemplate: 'https://t4.tianditu.gov.cn/DataServer?T=img_w&X={x}&Y={y}&L={z}&tk=81f5d2faf4bd7ee6b55f7cd535e81518',
+            //     subdomains: ["a", "b", "c", "d"],
+            //     maxAvailableZoom: 18,
+            // })
+        });
+
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
+
+        const linkLayer = new LinkLineLayer('link').addTo(map);
+
+
+        const subAreaSymbol = {
+            polygonFill: "#478CF6",
+            polygonOpacity: 1,
+            lineColor: "#fff",
+            lineWidth: 0.5,
+            //阴影很耗时
+            shadowColor: "#317EF5",
+            shadowBlur: 20,
+        }
+
+        const labelSymbol = {
+            markerFile: './../assets/icon/足球.png',
+            markerWidth: 40,
+            markerHeight: 40
+        }
+
+        const lineSymbol = {
+            lineColor: '#fff',
+            lineWidth: 1,
+        }
+
+        fetch('./../assets/data/jiangsu.geojson').then(res => res.json()).then(geojson => {
+            const polygons = maptalks.GeoJSON.toGeometry(geojson, p => {
+                p.setSymbol(subAreaSymbol);
+            });
+            layer.addGeometry(polygons);
+            // initGui();
+        })
+        fetch('./../assets/data/jiangsu-city-center.geojson').then(res => res.json()).then(geojson => {
+            const polygons = maptalks.GeoJSON.toGeometry(geojson, p => {
+                const name = p.getProperties().name;
+                p.setSymbol([
+                    {
+                        markerType: 'ellipse',
+                        markerWidth: 44,
+                        markerHeight: 44,
+                        markerFill: '#fff',
+                        markerLineColor: '#000',
+                        markerDy: 2,
+                        markerVerticalAlignment: 'top'
+                    },
+                    Object.assign({}, labelSymbol, {
+                        markerFile: `./../assets/icon/${name}.png`
+                    })
+                ]
+                );
+            });
+            layer.addGeometry(polygons);
+            updateLink();
+
+        })
+
+        function findPointByName(name) {
+            return layer.getGeometries().filter(p => {
+                return p.getProperties().name === name;
+            })[0]
+        }
+
+        function findLineByName(name) {
+            return linkLayer.getGeometries().filter(p => {
+                return p.getProperties().name === name;
+            })[0]
+        }
+
+        function updateLink() {
+            const center = map.coordinateToContainerPoint(map.getCenter());
+            const titleList = document.querySelectorAll('.panel .item .title');
+            Array.prototype.forEach.call(titleList, (dom) => {
+                const title = dom.textContent;
+                const itemDom = dom.parentNode;
+                const rect = itemDom.getBoundingClientRect();
+                // console.log(rect);
+                const { bottom, right, left, top } = rect;
+                const coordinate = findPointByName(title).getCoordinates().toArray();
+                let y = (top + bottom) / 2;
+                let x = right;
+                const p1 = new maptalks.Point(right, y);
+                const p2 = new maptalks.Point(left, y);
+
+                if (p1.distanceTo(center) > p2.distanceTo(center)) {
+                    x = p2.x;
+                    y = p2.y;
+                }
+                const vs = [x, y];
+                const symbol = Object.assign({}, lineSymbol, { vertexs: [vs] });
+                let line = findLineByName(title);
+                if (!line) {
+                    line = new maptalks.LineString([coordinate], {
+                        symbol,
+                        properties: {
+                            name: title
+                        }
+                    }).addTo(linkLayer);
+                } else {
+                    line.setSymbol(symbol);
+                }
+            })
+        }
+
+        map.on('resize', updateLink);
+
+        function initGui() {
+            var params = Object.assign({}, subAreaSymbol, {
+                // areaColor: material.color.getStyle(),
+            });
+            var gui = new lil.GUI();
+
+
+            function updateSubAreaSymbol() {
+                layer.getGeometries().forEach(polygon => {
+                    polygon.setSymbol({
+                        ...params
+                    })
+                })
+            }
+            gui.addColor(params, 'lineColor').name('lineColor').onChange(updateSubAreaSymbol);
+            gui.add(params, 'lineWidth', 0, 20, 1).name('lineWidth').onChange(updateSubAreaSymbol);
+            gui.addColor(params, 'polygonFill').name('polygonFill').onChange(updateSubAreaSymbol);
+            gui.add(params, 'polygonOpacity', 0, 1, 0.1).name('polygonOpacity').onChange(updateSubAreaSymbol);
+        }
+
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
