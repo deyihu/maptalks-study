@@ -71,6 +71,13 @@
         display: flex;
     }
 
+    .panel .item .content{
+        color: #fff;
+        text-align: center;
+        font-size: 20px;
+        font-weight: bold;
+    }
+
     .panel .item .title img {
         height: 30px;
         margin-right: 6px;
@@ -109,6 +116,7 @@
         <div class="item">
             <!-- <div class="title">常州</div> -->
             <div class="title"><img src="./../assets/icon/小恐龙LOGO.png" /><span>常州</span></div>
+            <div class="content">0</div>
         </div>
     </div>
     <div class="panel panel-right">
@@ -296,34 +304,35 @@
             });
             layer.addGeometry(polygons);
             // initGui();
-        })
-        fetch('./../assets/data/jiangsu-city-center.geojson').then(res => res.json()).then(geojson => {
-            const polygons = maptalks.GeoJSON.toGeometry(geojson, p => {
-                const name = p.getProperties().name;
-                p.setSymbol([
-                    {
-                        markerType: 'ellipse',
-                        markerWidth: 44,
-                        markerHeight: 44,
-                        markerFill: '#fff',
-                        markerLineColor: '#000',
-                        markerDy: 2,
-                        markerVerticalAlignment: 'top'
-                    },
-                    Object.assign({}, labelSymbol, {
-                        markerFile: `./../assets/icon/${name}.png`
-                    })
-                ]
-                );
-            });
-            layer.addGeometry(polygons);
-            updateLink();
+            fetch('./../assets/data/jiangsu-city-center.geojson').then(res => res.json()).then(geojson => {
+                const polygons = maptalks.GeoJSON.toGeometry(geojson, p => {
+                    const name = p.getProperties().name;
+                    p.setSymbol([
+                        {
+                            markerType: 'ellipse',
+                            markerWidth: 44,
+                            markerHeight: 44,
+                            markerFill: '#fff',
+                            markerLineColor: '#000',
+                            markerDy: 2,
+                            markerVerticalAlignment: 'top'
+                        },
+                        Object.assign({}, labelSymbol, {
+                            markerFile: `./../assets/icon/${name}.png`
+                        })
+                    ]
+                    );
+                });
+                layer.addGeometry(polygons);
+                updateLink();
 
+            })
         })
+
 
         function findPointByName(name) {
             return layer.getGeometries().filter(p => {
-                return p.getProperties().name === name;
+                return p.getProperties().name === name && p instanceof maptalks.Marker;
             })[0]
         }
 
