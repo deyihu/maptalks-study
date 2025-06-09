@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/randomColor.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            "center": [121.48696229, 31.17564311], "zoom": 12.059295827523316, "pitch": 0, "bearing": -1.349999999999909,
+            // baseLayer: new maptalks.TileLayer('base', {
+            //     urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            //     subdomains: ["a", "b", "c", "d"],
+            // })
+        });
+        const layer = new maptalks.VectorLayer('layer', {
+            // enableAltitude: true
+            'collision': true,
+            'collisionDelay': 250,
+            collisionBufferSize: 1,
+            // debug: true
+        }).addTo(map);
+
+        const layer1 = new maptalks.VectorLayer('layer1', {
+            // enableAltitude: true
+            // 'collision': true,
+            // 'collisionDelay': 250,
+            // collisionBufferSize: 6
+        }).addTo(map);
+
+        const defaultSymbol = {
+            markerFile: './../assets/icon/钻石.png',
+            markerWidth: 40,
+            markerHeight: 40
+        }
+
+        function poiClick(e) {
+            layer1.clear();
+            layer.setOpacity(0.3);
+            const p = e.target.copy();
+            p.setSymbol(Object.assign({}, defaultSymbol, {
+                markerWidth: 50,
+                markerHeight: 50
+            }));
+            p.addTo(layer1);
+            p.setInfoWindow({
+                content: 'hello world'
+            });
+            p.openInfoWindow();
+            let remove = false;
+            p.getInfoWindow().once('hide remove', e => {
+                // p.remove();
+                if (!remove) {
+                    layer1.clear();
+                    layer.setOpacity(1);
+                    remove = true;
+                }
+            })
+        }
+
+        fetch('./../assets/data/pois.geojson').then(res => res.json()).then(geojson => {
+            const points = maptalks.GeoJSON.toGeometry(geojson, (geo) => {
+                geo.setSymbol(defaultSymbol);
+                geo.on('click', poiClick);
+            });
+            layer.addGeometry(points);
+        })
+
+
+    </script>
+</body>
+
+</html>
