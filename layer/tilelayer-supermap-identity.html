@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+
+<body>
+    <script type="text/javascript" src="https://maptalks.com/api/transcoders.draco.js"></script>
+    <div id="map" class="container"></div>
+
+    <script>
+
+        // const resution = [
+        //     52.55616069671853,
+        //     26.278080348359264,
+        //     13.139040174179632,
+        //     6.569520087089816,
+        //     3.284760043544908,
+        //     1.642380021772454,
+        //     0.821190010886227,
+        //     0.4105950054431135,
+        //     0.20529750272155675,
+        //     0.10264875136077838,
+        //     0.05132437568038919,
+        //     0.025662187840194594,
+        //     0.012831093920097297,
+        //     0.0064155469600486485,
+        //     0.0032077734800243242,
+        //     0.0016038867400121621,
+        //     0.0008019433700060811,
+        //     0.00040097168500304053,
+        //     0.00020048584250152027,
+        //     0.00010024292125076013,
+        //     0.000050121460625380066,
+        //     0.000025060730312690033
+        // ];
+
+        //切图参数
+        var parmas = {
+            zooms: 21,
+            //第一个比例尺
+            // http://support.supermap.com.cn:8090/iserver/services/map-world/rest/maps/World.leaflet
+            firstRes: 52.55616069671853,
+            origin: [48.39718933631297, -55.577652310411075],
+            maxBounds: [2821.826889857593, 6185.421174447578, -5543.708614487465, -2180.114329897479]
+        };
+
+
+        var res = [];
+        for (var i = 0; i <= parmas.zooms; i++) {
+            res.push(parmas.firstRes / Math.pow(2, i));
+        }
+        var crs = {
+            projection: 'identity',
+            resolutions: res,
+            fullExtent: {
+                top: parmas.maxBounds[3],
+                left: parmas.maxBounds[0],
+                bottom: parmas.maxBounds[2],
+                right: parmas.maxBounds[1],
+            }
+        };
+
+        const map = new maptalks.Map("map", {
+            zoomContro: true,
+            center: [4503.624032152586, -3861.9114721924716],
+            zoom: 3,
+            bearing: 0,
+            pitch: 0,
+            centerCross: true,
+            spatialReference: crs
+        });
+
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+        });
+
+        const layer = new maptalks.VectorLayer('layer', {
+            zIndex: 2
+        }).addTo(map);
+        const point = new maptalks.Marker(map.getCenter()).addTo(layer);
+
+        const groupGLLayer = new maptalks.GroupGLLayer("gl", [], {
+
+        }).addTo(map);
+
+        function getMeterPerMapUnit(mapUnit) {
+            var meterPerMapUnit;
+            if (!mapUnit) {
+                return meterPerMapUnit;
+            }
+            var earchRadiusInMeters = 6378137;
+
+            if (['m', 'meter', 'meters'].indexOf(mapUnit.toLocaleLowerCase()) > -1) {
+                meterPerMapUnit = 1;
+            } else if (['degrees', 'deg', 'degree', 'dd'].indexOf(mapUnit.toLocaleLowerCase()) > -1) {
+                // 每度表示多少米。
+                meterPerMapUnit = (Math.PI * 2 * earchRadiusInMeters) / 360;
+            } else if (mapUnit === 'KILOMETER') {
+                meterPerMapUnit = 1000;
+            } else if (mapUnit === 'INCH') {
+                meterPerMapUnit = 2.5399999918e-2;
+            } else if (mapUnit === 'FOOT') {
+                meterPerMapUnit = 0.3048;
+            }
+            return meterPerMapUnit;
+        }
+
+        function test4326() {
+            function replaceURL(url, x, y, scale) {
+                var str = ['x', x, 'y', y, 'scale', scale];
+                for (var i = 0, len = str.length; i < len; i += 2) {
+                    url = url.replace('{' + str[i] + '}', str[i + 1]);
+                }
+                return url;
+            }
+
+            function resolutionToScale(resolution, dpi) {
+                var inchPerMeter = 1 / 0.0254;
+                var scale = resolution * dpi * inchPerMeter * getMeterPerMapUnit('meters');
+                scale = 1 / scale;
+                return scale;
+            }
+
+
+            var url = 'https://iserver.supermap.io/iserver/services/map-changchun/rest/maps/%E9%95%BF%E6%98%A5%E5%B8%82%E5%8C%BA%E5%9B%BE/tileImage.webp?scale={scale}&x={x}&y={y}&width=256&height=256&&origin=%7B"x"%3A48.39718933631297%2C"y"%3A-55.577652310411075%7D';
+
+
+            var tileLayer = new maptalks.TileLayer('base', {
+                debug: true,
+                repeatWorld: true,
+                urlTemplate: url,
+                subdomains: ['a', 'b', 'c', 'd'],
+                attribution:
+                    '&copy; <a href="https://www.supermap.com/cn/">supermap</a> contributors',
+                tileSystem: [1, -1].concat(parmas.origin) // tile system
+            });
+
+            // 重写瓦片获取的方法
+            tileLayer.getTileUrl = function (x, y, z) {
+                this.scales = this.scales || {};
+                if (this.scales[z]) {
+                    return replaceURL(this.options.urlTemplate, x, y, this.scales[z]);
+                }
+                var crs = this.getMap().getSpatialReference().getProjection();
+                var bounds = this._getTileExtent(x, y, z);
+                var min = bounds.getMin(),
+                    max = bounds.getMax();
+                var ne = crs.project(max);
+                var sw = crs.project(min);
+                var tileSize = this.options.tileSize[0];
+                var resolution = Math.max(
+                    Math.abs(ne.x - sw.x) / tileSize,
+                    Math.abs(ne.y - sw.y) / tileSize
+                );
+                var scale = resolutionToScale(resolution, 96);
+                this.scales[z] = scale;
+                return replaceURL(this.options.urlTemplate, x, y, this.scales[z]);
+            };
+
+            //获取瓦片的bbox
+            tileLayer._getTileExtent = function (x, y, z) {
+                var map = this.getMap(),
+                    res = map._getResolution(z),
+                    tileConfig = this._getTileConfig(),
+                    tileExtent = tileConfig.getTilePrjExtent(x, y, res);
+                return tileExtent;
+            };
+
+            tileLayer.addTo(groupGLLayer);
+        }
+
+        test4326();
+
+
+    </script>
+</body>
+
+</html>
