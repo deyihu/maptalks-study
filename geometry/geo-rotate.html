@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+<script type="text/javascript" src="//at.alicdn.com/t/font_3330503_allx40pxkxd.js"></script>
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+        const { ResourceProxy } = maptalks;
+        ResourceProxy.proxy['/arcgisonline/'] = {
+            target: 'https://services.arcgisonline.com/ArcGIS/'
+        }
+
+        const map = new maptalks.Map("map", {
+            center: [120, 31],
+            zoom: 9,
+            bearing: 0,
+            pitch: 0,
+            centerCross: true,
+            baseLayer: new maptalks.TileLayer("base", {
+                urlTemplate: '/arcgisonline/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                subdomains: ["a", "b", "c", "d"],
+            }),
+        });
+
+        const layer = new maptalks.VectorLayer('layer', { collision: true, collisionDelay: 250, debug: false }).addTo(map);
+        const center = map.getCenter();
+
+        const center0 = map.getCenter().add(-0.6, 0.1);
+        center0.z = 10000;
+        const center1 = map.getCenter().add(-0.2, 0.1)
+        center1.z = 10000;
+        const center2 = map.getCenter().add(0.2, 0)
+        center2.z = 10000;
+        const center3 = map.getCenter().add(0.4, 0);
+        center3.z = 10000;
+
+        const symbol = {
+            polygonFill: "white",
+            lineWidth: 2,
+            lineColor: 'black'
+        }
+        // center.z = 100;
+        const rect = new maptalks.Rectangle(center0.toArray(), 20000, 10000, {
+
+            symbol
+        });
+        const rect1 = new maptalks.Rectangle(center1.toArray(), 10000, 20000, {
+
+            symbol
+        });
+        const ellipse = new maptalks.Ellipse(center2.toArray(), 20000, 10000, {
+
+            symbol
+        });
+        const sector = new maptalks.Sector(center3.toArray(), 10000, 0, 120, {
+
+            symbol
+        });
+
+        const line = new maptalks.LineString([center0.copy(), center0.add(1, 0)]);
+        const geos = [rect, rect1, ellipse, sector, line];
+        layer.addGeometry(geos);
+
+        let angle = 0;
+        const speed = 0.2;
+        function animation() {
+            angle += speed;
+            geos.forEach(geo => {
+                const isPath = Array.isArray(geo.getCoordinates());
+                if (isPath) {
+                    geo.rotate(-speed);
+
+                } else {
+                    geo.rotate(angle);
+                }
+
+            });
+            requestAnimationFrame(animation);
+        }
+
+        animation();
+
+    </script>
+</body>
+
+</html>
