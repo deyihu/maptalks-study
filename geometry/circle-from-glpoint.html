@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+<script type="text/javascript" src="//at.alicdn.com/t/font_3330503_allx40pxkxd.js"></script>
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+        const { ResourceProxy } = maptalks;
+        ResourceProxy.proxy['/arcgisonline/'] = {
+            target: 'https://services.arcgisonline.com/ArcGIS/'
+        }
+
+        const map = new maptalks.Map("map", {
+            center: [120, 31],
+            zoom: 11,
+            pitch: 70,
+            bearing: 0,
+
+        });
+
+        const baseLayer = new maptalks.TileLayer("base", {
+            urlTemplate: '/arcgisonline/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            subdomains: ["a", "b", "c", "d"],
+        });
+
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            forceRenderOnMoving: true,
+            forceRenderOnRotating: true,
+            // animation: true
+        });
+
+
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            addCircles();
+            threeLayer.config('animation', true);
+
+        };
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true }
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [baseLayer, threeLayer], { sceneConfig });
+        groupLayer.addTo(map);
+
+        const layer = new maptalks.PolygonLayer('layer').addTo(groupLayer);
+
+        const radius = 100000;
+
+
+
+        
+        function generateShell(circle) {
+            const center = circle.options.coordinate;
+            const r = circle.options.r;
+            const centerPT = threeLayer.coordinateToVector3(center);
+            const coordinates = [];
+            const glRes = map.getGLRes();
+            for (let i = 0; i <= 360; i++) {
+                const rad = i / 180 * Math.PI;
+                const x = Math.cos(rad) * r + centerPT.x;
+                const y = Math.sin(rad) * r + centerPT.y;
+                const p = new maptalks.Point(x, y);
+                const c = map.pointAtResToCoordinate(p, glRes);
+                coordinates.push(c);
+            }
+
+            const polygon = new maptalks.Polygon([coordinates], {
+                symbol: {
+                    lineColor: 'red',
+                    lineWidth: 1,
+                    polygonOpacity: 0
+                }
+            }).addTo(layer);
+        }
+
+
+
+        function addCircles() {
+            const circle = new Circle(map.getCenter(), {
+                radius,
+                // r
+            }, new THREE.MeshBasicMaterial({ color: 'green', opacity: 0.5, transparent: true }), threeLayer);
+            threeLayer.addMesh(circle);
+            console.log(circle);
+            generateShell(circle);
+        }
+
+
+
+
+
+        //default values
+        var OPTIONS = {
+            radius: 100,
+            altitude: 0
+        };
+
+        /**
+         * custom Circle component
+         * 
+         * you can customize your own components
+         * */
+
+        class Circle extends maptalks.BaseObject {
+            constructor(coordinate, options, material, layer) {
+                options = maptalks.Util.extend({}, OPTIONS, options, { layer, coordinate });
+                super();
+                //Initialize internal configuration
+                // https://github.com/maptalks/maptalks.three/blob/1e45f5238f500225ada1deb09b8bab18c1b52cf2/src/BaseObject.js#L135
+                this._initOptions(options);
+                const { altitude, radius, } = options;
+                //generate geometry
+                const r = layer.distanceToVector3(radius, radius).x;
+                this.options.r = r;
+                const geometry = new THREE.CircleBufferGeometry(r, 150);
+
+                //Initialize internal object3d
+                // https://github.com/maptalks/maptalks.three/blob/1e45f5238f500225ada1deb09b8bab18c1b52cf2/src/BaseObject.js#L140
+                this._createMesh(geometry, material);
+
+                //set object3d position
+                const z = layer.altitudeToVector3(altitude, altitude).x;
+                const position = layer.coordinateToVector3(coordinate, z);
+                this.getObject3d().position.copy(position);
+                // this.getObject3d().rotation.x = -Math.PI;
+            }
+
+
+            /**
+             * animateShow test
+             * 
+             * */
+            animateShow(options = {}, cb) {
+                if (this._showPlayer) {
+                    this._showPlayer.cancel();
+                }
+                if (maptalks.Util.isFunction(options)) {
+                    options = {};
+                    cb = options;
+                }
+                const duration = options['duration'] || 1000,
+                    easing = options['easing'] || 'out';
+                const player = this._showPlayer = maptalks.animation.Animation.animate({
+                    'scale': 1
+                }, {
+                    'duration': duration,
+                    'easing': easing
+                }, frame => {
+                    const scale = frame.styles.scale;
+                    if (scale > 0) {
+                        this.getObject3d().scale.set(scale, scale, scale);
+                    }
+                    if (cb) {
+                        cb(frame, scale);
+                    }
+                });
+                player.play();
+                return player;
+            }
+        }
+
+
+
+    </script>
+</body>
+
+</html>
