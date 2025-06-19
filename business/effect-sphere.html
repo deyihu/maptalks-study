@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        /* background-color: black; */
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/LineMaterial.js'></script>
+<script type='text/javascript' src='./../assets/lib/poly-extrude.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const vs = `
+                varying vec3 vNormal;
+                varying vec3 vPositionNormal;
+                varying vec2 vUv;
+                void main() 
+                {
+                    vUv = uv;
+                    vNormal = normalize( normalMatrix * normal ); // 转换到视图空间
+                    vPositionNormal = normalize(( modelViewMatrix * vec4(position, 1.0) ).xyz);
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+                }
+        `;
+
+        const fs = `
+                uniform vec3 glowColor;
+                uniform float bias;
+                uniform float power;
+                uniform float scale;
+                varying vec3 vNormal;
+                varying vec3 vPositionNormal;
+                uniform sampler2D textureMap;
+                uniform vec2 repeat;
+                varying vec2 vUv;
+                uniform float time;
+                void main() 
+                {
+                    float a = pow( bias + scale * abs(dot(vNormal, vPositionNormal)), power );
+                    //*(vec2(1.0,time))
+                    vec4 mapColor=texture2D( textureMap, vUv*repeat);
+                    gl_FragColor = vec4( glowColor*mapColor.rgb, a );
+                }
+        `;
+
+        const vs1 = `
+
+           varying vec3 vNormal;
+            varying vec3 vPositionNormal;
+            void main() 
+            {
+            vNormal = normalize( normalMatrix * normal ); // 转换到视图空间
+            vPositionNormal = normalize(( modelViewMatrix * vec4(position, 1.0) ).xyz);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+            }
+
+    `;
+
+        const fs1 = `
+
+        uniform vec3 glowColor;
+        uniform float b;
+        uniform float p;
+        uniform float s;
+        varying vec3 vNormal;
+        varying vec3 vPositionNormal;
+        void main() 
+        {
+        float a = pow( b + s * abs(dot(vNormal, vPositionNormal)), p );
+        gl_FragColor = vec4( glowColor, a );
+        }
+
+    `;
+        // const color = '#3BE3B2';
+        const color = '#3679FF';
+        const RADIUS = 100000;
+        const symbol = {
+            lineColor: "#3679FF",
+            lineWidth: 2,
+            lineDasharray: [5, 5],
+            polygonFill: '#3679FF',
+            polygonOpacity: 0.3,
+        };
+        const baseOptions = {
+            interactive: false
+        }
+
+        const center = [116.4153173, 40.17086584];
+
+        function generateTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 12;
+            ctx.rect(2, 2, canvas.width + 1, canvas.height + 1);
+            ctx.stroke();
+            // document.body.appendChild(canvas)
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(20, 10);
+            texture.needsUpdate = true;
+            return texture;
+        }
+
+        const gridTexture = generateTexture();
+
+        const _uniforms = {
+            scale: { type: "f", value: -1.0 },
+            bias: { type: "f", value: 1.0 },
+            power: { type: "f", value: 3.3 },
+            glowColor: { type: "c", value: new THREE.Color(color) },
+            textureMap: {
+                value: undefined
+            },
+            repeat: {
+                type: "v2",
+                value: new THREE.Vector2(30.0, 15.0)
+            },
+            time: {
+                value: 0.0
+            }
+        };
+
+
+
+        var map = new maptalks.Map('map', {
+            centerCross: true,
+            "center": [116.57845295, 40.20744253], "zoom": 8.819733413937058, "pitch": 62.45000000000066, "bearing": 2.5224895413066406
+        });
+
+        const baseLayer = new maptalks.TileLayer('base', {
+            urlTemplate: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            // urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+            // urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+            maxAvailableZoom: 18,
+        });
+        map.setBaseLayer(baseLayer);
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            identifyCountOnEvent: 1
+            // forceRenderOnMoving: true,
+            // forceRenderOnRotating: true
+        });
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            scene.add(new THREE.AmbientLight('#fff', 0.3));
+            animation();
+            test();
+        };
+
+        // threeLayer.addTo(map);
+        // 添加到GroupGLLayer中
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true },
+                bloom: {
+                    enable: true,
+                    threshold: 0,
+                    factor: 1,
+                    radius: 0.02,
+                },
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [], { sceneConfig });
+        groupLayer.addTo(map);
+
+        threeLayer.addTo(groupLayer);
+
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
+        layer.setZIndex(-1)
+
+        const material1 = new THREE.MeshBasicMaterial({ color: '#fff', map: gridTexture, transparent: true, opacity:1});
+
+        // let material2 = new THREE.ShaderMaterial({
+        //     uniforms: _uniforms,
+        //     vertexShader: vs,
+        //     fragmentShader: fs,
+        //     //side: DoubleSide,
+        //     //blending:AdditiveBlending,
+        //     transparent: true,
+        //     depthWrite: false
+
+        // });
+
+        var customMaterial = new THREE.ShaderMaterial({
+            uniforms:
+            {
+                "s": { type: "f", value: -1.0 },
+                "b": { type: "f", value: 1.0 },
+                "p": { type: "f", value: 2.0 },
+                glowColor: { type: "c", value: new THREE.Color(color) }
+            },
+            vertexShader: vs1,
+            fragmentShader: fs1,
+            side: THREE.FrontSide,
+            blending: THREE.AdditiveBlending,
+            transparent: true
+        })
+
+
+        // function loadTexture() {
+        //     const textureLoader = new THREE.TextureLoader();
+        //     textureLoader.load('./../assets/image/grid1.png', (texture) => {
+        //         texture.needsUpdate = true; //使用贴图时进行更新
+        //         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+        //         _uniforms.textureMap.value = texture;
+        //         // texture.repeat.set(0.002, 0.002);
+
+        //     });
+
+        // }
+
+        function test() {
+            // loadTexture();
+            const sphere = new EffectSphere(center, { radius: RADIUS, ...baseOptions }, customMaterial, threeLayer);
+            threeLayer.addMesh(sphere);
+            const sphere1 = new EffectSphere(center, { radius: RADIUS + 1, ...baseOptions }, material1, threeLayer);
+            threeLayer.addMesh(sphere1);
+            generateShell(sphere);
+            console.log(sphere);
+            addData();
+        }
+
+        function generateShell(circle) {
+            const center = circle.options.coordinate;
+            const r = circle.options.r;
+            const centerPT = threeLayer.coordinateToVector3(center);
+            const coordinates = [];
+            const glRes = map.getGLRes();
+            for (let i = 0; i <= 360; i++) {
+                const rad = (i / 180) * Math.PI;
+                const x = Math.cos(rad) * r + centerPT.x;
+                const y = Math.sin(rad) * r + centerPT.y;
+                const p = new maptalks.Point(x, y);
+                const c = map.pointAtResToCoordinate(p, glRes);
+                coordinates.push(c);
+            }
+
+            const polygon = new maptalks.Polygon([coordinates], {
+
+                symbol: {
+                    ...symbol,
+                    lineColor: 'blue',
+                    polygonOpacity: 0.2
+                },
+                ...baseOptions
+            }).addTo(layer);
+        }
+
+        function addData() {
+            fetch('./../assets/data/beijingarea.json').then(res => res.json()).then(geojson => {
+                const polygons = maptalks.GeoJSON.toGeometry(geojson, (geo => {
+                    geo.setSymbol({ ...symbol })
+                }));
+                layer.addGeometry(polygons);
+
+                const points = polygons.map(p => {
+                    const center = p.getCenter();
+                    return new maptalks.Marker(center, {
+                        symbol: {
+                            markerFile: './../assets/icon/poi1.png',
+                            markerWidth: 22,
+                            markerHeight: 44
+                        }
+                    })
+                });
+                layer.addGeometry(points);
+            })
+        }
+
+
+
+        function animation() {
+            // layer animation support Skipping frames
+            threeLayer._needsUpdate = !threeLayer._needsUpdate;
+            if (threeLayer._needsUpdate) {
+                threeLayer.redraw();
+            }
+            requestAnimationFrame(animation);
+        }
+
+
+
+        const OPTIONS = {
+            radius: 50,
+            altitude: 0,
+        }
+
+        class EffectSphere extends maptalks.BaseObject {
+            constructor(coordinate, options, material, threeLayer) {
+                options = Object.assign({ coordinate }, OPTIONS, options);
+                super();
+                this._initOptions(options);
+                const { radius } = options;
+                const r = threeLayer.distanceToVector3(radius, radius).x;
+                this.options.r = r;
+                let geometry = new THREE.SphereBufferGeometry(r, 100, 100, 0, Math.PI * 2, 0, Math.PI / 2);
+
+                const { altitude } = options;
+                const z = threeLayer.altitudeToVector3(altitude, altitude).x;
+                const centerPt = threeLayer.coordinateToVector3(coordinate);
+                centerPt.z = z;
+                this._createMesh(geometry, material);
+                this.getObject3d().position.copy(centerPt);
+                this.getObject3d().rotation.x = Math.PI / 2;
+                this.type = 'EffectSphere';
+            }
+        }
+
+
+
+
+
+    </script>
+</body>
+
+</html>
