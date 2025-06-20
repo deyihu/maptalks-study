@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        background-color: black;
+    }
+
+    .panel {
+        position: absolute;
+        z-index: 1;
+        background-color: white;
+        left: 20px;
+        top: 20px;
+        padding: 10px;
+        border: 1px solid gray;
+        border-radius: 5px;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
+<!-- <script type='text/javascript' src='./../assets/lib/LineMaterial.js'></script> -->
+<!-- <script type='text/javascript' src='./../assets/lib/anime.min.js'></script> -->
+
+<body>
+    <div class="panel">
+        <select id="floors" value=""></select>
+
+    </div>
+    <div id="map" class="container"></div>
+
+    <script>
+
+
+        var map = new maptalks.Map('map', {
+            "center": [120.61748743, 31.13794124], "zoom": 18.601652928547203, "pitch": 64.25000000000033, "bearing": 19.0854656307464,
+
+        });
+        const baseLayer = new maptalks.TileLayer('base', {
+            urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+            maxAvailableZoom: 18,
+        });
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            identifyCountOnEvent: 1
+            // forceRenderOnMoving: true,
+            // forceRenderOnRotating: true
+        });
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            scene.add(new THREE.AmbientLight('#fff', 0.3));
+            animation();
+            getData();
+        };
+
+        // 添加到GroupGLLayer中
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true },
+                bloom: {
+                    enable: true,
+                    threshold: 0,
+                    factor: 1,
+                    radius: 0.02,
+                },
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [baseLayer], { sceneConfig });
+        groupLayer.addTo(map);
+        threeLayer.addTo(groupLayer);
+
+        const material = new THREE.MeshLambertMaterial({ color: '#fff' });
+        const material1 = new THREE.MeshLambertMaterial({ color: '#E8DEF0', opacity: 0.8, transparent: true });
+        const borderMaterial = new THREE.LineBasicMaterial({ color: 'gray', transparent: true });
+
+        const floorCount = 6,
+            floorHeight = 10,
+            roomHeight = 3,
+            offsetHeight = 60;
+        const floorCache = {};
+        let player = null;
+
+
+        function getData() {
+
+            const fetch1 = fetch('./../assets/data/underground.geojson').then(res => res.json());
+            const fetch2 = fetch('./../assets/data/indoor.geojson').then(res => res.json());
+            Promise.all([fetch1, fetch2]).then(data => {
+                addFloors(data[0], data[1]);
+                selectInit();
+            });
+
+        }
+
+        function addFloors(buildingGeoJSON, roomGeoJSON) {
+            const floorGeoJSON = buildingGeoJSON.features[0];
+            let baseObjects = [];
+            for (let i = 1; i <= floorCount; i++) {
+                const altitude = (i - 1) * floorHeight;
+                const floor = threeLayer.toExtrudePolygon(floorGeoJSON, {
+                    height: 0.5,
+                    topColor: '#fff',
+                    altitude,
+                    _altitude: altitude//原始的海拔
+                }, material);
+                baseObjects.push(floor);
+
+                const rooms = roomGeoJSON.features.map(f => {
+                    return threeLayer.toExtrudePolygon(f, {
+                        height: roomHeight,
+                        topColor: '#fff',
+                        altitude,
+                        _altitude: altitude
+                    }, material1);
+                });
+                baseObjects = baseObjects.concat(rooms);
+
+                const lines = roomGeoJSON.features.map(f => {
+                    return new maptalks.LineString(f.geometry.coordinates[0]);
+                });
+                const border = threeLayer.toLines(lines, { topColor: '#fff', altitude: altitude + roomHeight, _altitude: altitude + roomHeight }, borderMaterial);
+                baseObjects.push(border);
+
+                floorCache[i] = {
+                    floorNum: i,
+                    open: false,
+                    floors: [floor],
+                    altitude,
+                    rooms,
+                    borders: [border]
+                };
+            }
+            threeLayer.addMesh(baseObjects);
+
+
+        }
+
+        function selectInit() {
+            let html = ' <option value="" style="display:none;">请选择</option>';
+            for (let i = 1; i <= floorCount; i++) {
+                html += `<option value="${i}">${i}楼</option>`;
+
+            }
+            const select = document.getElementById('floors');
+            select.innerHTML = html;
+            select.addEventListener('change', selectChange);
+        }
+
+        function getAllMeshes(floorItems) {
+            const all = [];
+            floorItems.forEach(floorItem => {
+                const { floors, rooms, borders } = floorItem;
+                [floors, rooms, borders].forEach(meshes => {
+                    meshes.forEach(mesh => {
+                        all.push(mesh);
+                    });
+                })
+            });
+
+            return all;
+        }
+
+
+        function selectChange(e) {
+            const selectFloor = parseInt(e.target.value);
+            const floorItem = floorCache[selectFloor];
+            if (!floorItem) {
+                return;
+            }
+            const open = floorItem.open;
+            const isDown = open;
+            const needsUpdateFloors = [];
+            if (isDown) {
+                floorItem.open = false;
+                needsUpdateFloors.push(floorItem);
+            }
+            for (const key in floorCache) {
+                const floorItem = floorCache[key];
+                const { floorNum, open } = floorItem;
+                if (isDown) {
+                    //小于选中楼层并且是打开状态
+                    if (floorNum < selectFloor && open) {
+                        needsUpdateFloors.push(floorItem);
+                        floorItem.open = false;
+                    }
+                } else {
+                    //大于选中楼层并且是关闭状态
+                    if (floorNum > selectFloor && !open) {
+                        needsUpdateFloors.push(floorItem);
+                        floorItem.open = true;
+                    }
+                }
+            }
+
+            const allMeshes = getAllMeshes(needsUpdateFloors);
+
+            allMeshes.forEach(mesh => {
+                //记录当前图形的海拔
+                mesh.options._altitude = mesh.options.altitude;
+            });
+
+            animationFloor(allMeshes, isDown);
+        }
+
+
+
+        function animationFloor(allMeshes, isDown) {
+            if (player) {
+                player.finish();
+            }
+            const update = (alitutde) => {
+                allMeshes.forEach(mesh => {
+                    const _altitude = mesh.options._altitude;
+                    mesh.setAltitude(_altitude + alitutde);
+                })
+            }
+            var targetStyles = {
+                symbol: {
+                    alitutde: offsetHeight
+                },
+            };
+
+            // animate by maptalks.animation.Animation
+            player = maptalks.animate(
+                targetStyles,
+                {
+                    duration: 1000,
+                    easing: "out",
+                    repeat: false,
+                },
+                // callback of each frame
+                function step(frame) {
+                    let alitutde = frame.symbol.alitutde;
+                    if (isDown) {
+                        alitutde = -alitutde;
+                    }
+                    update(alitutde);
+                },
+            );
+            player.play();
+        }
+
+
+
+        function animation() {
+            // layer animation support Skipping frames
+            // threeLayer._needsUpdate = !threeLayer._needsUpdate;
+            if (threeLayer._needsUpdate) {
+                threeLayer.redraw();
+            }
+            requestAnimationFrame(animation);
+        }
+
+
+
+
+    </script>
+</body>
+
+</html>
