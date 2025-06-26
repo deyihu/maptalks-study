@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+
+    .infowindow-template {
+        display: none;
+    }
+
+    #infowindow {
+        text-align: center;
+        width: 300px;
+        font-size: 16px
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/element-ui/lib/theme-chalk/index.css' />
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/vue.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/element-ui/lib/index.js'></script>
+<style>
+    .profile {
+        background-color: white;
+        border: 1px solid gray;
+        padding: 10px;
+        width: 200px;
+    }
+</style>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            center: [116.33607780651141,
+                39.89606849343474],
+            zoom: 10,
+            pitch: 60,
+            spatialReference: {
+                projection: 'baidu'
+            },
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://maponline3.bdimg.com/tile/?qt=vtile&x={x}&y={y}&z={z}&styles=pl&udt=2025626&scaler=1&showtext=1",
+                subdomains: ["a", "b", "c", "d"],
+            })
+        });
+
+      
+
+    </script>
+</body>
+
+</html>
