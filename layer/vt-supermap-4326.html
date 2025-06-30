@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+
+<body>
+    <script type="text/javascript" src="https://maptalks.com/api/transcoders.draco.js"></script>
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const map = new maptalks.Map("map", {
+            center: [-122.2543440112645, 38.236059513982674],
+            zoom: 11,
+            bearing: 0,
+            pitch: 0,
+            centerCross: true,
+            zoomControl: true,
+            spatialReference: {
+                projection: "EPSG:4326",
+            },
+        });
+
+        const groupGLLayer = new maptalks.GroupGLLayer("gl", [], {}).addTo(map);
+        // https://iclient.supermap.io/examples/mapboxgl/editor.html#mvtVectorTile_4326
+        const url = `https://iserver.supermap.io/iserver/services/map-mvt-California/rest/maps/California/tileFeature.mvt?returnAttributes=true&width=512&height=512&x={x}&y={y}&z={z}`;
+
+        const vtLayer = new maptalks.VectorTileLayer("vt", {
+            debug: true,
+            urlTemplate: url,
+            tileSize: 256,
+            spatialReference: {
+                projection: "EPSG:4326",
+            },
+        });
+        groupGLLayer.addLayer(vtLayer);
+
+
+    </script>
+</body>
+
+</html>
