@@ -80,6 +80,10 @@
         const canvas = new OffscreenCanvas(1, 1);
         canvas.width = canvas.height = tileSize;
         const ctx = canvas.getContext('2d');
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = '22px Arial';
+        ctx.fillStyle = 'green';
 
         const baseLayer = new maptalks.TileLayer('base', {
             // debug: true,
@@ -95,14 +99,11 @@
             //   url(String): the url of the tile
             e.renderer.loadTileBitmap = function (url, tile, callback) {
                 const { x, y, z } = tile;
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.rect(0, 0, canvas.width, canvas.height);
+                const { width, height } = canvas;
+                ctx.clearRect(0, 0, width, height);
+                ctx.rect(0, 0, width, height);
                 ctx.stroke();
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.font = '22px Arial';
-                ctx.fillStyle = 'green';
-                ctx.fillText(`x: ${x}, y: ${y}, z: ${z}`, canvas.width / 2, canvas.height / 2);
+                ctx.fillText(`x: ${x}, y: ${y}, z: ${z}`, width / 2, height / 2);
                 callback(canvas.transferToImageBitmap())
 
             };
