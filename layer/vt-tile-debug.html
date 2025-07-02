@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<!-- <script type="text/javascript" src="https://maptalks.com/api/transcoders.draco.js"></script> -->
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const map = new maptalks.Map("map", {
+            zoomControl: true,
+            "center": [121.02231102, 31.26657838], "zoom": 13.06133878225234, "pitch": 0, "bearing": 0,
+        });
+
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true },
+                bloom: {
+                    enable: true,
+                    threshold: 0,
+                    factor: 1,
+                    radius: 0.02,
+                },
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [], { sceneConfig }).addTo(map);
+        // https://iclient.supermap.io/examples/mapboxgl/editor.html#mvtVectorTile_4326
+        const url = `https://iserver.supermap.io/iserver/services/map-mvt-California/rest/maps/California/tileFeature.mvt?returnAttributes=true&width=512&height=512&x={x}&y={y}&z={z}`;
+
+        const vtLayer = new maptalks.VectorTileLayer("geo", {
+            // style: {
+            //     style: [{
+            //         name: 'landuse-fill',
+            //         filter: true,
+            //         renderPlugin: {
+            //             dataConfig: {
+            //                 type: "line"
+            //             },
+            //             sceneConfig: {},
+            //             type: "line"
+            //         },
+            //         symbol: {
+            //             lineColor: "green"
+            //         }
+            //     }
+            //     ]
+            // },
+            // features: true,
+            // pickGeometry: true,
+            debug: true,
+            version: 1,
+            urlTemplate: './../assets/data/vt-test/{z}/{x}/{y}.pbf'
+        });
+        groupLayer.addLayer(vtLayer);
+
+
+
+        const tileSize = 512;
+        const canvas = new OffscreenCanvas(1, 1);
+        canvas.width = canvas.height = tileSize;
+        const ctx = canvas.getContext('2d');
+
+        const baseLayer = new maptalks.TileLayer('base', {
+            // debug: true,
+            urlTemplate: './',
+            subdomains: ["a", "b", "c", "d"],
+            tileSize: tileSize,
+            spatialReference: maptalks.getDefaultSpatialReference()['PRESET-VT-3857']
+        })
+
+        baseLayer.on('renderercreate', function (e) {
+            //load tile image
+            //   img(Image): an Image object
+            //   url(String): the url of the tile
+            e.renderer.loadTileBitmap = function (url, tile, callback) {
+                const { x, y, z } = tile;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.rect(0, 0, canvas.width, canvas.height);
+                ctx.stroke();
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = '22px Arial';
+                ctx.fillStyle = 'green';
+                ctx.fillText(`x: ${x}, y: ${y}, z: ${z}`, canvas.width / 2, canvas.height / 2);
+                callback(canvas.transferToImageBitmap())
+
+            };
+        });
+
+
+        // baseLayer.addTo(groupLayer);
+        initGui();
+
+        function initGui() {
+            var params = {
+                debugLayer: false,
+
+            };
+            var gui = new lil.GUI();
+
+            gui.add(params, 'debugLayer').onChange(function () {
+                if (params.debugLayer) {
+                    baseLayer.addTo(groupLayer);
+                } else {
+                    baseLayer.remove();
+                }
+
+            });
+
+        }
+
+    </script>
+</body>
+
+</html>
