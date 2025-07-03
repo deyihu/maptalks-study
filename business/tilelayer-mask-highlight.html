@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    :root {
+        --space: 0.25rem;
+    }
+
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+
+        /* background-image: linear-gradient(45deg, #eee 25%, transparent 25%, transparent 75%, #eee 75%, #eee 100%), linear-gradient(45deg, #eee 25%, #fff 25%, #fff 75%, #eee 75%, #eee 100%);
+        background-position: 0 0, calc(2* var(--space)) calc(2* var(--space));
+        background-size: calc(4* var(--space)) calc(4* var(--space)); */
+        /* border: 1px dashed #c9c9c9; */
+
+        /* background-color: black; */
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.tileclip.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const maskId = 'beijing';
+        const tileActor = maptalks.getTileActor();
+
+        var map = new maptalks.Map('map', {
+            center: [116.46755129, 39.86160898],
+            zoom: 9,
+            pitch: 60,
+            zoomControl: true
+        });
+
+        const tileLayer = new maptalks.TileLayer('base', {
+            urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+            urlTemplate: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+            urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+        });
+
+        function copyImage(image) {
+            return createImageBitmap(image);
+        }
+
+        const canvas = new OffscreenCanvas(1, 1);
+
+        function maskTile(image) {
+            const { width, height } = image;
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, width, height);
+            ctx.drawImage(image, 0, 0);
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.fillRect(0, 0, width, height);
+            return canvas.transferToImageBitmap();
+        }
+
+        tileLayer.on('renderercreate', function (e) {
+            //load tile image
+            //   img(Image): an Image object
+            //   url(String): the url of the tile
+            e.renderer.loadTileBitmap = function (url, tile, callback) {
+                //get Tile data
+                tileActor.getTile({
+                    url: maptalks.Util.getAbsoluteURL(url),
+                    // filter: 'sepia(100%) invert(90%)'
+                }).then(imagebitmap => {
+                    copyImage(imagebitmap).then(copyImage => {
+                        //clip tile
+                        tileActor.clipTile({
+                            tile: copyImage,
+                            tileBBOX: tileLayer._getTileBBox(tile),
+                            projection: tileLayer.getProjection().code,
+                            tileSize: tileLayer.getTileSize().width,
+                            maskId,
+                        }).then(clipImage => {
+
+                            tileActor.getTile({
+                                url: [maskTile(imagebitmap), clipImage]
+                                // filter: 'sepia(100%) invert(90%)'
+                            }).then(mergeImage => {
+                                callback(mergeImage);
+                            }).catch(error => {
+                                //do some things
+                                console.error(error);
+                            })
+                        }).catch(error => {
+                            //do some things
+                            console.error(error);
+                        })
+                    }).catch(error => {
+                        //do some things
+                        console.error(error);
+                    })
+
+                }).catch(error => {
+                    //do some things
+                    console.error(error);
+                })
+            };
+        });
+
+
+
+        // 添加到GroupGLLayer中
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true },
+                bloom: {
+                    enable: true,
+                    threshold: 0,
+                    factor: 1,
+                    radius: 0.02,
+                },
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [], { sceneConfig });
+        groupLayer.addTo(map);
+
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
+
+        const symbol = {
+            polygonOpacity: 0,
+            lineColor: 'blue',
+            shadowBlur: 10,
+            shadowColor: 'blue'
+        }
+
+        fetch('./../assets/data/beijing.geojson').then(res => res.json()).then(geojson => {
+            areaGeoJSON = geojson;
+            const polygon = maptalks.GeoJSON.toGeometry(geojson.features[0]);
+            polygon.setSymbol(symbol);
+            layer.addGeometry(polygon);
+
+            const feature = geojson.features[0];
+            tileActor.injectMask(maskId, feature).then(data => {
+                tileLayer.addTo(groupLayer);
+            }).catch(error => {
+                console.error(error);
+            })
+        })
+
+
+
+    </script>
+</body>
+
+</html>
