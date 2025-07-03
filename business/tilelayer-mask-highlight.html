@@ -30,8 +30,6 @@
 <link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
 <script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
 <script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
-<script type='text/javascript' src='./../assets/lib/three.min.js'></script>
-<script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
 <script type='text/javascript' src='./../assets/lib/maptalks.tileclip.js'></script>
 
 <body>
@@ -44,16 +42,14 @@
         const tileActor = maptalks.getTileActor();
 
         var map = new maptalks.Map('map', {
-            center: [116.46755129, 39.86160898],
-            zoom: 9,
-            pitch: 60,
+            "center": [117.03840176, 39.22007849], "zoom": 9, "pitch": 60, "bearing": 0,
             zoomControl: true
         });
 
         const tileLayer = new maptalks.TileLayer('base', {
             urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
             urlTemplate: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-            urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            // urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
             subdomains: ["a", "b", "c", "d"],
         });
 
@@ -69,6 +65,7 @@
             canvas.height = height;
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, width, height);
+            ctx.filter = 'grayscale(1.2)';
             ctx.drawImage(image, 0, 0);
             ctx.fillStyle = 'rgba(0,0,0,0.7)';
             ctx.fillRect(0, 0, width, height);
@@ -143,18 +140,19 @@
 
         const symbol = {
             polygonOpacity: 0,
-            lineColor: 'blue',
-            shadowBlur: 10,
-            shadowColor: 'blue'
+            lineColor: '#fff',
+            lineWidth: 2,
+            // shadowBlur: 4,
+            // shadowColor: '#fff'
         }
 
-        fetch('./../assets/data/beijing.geojson').then(res => res.json()).then(geojson => {
-            areaGeoJSON = geojson;
-            const polygon = maptalks.GeoJSON.toGeometry(geojson.features[0]);
+        fetch('./../assets/data/beijing-tianjin.geojson').then(res => res.json()).then(geojson => {
+            const feature=geojson.features[0];
+
+            const polygon = maptalks.GeoJSON.toGeometry(feature);
             polygon.setSymbol(symbol);
             layer.addGeometry(polygon);
 
-            const feature = geojson.features[0];
             tileActor.injectMask(maskId, feature).then(data => {
                 tileLayer.addTo(groupLayer);
             }).catch(error => {
