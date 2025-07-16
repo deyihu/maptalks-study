@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        background-color: black;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/geolib.js'></script>
+<script type='text/javascript' src='./../assets/lib/lineseg.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const geojson = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [
+                                120.67981539760852,
+                                31.32281948717677
+                            ],
+                            [
+                                120.68208472390221,
+                                31.32320717882897
+                            ],
+                            [
+                                120.68387042328085,
+                                31.323512246547672
+                            ],
+                            [
+                                120.68616207081679,
+                                31.324122379019602
+                            ],
+                            [
+                                120.6881561017896,
+                                31.324573620283353
+                            ],
+                            [
+                                120.6892870447294,
+                                31.324764284956064
+                            ],
+                            [
+                                120.69143732439787,
+                                31.325082058552464
+                            ],
+                            [
+                                120.6931858217061,
+                                31.325183745876785
+                            ],
+                            [
+                                120.6950831272959,
+                                31.3252155231431
+                            ],
+                            [
+                                120.6964893655566,
+                                31.32516467951184
+                            ],
+                            [
+                                120.69855780067019,
+                                31.325158324056
+                            ],
+                            [
+                                120.70093873317504,
+                                31.32538076475507
+                            ],
+                            [
+                                120.70327502319542,
+                                31.325596849502315
+                            ],
+                            [
+                                120.70433900240853,
+                                31.32566040374536
+                            ],
+                            [
+                                120.70431668116629,
+                                31.323289801433713
+                            ]
+                        ]
+                    },
+                    "properties": {
+                        "name": "01_5137afaf",
+                        "_color": "#e0d455",
+                        "center": [
+                            120.69313324277995,
+                            31.324582089825938,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [
+                                120.71249270934608,
+                                31.3257881036202
+                            ],
+                            [
+                                120.70797880484368,
+                                31.32586454796226
+                            ],
+                            [
+                                120.7068097762922,
+                                31.325878881269514
+                            ],
+                            [
+                                120.70357676910214,
+                                31.32576899252498
+                            ],
+                            [
+                                120.70091988603069,
+                                31.325558770221495
+                            ],
+                            [
+                                120.69800570480916,
+                                31.3253342140606
+                            ],
+                            [
+                                120.69594731960856,
+                                31.325391547599413
+                            ],
+                            [
+                                120.69467201573427,
+                                31.325415436563596
+                            ],
+                            [
+                                120.69118171039409,
+                                31.32522432468029
+                            ],
+                            [
+                                120.68908976456521,
+                                31.324942433944205
+                            ],
+                            [
+                                120.68769699849196,
+                                31.324670098024672
+                            ],
+                            [
+                                120.68534775451297,
+                                31.32411586810632
+                            ],
+                            [
+                                120.68421788002787,
+                                31.32381008468574
+                            ],
+                            [
+                                120.68295376302967,
+                                31.323542523378055
+                            ],
+                            [
+                                120.68148828226184,
+                                31.323341851898252
+                            ],
+                            [
+                                120.68000602117988,
+                                31.3230934009021
+                            ]
+                        ]
+                    },
+                    "properties": {
+                        "name": "02_78d272c8",
+                        "_color": "#5b6dd3",
+                        "center": [
+                            120.69389907251438,
+                            31.324858817465113,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [
+                                120.67708560034416,
+                                31.3270236905175
+                            ],
+                            [
+                                120.67724042823964,
+                                31.326108968409756
+                            ],
+                            [
+                                120.67741460962208,
+                                31.325805895871582
+                            ],
+                            [
+                                120.67772426541305,
+                                31.32367333969828
+                            ],
+                            [
+                                120.67812423747637,
+                                31.321496649862073
+                            ],
+                            [
+                                120.67818229793717,
+                                31.321011709575835
+                            ],
+                            [
+                                120.67877580486984,
+                                31.319920584799913
+                            ],
+                            [
+                                120.67977573502817,
+                                31.31821774359868
+                            ],
+                            [
+                                120.68007248849455,
+                                31.31725884859347
+                            ],
+                            [
+                                120.68024666987695,
+                                31.316294432849052
+                            ],
+                            [
+                                120.68028537685082,
+                                31.314999344741857
+                            ],
+                            [
+                                120.68012409779303,
+                                31.31384201689695
+                            ],
+                            [
+                                120.68000797687141,
+                                31.313109035239542
+                            ],
+                            [
+                                120.67616308413355,
+                                31.31420023894009
+                            ]
+                        ]
+                    },
+                    "properties": {
+                        "name": "03_9ad3abc0",
+                        "_color": "#034d66",
+                        "center": [
+                            120.67865876235362,
+                            31.319497321399616,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [
+                                120.67613082832199,
+                                31.314040416966094
+                            ],
+                            [
+                                120.6786919397598,
+                                31.313279881098097
+                            ],
+                            [
+                                120.68021441406539,
+                                31.312899610861123
+                            ],
+                            [
+                                120.68047246055787,
+                                31.314260860997205
+                            ],
+                            [
+                                120.68056922799254,
+                                31.315065477332013
+                            ],
+                            [
+                                120.68039504661013,
+                                31.316531404490078
+                            ],
+                            [
+                                120.68008539081917,
+                                31.317947710935478
+                            ],
+                            [
+                                120.67941446993873,
+                                31.31929786650816
+                            ],
+                            [
+                                120.67888547462915,
+                                31.32008590754842
+                            ],
+                            [
+                                120.67839518629346,
+                                31.321055795159594
+                            ],
+                            [
+                                120.67813068863866,
+                                31.32252713967737
+                            ],
+                            [
+                                120.6777178142507,
+                                31.3254587388562
+                            ],
+                            [
+                                120.67719527010344,
+                                31.328891679741737
+                            ],
+                            [
+                                120.67928544669249,
+                                31.329244334314513
+                            ]
+                        ]
+                    },
+                    "properties": {
+                        "name": "04_cebff360",
+                        "_color": "#f2bdae",
+                        "center": [
+                            120.67897026133383,
+                            31.319327630320437,
+                            0
+                        ]
+                    }
+                }
+            ]
+        };
+
+        function getFeatureCoordinates(index) {
+            return geojson.features[index].geometry.coordinates;
+        }
+
+
+
+
+        var map = new maptalks.Map('map', {
+            "center": [120.69506775, 31.31810776], "zoom": 15.644776188745714, "pitch": 0.500000000000043, "bearing": -4.800697303009656
+        });
+
+        const baseLayer = new maptalks.TileLayer('base', {
+            urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+            maxAvailableZoom: 18,
+        });
+
+
+
+        // threeLayer.addTo(map);
+        // 添加到GroupGLLayer中
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true },
+                bloom: {
+                    enable: true,
+                    threshold: 0,
+                    factor: 1,
+                    radius: 0.02,
+                },
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [baseLayer], { sceneConfig });
+        groupLayer.addTo(map);
+
+        const lineLayer = new maptalks.LineStringLayer('line').addTo(groupLayer);
+
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
+
+        const arrows = [];
+
+        function updateArrowRotation() {
+            const bearing = map.getBearing();
+            arrows.forEach(arrow => {
+                const rotationZ = arrow.getProperties().rotationZ;
+                arrow.updateSymbol({
+                    markerRotation: rotationZ + bearing
+                })
+            });
+        }
+
+        map.on('rotate', e => {
+            updateArrowRotation();
+        })
+
+        function getMarkerRotation(c1, c2) {
+            return -geolib.getRhumbLineBearing(c1, c2);
+        }
+
+        function test1() {
+            const line = new maptalks.LineString(getFeatureCoordinates(0), {
+                arrowStyle: 'classic',
+                arrowPlacement: 'point',// 'vertex-last', //vertex-first, vertex-last, vertex-firstlast, point，
+                symbol: {
+                    lineColor: 'red',
+                    lineWidth:2
+                }
+            }).addTo(layer);
+        }
+
+        function test2() {
+
+            const line1 = new maptalks.LineString(getFeatureCoordinates(1), {
+                symbol: {
+                    lineStrokeColor: [1, 1, 1],
+                    lineStrokeWidth: 2,
+                    lineWidth: 26,
+                    lineColor: '#000',
+                },
+            }).addTo(lineLayer);
+            const line2 = new maptalks.LineString(getFeatureCoordinates(1).map(c => {
+                return [...c, 0.1]
+            }), {
+                symbol: {
+
+                    linePatternFile: "./../assets/image/arrow.png",
+                    // linePatternDx: 0,
+                    linePatternGap: 1,
+                    // linePatternAnimSpeed: 0.1,
+                    lineWidth: 24,
+                },
+            }).addTo(lineLayer);
+        }
+
+
+        function test3() {
+
+            const line3 = new maptalks.LineString(getFeatureCoordinates(2), {
+                symbol: {
+                    lineWidth: 16,
+                    lineColor: 'black'
+                }
+            }).addTo(layer);
+
+            const vertexs = line3.getCoordinates();
+            for (let i = 0, len = vertexs.length; i < len; i++) {
+                let c = vertexs[i];
+                let c1 = vertexs[i], c2 = vertexs[i + 1];
+                if (i === len - 1) {
+                    c1 = vertexs[i - 1];
+                    c2 = vertexs[i];
+                }
+                c1 = c1.toArray();
+                c2 = c2.toArray();
+                const rotationZ = getMarkerRotation(c1.slice(0, 2), c2.slice(0, 2));
+                const point = new maptalks.Marker(c, {
+                    properties: {
+                        rotationZ
+                    },
+                    symbol: {
+                        markerRotation: rotationZ,
+                        markerVerticalAlignment: 'middle',
+                        markerFile: './../assets/icon/arrow.png',
+                        markerWidth: 20,
+                        markerHeight: 20
+                    }
+                }).addTo(layer);
+                arrows.push(point);
+            }
+            updateArrowRotation();
+
+
+        }
+
+        function test4() {
+            const line3 = new maptalks.LineString(getFeatureCoordinates(3), {
+                symbol: {
+                    lineWidth: 16,
+                    lineColor: 'blue'
+                }
+            }).addTo(layer);
+
+            const vertexs = line3.getCoordinates();
+            const coordinates = vertexs.map(c => {
+                return c.toArray();
+            })
+            const chunks = lineseg.lineSeg(coordinates, { segDistance: 100 });
+
+            function createMarker(c, c1, c2) {
+                const rotationZ = getMarkerRotation(c1.slice(0, 2), c2.slice(0, 2));
+                const point = new maptalks.Marker(c, {
+                    properties: {
+                        rotationZ
+                    },
+                    symbol: {
+                        markerRotation: rotationZ,
+                        markerVerticalAlignment: 'middle',
+                        markerFile: './../assets/icon/arrow.png',
+                        markerWidth: 20,
+                        markerHeight: 20
+                    }
+                }).addTo(layer);
+                arrows.push(point);
+            }
+            for (let i = 0, len = chunks.length; i < len; i++) {
+                const chunk = chunks[i];
+                const chunkLen = chunk.length;
+                let c = chunk[chunkLen - 1];
+                let c1 = chunk[chunkLen - 2], c2 = chunk[chunkLen - 1];
+                createMarker(c, c1, c2);
+                if (i === 0) {
+                    c = chunk[0];
+                    c1 = c;
+                    c2 = chunk[1];
+                    createMarker(c, c1, c2)
+                }
+
+            }
+
+        }
+
+        test1();
+        test2();
+        test3();
+        test4();
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
