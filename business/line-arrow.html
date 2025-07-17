@@ -343,9 +343,6 @@
             return geojson.features[index].geometry.coordinates;
         }
 
-
-
-
         var map = new maptalks.Map('map', {
             "center": [120.69506775, 31.31810776], "zoom": 15.644776188745714, "pitch": 0.500000000000043, "bearing": -4.800697303009656
         });
@@ -355,8 +352,6 @@
             subdomains: ["a", "b", "c", "d"],
             maxAvailableZoom: 18,
         });
-
-
 
         // threeLayer.addTo(map);
         // 添加到GroupGLLayer中
@@ -400,13 +395,30 @@
             return -geolib.getRhumbLineBearing(c1, c2);
         }
 
+        function createMarker(c, c1, c2) {
+            const rotationZ = getMarkerRotation(c1.slice(0, 2), c2.slice(0, 2));
+            const point = new maptalks.Marker(c, {
+                properties: {
+                    rotationZ
+                },
+                symbol: {
+                    markerRotation: rotationZ,
+                    markerVerticalAlignment: 'middle',
+                    markerFile: './../assets/icon/arrow.png',
+                    markerWidth: 20,
+                    markerHeight: 20
+                }
+            }).addTo(layer);
+            arrows.push(point);
+        }
+
         function test1() {
             const line = new maptalks.LineString(getFeatureCoordinates(0), {
                 arrowStyle: 'classic',
                 arrowPlacement: 'point',// 'vertex-last', //vertex-first, vertex-last, vertex-firstlast, point，
                 symbol: {
                     lineColor: 'red',
-                    lineWidth:2
+                    lineWidth: 2
                 }
             }).addTo(layer);
         }
@@ -437,7 +449,6 @@
 
 
         function test3() {
-
             const line3 = new maptalks.LineString(getFeatureCoordinates(2), {
                 symbol: {
                     lineWidth: 16,
@@ -455,20 +466,7 @@
                 }
                 c1 = c1.toArray();
                 c2 = c2.toArray();
-                const rotationZ = getMarkerRotation(c1.slice(0, 2), c2.slice(0, 2));
-                const point = new maptalks.Marker(c, {
-                    properties: {
-                        rotationZ
-                    },
-                    symbol: {
-                        markerRotation: rotationZ,
-                        markerVerticalAlignment: 'middle',
-                        markerFile: './../assets/icon/arrow.png',
-                        markerWidth: 20,
-                        markerHeight: 20
-                    }
-                }).addTo(layer);
-                arrows.push(point);
+                createMarker(c, c1, c2);
             }
             updateArrowRotation();
 
@@ -488,23 +486,6 @@
                 return c.toArray();
             })
             const chunks = lineseg.lineSeg(coordinates, { segDistance: 100 });
-
-            function createMarker(c, c1, c2) {
-                const rotationZ = getMarkerRotation(c1.slice(0, 2), c2.slice(0, 2));
-                const point = new maptalks.Marker(c, {
-                    properties: {
-                        rotationZ
-                    },
-                    symbol: {
-                        markerRotation: rotationZ,
-                        markerVerticalAlignment: 'middle',
-                        markerFile: './../assets/icon/arrow.png',
-                        markerWidth: 20,
-                        markerHeight: 20
-                    }
-                }).addTo(layer);
-                arrows.push(point);
-            }
             for (let i = 0, len = chunks.length; i < len; i++) {
                 const chunk = chunks[i];
                 const chunkLen = chunk.length;
@@ -517,21 +498,13 @@
                     c2 = chunk[1];
                     createMarker(c, c1, c2)
                 }
-
             }
-
         }
 
         test1();
         test2();
         test3();
         test4();
-
-
-
-
-
-
 
     </script>
 </body>
