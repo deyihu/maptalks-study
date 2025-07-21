@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>图形样式 - 旋转文字标注</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+        const map = new maptalks.Map("map", {
+            center: [120, 31.14],
+            zoom: 6,
+            zoomControl: true,
+            seamlessZoom: false,
+            // devicePixelRatio: 4,
+            // baseLayer: new maptalks.TileLayer("base", {
+            //     urlTemplate: "https://maps.omniscale.net/v2/mapsosc-b667cf5a/style.default/{z}/{x}/{y}.png?hq=true",
+            //     subdomains: ["a", "b", "c", "d"],
+            //     attribution: "&copy; <a href='http://osm.org'>OpenStreetMap</a> contributors, &copy; <a href='https://carto.com/'>CARTO</a>",
+            // }),
+        });
+
+
+        var url = 'https://maps4.geosolutionsgroup.com/geoserver/gwc/service/wmts?service=WMTS&version=1.0.0&request=GetCapabilities';
+        maptalks.SpatialReference.loadWMTS(url, function (err, conf) {
+            if (err) {
+                throw new Error(err);
+            }
+            console.log(conf);
+            var params = conf[0];
+            params.urlTemplate +='&tk=de0dc270a51aaca3dd4e64d4f8c81ff6'
+
+            // var spatialReference = params.spatialReference;
+            var tileLayer = new maptalks.TileLayer('tilelayer', params);
+            map.addLayer(tileLayer);
+        }, {
+            isGeoServer: true
+        });
+
+
+
+    </script>
+</body>
+
+</html>
