@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        /* background-color: black; */
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/localforage.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+
+
+
+        const map = new maptalks.Map("map", {
+            "center": [120.05409411, 30.16489579], "zoom": 13.36133878225234, "pitch": 0, "bearing": 0,
+            zoomControl: true
+        });
+
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+        });
+
+        const fetchOptions = {
+            referer: "https://services.arcgisonline.com",
+            headers: {
+                token: "your token",
+                //others params
+            },
+            //other config
+        }
+
+        const tileLayer = new maptalks.TileLayer('base', {
+            urlTemplate: './../assets/data/tile-image/{z}/{x}/{y}.png',
+            subdomains: ["a", "b", "c"],
+            maxAvailableZoom: 18,
+            decodeImageInWorker: true,
+            fetchOptions
+        })
+
+        const layer = new maptalks.VectorTileLayer("geo", {
+            fetchOptions,
+            version: 1,
+            urlTemplate: './../assets/data/vt-test/{z}/{x}/{y}.pbf'
+        });
+
+
+
+
+
+
+        const groupGLLayer = new maptalks.GroupGLLayer("gl", [tileLayer], {
+            sceneConfig: {
+                environment: {
+                    enable: true,
+                    mode: 1,
+                    level: 0,
+                    brightness: 0
+                },
+                postProcess: {
+                    enable: true,
+                    bloom: {
+                        enable: true,
+                        threshold: 0,
+                        factor: 0.6,
+                        radius: 1,
+                    },
+                }
+            }
+        }).addTo(map);
+
+
+        function initGui() {
+            var params = {
+                tileLayerAdd: !!tileLayer.getMap(),
+                vtLayerAdd: !!layer.getMap()
+            }
+            var gui = new lil.GUI();
+
+
+            const upldate = () => {
+                const { tileLayerAdd, vtLayerAdd } = params;
+                if (tileLayerAdd) {
+                    if (tileLayer.getMap()) {
+                        return;
+                    }
+                    tileLayer.addTo(groupGLLayer);
+                    map.setView({
+                        "center": [120.05409411, 30.16489579], "zoom": 13.36133878225234, "pitch": 0, "bearing": 0,
+                    })
+                } else {
+                    tileLayer.remove();
+                }
+
+                if (vtLayerAdd) {
+                    if (layer.getMap()) {
+                        return;
+                    }
+                    layer.addTo(groupGLLayer);
+                    map.setView({
+                        "center": [121.02231102, 31.26657838], "zoom": 13.36133878225234, "pitch": 0, "bearing": 0,
+                    })
+                } else {
+                    layer.remove();
+                }
+            }
+
+            gui.add(params, 'tileLayerAdd').onChange(upldate);
+            gui.add(params, 'vtLayerAdd').onChange(upldate);
+        }
+        initGui();
+
+
+
+
+
+    </script>
+</body>
+
+</html>
