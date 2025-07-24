@@ -39,6 +39,7 @@
 
 <script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
 <script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/poly-extrude.js'></script>
 
 <body>
   <div id="map" class="container"></div>
@@ -65,7 +66,7 @@
     ctx.lineTo(width / 3, height);
     ctx.stroke();
 
-    ctx.strokeStyle = '#bdbdbd';
+    ctx.strokeStyle = '#000';
     ctx.lineWidth = 40;
     ctx.beginPath();
     ctx.moveTo(0, 0);
@@ -101,8 +102,9 @@
     };
     const groupLayer = new maptalks.GroupGLLayer('group', [], { sceneConfig });
     groupLayer.addTo(map);
+    const layer1 = new maptalks.PolygonLayer('polygon').addTo(groupLayer);
     const layer = new maptalks.LineStringLayer('line').addTo(groupLayer);
-    // const layer = new maptalks.VectorLayer('line').addTo(map);
+
 
     let list = [
       { cood: [114.024007, 22.63972], speed: 1 },
@@ -321,9 +323,7 @@
     function test2() {
       const lineWidth = 10;
       for (let i = 0; i < list.length - 1; i++) {
-
         const c1 = [...list[i].cood, offsetHeight], c2 = list[i + 1].cood;
-
         let arrow1 = new maptalks.LineString([c1, c2],
           {
             symbol: {
@@ -337,7 +337,6 @@
             zIndex: 11,
           }
         ).addTo(layer);
-
       }
 
       map.setCenter([114.02370862, 22.63995672]);
@@ -356,8 +355,93 @@
       }).addTo(layer);
     }
 
+    const updateLine = (tempCoordinates) => {
+      layer1.clear();
+      const res = map.getResolution();
+      const width = map.getResolution() / 10000;
+      console.log(width);
+      const result = polyextrude.expandLine(tempCoordinates, { lineWidth: width });
+      // console.log(result);
+      const { leftPoints, rightPoints } = result;
+      for (let i = 0, len = leftPoints.length; i < len; i++) {
+        const left1 = leftPoints[i];
+        const right1 = rightPoints[i];
+        const left2 = leftPoints[i + 1];
+        const right2 = rightPoints[i + 1];
+        if (!left2 || !right2) continue;
+        const coords = [
+          left1,
+          left2,
+          right2,
+          right1,
+        ];
+        const polygon = new maptalks.Polygon(coords, {
+          symbol: {
+            lineWidth: 0,
+            polygonFill: i % 2 === 0 ? '#f00' : '#0f0',
+            polygonOpacity: 1
+          },
+          zIndex: 10 + i
+        }).addTo(layer1);
+      }
+    }
 
-    test1();
+    function test3() {
+      const lineWidth = 20;
+      map.setCenter([
+        120.61292733869195,
+        31.152901786048382
+      ])
+
+      let line = new maptalks.LineString(coordinates.map(o => {
+        return [...o, offsetHeight * 2]
+      }), {
+        symbol: {
+          lineWidth,
+          linePatternFile: pathURL,
+          // linePatternGap: 20,
+          lineCap: "round",
+        },
+        zIndex: 13,
+      }).addTo(layer);
+
+      map.on('zoomend zooming', e => {
+        updateLine(coordinates);
+      })
+      updateLine(coordinates);
+
+    }
+
+
+
+
+
+    function test4() {
+      const lineWidth = 10;
+      map.setCenter([114.02370862, 22.63995672]);
+      map.setZoom(19);
+      const tempCoordinates = list.map(d => {
+        return [...d.cood];
+      })
+      let line = new maptalks.LineString(tempCoordinates, {
+        symbol: {
+          lineWidth,
+          linePatternFile: pathURL,
+          // linePatternGap: 20,
+          lineCap: "round",
+        },
+        zIndex: 13,
+      }).addTo(layer);
+
+      map.on('zoomend zooming', e => {
+        updateLine(tempCoordinates);
+      })
+      updateLine(tempCoordinates);
+    }
+
+
+
+    test3();
   </script>
 </body>
 
