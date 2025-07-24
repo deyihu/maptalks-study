@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+
+    .marker-template {
+        display: none;
+    }
+
+    .text-marker {
+        /* // width:10vw; */
+        min-width: 180px;
+        min-height: 100px;
+        background: beige;
+        padding-bottom: 1vh;
+        margin-bottom: 4vh;
+        width: 200px;
+        height: 100px;
+        border: 1px solid #ccc;
+        text-align: center;
+    }
+
+    .text-marker-hover {
+        background-color: black;
+        color: white;
+        background-color: #2695bbb3;
+        border: 2px solid #43fff3
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+    <div id="marker-template">
+        <div class="markerDiv">
+            <div class="markerName">{name}</div>
+            <div class="markerBody">
+                <div class="markerRow">{wendu}</div>
+                <div class="markerRow">{yali}</div>
+                <div class="markerRow">{liu}</div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+
+
+        const markerTemplate = document.querySelector('#marker-template').innerHTML;
+
+        var map = new maptalks.Map('map', {
+            center: [119.47201791, 30.12828901],
+            zoom: 11,
+            pitch: 60,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+            })
+        });
+
+        function randomCoordinates() {
+            const coordinates = [];
+            const { x, y } = map.getCenter();
+            while (coordinates.length < 10) {
+                const cx = Math.random() - 0.5 + x;
+                const cy = Math.random() - 0.5 + y;
+                coordinates.push([cx, cy]);
+            }
+            return coordinates;
+        }
+
+
+
+        function getMarkerContent(data) {
+            const div = document.createElement('div');
+            div.className = 'text-marker';
+            div.innerHTML = '<h1>hello world</h1>';
+            return div;
+        }
+
+        const markers = randomCoordinates().map(c => {
+            const marker = new maptalks.ui.UIMarker(c, {
+                collision: true,
+                collisionBufferSize: 2,
+                collisionWeight: 1,
+                collisionFadeIn: true,
+                verticalAlignment: "top",
+                horizontalAlignment: 'middle',
+                altitude: 0,
+                // minZoom: 2,
+                // maxZoom: 10,
+                animation: 'fade',
+                content: getMarkerContent()
+            });
+            return marker;
+        });
+        markers.forEach(marker => {
+            marker.addTo(map);
+            marker.on('click', e => {
+                // console.log(e);
+
+            });
+            marker.on('mouseover', e => {
+                const dom = e.target.getDOM();
+                if (dom) {
+                    dom.classList.add('text-marker-hover')
+                }
+
+            });
+            marker.on('mouseout', e => {
+                const dom = e.target.getDOM();
+                if (dom) {
+                    dom.classList.remove('text-marker-hover')
+                }
+
+            });
+        });
+
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
