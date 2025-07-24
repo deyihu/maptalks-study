@@ -1,5 +1,5 @@
 /*!
- * poly-extrude v0.16.0
+ * poly-extrude v0.19.0
   */
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -1699,6 +1699,12 @@
     return Vector3;
   }();
 
+  function mergeArray(array1, array2) {
+      let index = array1.length - 1;
+      for (let i = 0, len = array2.length; i < len; i++) {
+          array1[++index] = array2[i];
+      }
+  }
   /**
    * https://github.com/Turfjs/turf/blob/master/packages/turf-boolean-clockwise/index.ts
    * @param {*} ring
@@ -1717,6 +1723,65 @@
           i++;
       }
       return sum > 0;
+  }
+  function validateRing(ring) {
+      if (!isClosedRing(ring)) {
+          ring.push(ring[0]);
+      }
+  }
+  function isClosedRing(ring) {
+      const len = ring.length;
+      const [x1, y1] = ring[0], [x2, y2] = ring[len - 1];
+      return (x1 === x2 && y1 === y2);
+  }
+  function calPolygonPointsCount(polygon) {
+      let count = 0;
+      let i = 0;
+      const len = polygon.length;
+      while (i < len) {
+          count += (polygon[i].length);
+          i++;
+      }
+      return count;
+  }
+  function getPolygonsBBOX(polygons, bbox) {
+      bbox = bbox || [Infinity, Infinity, -Infinity, -Infinity];
+      for (let i = 0, len = polygons.length; i < len; i++) {
+          const p = polygons[i];
+          if (Array.isArray(p[0][0])) {
+              getPolygonsBBOX(p, bbox);
+          }
+          else {
+              for (let j = 0, len1 = p.length; j < len1; j++) {
+                  const c = p[j];
+                  const [x, y] = c;
+                  bbox[0] = Math.min(bbox[0], x);
+                  bbox[1] = Math.min(bbox[1], y);
+                  bbox[2] = Math.max(bbox[2], x);
+                  bbox[3] = Math.max(bbox[3], y);
+              }
+          }
+      }
+      return bbox;
+  }
+  function validatePolygon(polygon, ignoreEndPoint) {
+      for (let i = 0, len = polygon.length; i < len; i++) {
+          const ring = polygon[i];
+          validateRing(ring);
+          if (i === 0) {
+              if (!isClockwise(ring)) {
+                  polygon[i] = ring.reverse();
+              }
+          }
+          else if (isClockwise(ring)) {
+              polygon[i] = ring.reverse();
+          }
+          if (ignoreEndPoint) {
+              if (isClosedRing(ring)) {
+                  ring.splice(ring.length - 1, 1);
+              }
+          }
+      }
   }
   function v3Sub(out, v1, v2) {
       out[0] = v1[0] - v2[0];
@@ -1915,24 +1980,10 @@
       return distance;
   }
 
-  function extrudePolygons(polygons, options) {
-      options = Object.assign({}, { depth: 2, top: true }, options);
+  function extrudePolygons(polygons, opts) {
+      const options = Object.assign({}, { depth: 2, top: true }, opts);
       const results = polygons.map(polygon => {
-          for (let i = 0, len = polygon.length; i < len; i++) {
-              const ring = polygon[i];
-              validateRing(ring);
-              if (i === 0) {
-                  if (!isClockwise(ring)) {
-                      polygon[i] = ring.reverse();
-                  }
-              }
-              else if (isClockwise(ring)) {
-                  polygon[i] = ring.reverse();
-              }
-              if (isClosedRing(ring)) {
-                  ring.splice(ring.length - 1, 1);
-              }
-          }
+          validatePolygon(polygon, true);
           const result = flatVertices(polygon, options);
           result.polygon = polygon;
           const triangles = earcut(result.flatVertices, result.holes, 2);
@@ -2017,16 +2068,6 @@
           }
       }
   }
-  function calPolygonPointsCount(polygon) {
-      let count = 0;
-      let i = 0;
-      const len = polygon.length;
-      while (i < len) {
-          count += (polygon[i].length);
-          i++;
-      }
-      return count;
-  }
   function flatVertices(polygon, options) {
       const count = calPolygonPointsCount(polygon);
       const len = polygon.length;
@@ -2071,15 +2112,50 @@
           uv
       };
   }
-  function validateRing(ring) {
-      if (!isClosedRing(ring)) {
-          ring.push(ring[0]);
+  function simplePolygon(polygon, options = {}) {
+      const flatVertices = [], holes = [];
+      let pIndex = -1, aIndex = -1, uvIndex = -1;
+      const points = [], uv = [];
+      for (let i = 0, len = polygon.length; i < len; i++) {
+          const ring = polygon[i];
+          if (i > 0) {
+              holes.push(flatVertices.length / 2);
+          }
+          for (let j = 0, len1 = ring.length; j < len1; j++) {
+              const c = ring[j];
+              flatVertices[++pIndex] = c[0];
+              flatVertices[++pIndex] = c[1];
+              points[++aIndex] = c[0];
+              points[++aIndex] = c[1];
+              points[++aIndex] = c[2] || 0;
+              uv[++uvIndex] = c[0];
+              uv[++uvIndex] = c[1];
+          }
       }
+      const triangles = earcut(flatVertices, holes, 2);
+      const normal = generateNormal(triangles, points);
+      return {
+          normal,
+          uv,
+          points,
+          indices: triangles
+      };
   }
-  function isClosedRing(ring) {
-      const len = ring.length;
-      const [x1, y1] = ring[0], [x2, y2] = ring[len - 1];
-      return (x1 === x2 && y1 === y2);
+  function polygons(polygons, opts = {}) {
+      const options = Object.assign({}, opts);
+      const results = polygons.map(polygon => {
+          validatePolygon(polygon, true);
+          const result = simplePolygon(polygon, options);
+          result.polygon = polygon;
+          result.position = new Float32Array(result.points);
+          result.indices = new Uint32Array(result.indices);
+          result.uv = new Float32Array(result.uv);
+          result.normal = new Float32Array(result.normal);
+          return result;
+      });
+      const result = merge(results);
+      result.polygons = polygons;
+      return result;
   }
 
   function checkOptions(options) {
@@ -2087,8 +2163,8 @@
       options.depth = Math.max(0, options.depth);
       options.sideDepth = Math.max(0, options.sideDepth);
   }
-  function extrudePolylines(lines, options) {
-      options = Object.assign({}, { depth: 2, lineWidth: 1, bottomStickGround: false, pathUV: false }, options);
+  function extrudePolylines(lines, opts) {
+      const options = Object.assign({}, { depth: 2, lineWidth: 1, bottomStickGround: false, pathUV: false }, opts);
       checkOptions(options);
       const results = lines.map(line => {
           const result = expandLine(line, options);
@@ -2105,8 +2181,8 @@
       result.lines = lines;
       return result;
   }
-  function extrudeSlopes(lines, options) {
-      options = Object.assign({}, { depth: 2, lineWidth: 1, side: 'left', sideDepth: 0, bottomStickGround: false, pathUV: false, isSlope: true }, options);
+  function extrudeSlopes(lines, opts) {
+      const options = Object.assign({}, { depth: 2, lineWidth: 1, side: 'left', sideDepth: 0, bottomStickGround: false, pathUV: false, isSlope: true }, opts);
       checkOptions(options);
       const { depth, side, sideDepth } = options;
       const results = lines.map(line => {
@@ -2343,39 +2419,91 @@
   }
   const TEMPV1 = { x: 0, y: 0 }, TEMPV2 = { x: 0, y: 0 };
   function expandLine(line, options) {
-      // let preAngle = 0;
       let radius = options.lineWidth / 2;
       if (options.isSlope) {
           radius *= 2;
       }
       const points = [], leftPoints = [], rightPoints = [];
       const len = line.length;
+      const repeatVertex = () => {
+          const len1 = leftPoints.length;
+          if (len1) {
+              leftPoints.push(leftPoints[len1 - 1]);
+              rightPoints.push(rightPoints[len1 - 1]);
+              const len2 = points.length;
+              points.push(points[len2 - 2], points[len2 - 1]);
+          }
+      };
+      const equal = (p1, p2) => {
+          return p1[0] === p2[0] && p1[1] === p2[1];
+      };
       let i = 0;
       while (i < len) {
           let p1 = line[i], p2 = line[i + 1];
-          const currentp = line[i];
+          const currentp = p1;
           // last vertex
           if (i === len - 1) {
               p1 = line[len - 2];
               p2 = line[len - 1];
+              if (equal(p1, p2)) {
+                  for (let j = line.indexOf(p1); j >= 0; j--) {
+                      const p = line[j];
+                      if (!equal(p, currentp)) {
+                          p1 = p;
+                          break;
+                      }
+                  }
+              }
           }
-          const dy = p2[1] - p1[1], dx = p2[0] - p1[0];
+          else {
+              if (equal(p1, p2)) {
+                  for (let j = line.indexOf(p2); j < len; j++) {
+                      const p = line[j];
+                      if (!equal(p, currentp)) {
+                          p2 = p;
+                          break;
+                      }
+                  }
+              }
+          }
+          if (equal(p1, p2)) {
+              repeatVertex();
+              i++;
+              continue;
+          }
+          let dy = p2[1] - p1[1], dx = p2[0] - p1[0];
           let rAngle = 0;
-          const rad = Math.atan(dy / dx);
+          const rad = Math.atan2(dy, dx);
           const angle = radToDeg(rad);
-          // preAngle = angle;
           if (i === 0 || i === len - 1) {
               rAngle = angle;
               rAngle -= 90;
           }
           else {
               // 至少3个顶点才会触发
-              const p0 = line[i - 1];
+              let p0 = line[i - 1];
+              if (equal(p0, p2) || equal(p0, p1)) {
+                  for (let j = line.indexOf(p2); j >= 0; j--) {
+                      const p = line[j];
+                      if (!equal(p, p2) && (!equal(p, p1))) {
+                          p0 = p;
+                          break;
+                      }
+                  }
+              }
+              if (equal(p0, p2) || equal(p0, p1) || equal(p1, p2)) {
+                  repeatVertex();
+                  i++;
+                  continue;
+              }
               TEMPV1.x = p0[0] - p1[0];
               TEMPV1.y = p0[1] - p1[1];
               TEMPV2.x = p2[0] - p1[0];
               TEMPV2.y = p2[1] - p1[1];
-              const vAngle = getAngle(TEMPV1, TEMPV2);
+              if ((TEMPV1.x === 0 && TEMPV1.y === 0) || (TEMPV2.x === 0 && TEMPV2.y === 0)) {
+                  console.error('has repeat vertex,the index:', i);
+              }
+              const vAngle = getAngle$1(TEMPV1, TEMPV2);
               rAngle = angle - vAngle / 2;
           }
           const rRad = degToRad(rAngle);
@@ -2391,6 +2519,7 @@
               const point1 = points[len1 - 2];
               const point2 = points[len1 - 1];
               if (!point1 || !point2) {
+                  i++;
                   continue;
               }
               op1 = [point1[0], point1[1]];
@@ -2412,7 +2541,7 @@
       }
       return { offsetPoints: points, leftPoints, rightPoints, line };
   }
-  const getAngle = ({ x: x1, y: y1 }, { x: x2, y: y2 }) => {
+  const getAngle$1 = ({ x: x1, y: y1 }, { x: x2, y: y2 }) => {
       const dot = x1 * x2 + y1 * y2;
       const det = x1 * y2 - y1 * x2;
       const angle = Math.atan2(det, dot) / Math.PI * 180;
@@ -2433,6 +2562,9 @@
    */
   function translateLine(p1, p2, distance) {
       const dy = p2[1] - p1[1], dx = p2[0] - p1[0];
+      if (dy === 0 && dx === 0) {
+          return null;
+      }
       const rad = Math.atan2(dy, dx);
       const rad1 = rad + Math.PI / 2;
       let offsetX = Math.cos(rad1) * distance, offsetY = Math.sin(rad1) * distance;
@@ -2456,9 +2588,11 @@
   function lineIntersection(p1, p2, p3, p4) {
       const dx1 = p2[0] - p1[0], dy1 = p2[1] - p1[1];
       const dx2 = p4[0] - p3[0], dy2 = p4[1] - p3[1];
+      //vertical 
       if (dx1 === 0 && dx2 === 0) {
           return null;
       }
+      //horizontal
       if (dy1 === 0 && dy2 === 0) {
           return null;
       }
@@ -2490,8 +2624,8 @@
       return [x, y];
   }
 
-  function cylinder(point, options) {
-      options = Object.assign({}, { radius: 1, height: 2, radialSegments: 6 }, options);
+  function cylinder(point, opts) {
+      const options = Object.assign({}, { radius: 1, height: 2, radialSegments: 6 }, opts);
       const radialSegments = Math.round(Math.max(4, options.radialSegments));
       let { radius, height } = options;
       radius = radius;
@@ -3889,7 +4023,7 @@
     return PathPointList;
   }();
 
-  const UP$1 = new Vector3(0, 0, 1);
+  const UP$2 = new Vector3(0, 0, 1);
   const right = new Vector3();
   const left = new Vector3();
   // for sharp corners
@@ -3897,13 +4031,13 @@
   const rightOffset = new Vector3();
   const tempPoint1 = new Vector3();
   const tempPoint2 = new Vector3();
-  function expandPaths(lines, options) {
-      options = Object.assign({}, { lineWidth: 1, cornerRadius: 0, cornerSplit: 10 }, options);
+  function expandPaths(lines, opts) {
+      const options = Object.assign({}, { lineWidth: 1, cornerRadius: 0, cornerSplit: 10 }, opts);
       const results = lines.map(line => {
           const points = line2Vectors(line);
           const pathPointList = new PathPointList();
           //@ts-ignore
-          pathPointList.set(points, options.cornerRadius, options.cornerSplit, UP$1);
+          pathPointList.set(points, options.cornerRadius, options.cornerSplit, UP$2);
           const params = generatePathVertexData(pathPointList, options);
           const result = {
               position: new Float32Array(params.position),
@@ -4212,15 +4346,15 @@
       };
   }
 
-  const UP = new Vector3(0, 0, 1);
-  const normalDir = new Vector3();
-  function expandTubes(lines, options) {
-      options = Object.assign({}, { radius: 1, cornerSplit: 0, radialSegments: 8, startRad: -Math.PI / 4 }, options);
+  const UP$1 = new Vector3(0, 0, 1);
+  const normalDir$1 = new Vector3();
+  function expandTubes(lines, opts) {
+      const options = Object.assign({}, { radius: 1, cornerSplit: 0, radialSegments: 8, startRad: -Math.PI / 4 }, opts);
       const results = lines.map(line => {
           const points = line2Vectors(line);
           const pathPointList = new PathPointList();
           //@ts-ignore
-          pathPointList.set(points, 0, options.cornerSplit, UP);
+          pathPointList.set(points, 0, options.cornerSplit, UP$1);
           const result = generateTubeVertexData(pathPointList, options);
           result.line = line;
           result.position = new Float32Array(result.points);
@@ -4267,14 +4401,14 @@
               if (r === radialSegments) {
                   r = 0;
               }
-              normalDir.copy(pathPoint.up).applyAxisAngle(pathPoint.dir, startRad + Math.PI * 2 * r / radialSegments).normalize();
+              normalDir$1.copy(pathPoint.up).applyAxisAngle(pathPoint.dir, startRad + Math.PI * 2 * r / radialSegments).normalize();
               const scale = radius * pathPoint.widthScale;
-              points[++pIndex] = pathPoint.pos.x + normalDir.x * scale;
-              points[++pIndex] = pathPoint.pos.y + normalDir.y * scale;
-              points[++pIndex] = pathPoint.pos.z + normalDir.z * scale;
-              normal[++nIndex] = normalDir.x;
-              normal[++nIndex] = normalDir.y;
-              normal[++nIndex] = normalDir.z;
+              points[++pIndex] = pathPoint.pos.x + normalDir$1.x * scale;
+              points[++pIndex] = pathPoint.pos.y + normalDir$1.y * scale;
+              points[++pIndex] = pathPoint.pos.z + normalDir$1.z * scale;
+              normal[++nIndex] = normalDir$1.x;
+              normal[++nIndex] = normalDir$1.y;
+              normal[++nIndex] = normalDir$1.z;
               uv[++uIndex] = uvDist;
               uv[++uIndex] = i / radialSegments;
               // uvs.push(uvDist, r / radialSegments);
@@ -4389,17 +4523,272 @@
       };
   }
 
+  const UP = new Vector3(0, 0, 1);
+  const normalDir = new Vector3();
+  function extrudePolygonsOnPath(polygons, opts) {
+      const options = (Object.assign({}, { openEnd: false, openEndUV: true, polygonRotation: 0 }, opts));
+      const { extrudePath, openEnd } = options;
+      if (!extrudePath || !Array.isArray(extrudePath) || extrudePath.length < 2) {
+          console.error('extrudePath is error:', extrudePath);
+          return null;
+      }
+      const bbox = getPolygonsBBOX(polygons);
+      const [minx, miny, maxx, maxy] = bbox;
+      const center = [(minx + maxx) / 2, (miny + maxy) / 2];
+      options.center = center;
+      options.bbox = bbox;
+      const points = line2Vectors(extrudePath);
+      const pathPointList = new PathPointList();
+      //@ts-ignore
+      pathPointList.set(points, 0, options.cornerSplit, UP);
+      const results = polygons.map(polygon => {
+          validatePolygon(polygon, false);
+          const result = generatePolygonOnPathVertexData(pathPointList, polygon, options);
+          if (!openEnd) {
+              generateStartAndEnd(result, polygon, options);
+          }
+          result.polygon = polygon;
+          result.position = new Float32Array(result.points);
+          result.indices = new Uint32Array(result.indices);
+          result.uv = new Float32Array(result.uv);
+          result.normal = new Float32Array(result.normal);
+          return result;
+      });
+      const result = merge(results);
+      result.polygons = polygons;
+      return result;
+  }
+  function getAngle(c1, c2) {
+      const [x1, y1] = c1;
+      const [x2, y2] = c2;
+      const dy = y2 - y1;
+      const dx = x2 - x1;
+      return Math.atan2(dy, dx);
+  }
+  function transformPolygon(polygon, options) {
+      const { center, polygonRotation } = options;
+      const [cx, cy] = center;
+      const list = [];
+      polygon.forEach((ring, rIndex) => {
+          const data = [];
+          let totalDistance = 0;
+          let tempPoint;
+          for (let i = 0, len = ring.length; i < len; i++) {
+              const p = ring[i];
+              const x1 = p[0], y1 = p[1];
+              const offsetx = x1 - cx, offsety = y1 - cy;
+              let distance = 0;
+              if (i > 0) {
+                  const x2 = tempPoint[0], y2 = tempPoint[1];
+                  const dx = x2 - x1, dy = y2 - y1;
+                  distance = Math.sqrt(dx * dx + dy * dy) + totalDistance;
+                  totalDistance = distance;
+              }
+              data[i] = {
+                  // dx,
+                  // dy,
+                  // dz: 0,
+                  distance,
+                  radius: Math.sqrt(offsetx * offsetx + offsety * offsety),
+                  angle: -getAngle(center, p) + polygonRotation
+              };
+              tempPoint = p;
+          }
+          list[rIndex] = {
+              ring: data,
+              ringLen: totalDistance
+          };
+      });
+      return list;
+  }
+  const TEMP_VECTOR3 = new Vector3(0, 0, 0);
+  // Vertex Data Generate Functions
+  // code copy from https://github.com/shawn0326/three.path/blob/master/src/PathGeometry.js
+  function generatePolygonOnPathVertexData(pathPointList, polygon, options) {
+      const tpolygon = transformPolygon(polygon, options);
+      // let count = 0;
+      // modify data
+      const points = [];
+      const normal = [];
+      const uv = [];
+      // const uv2 = [];
+      const indices = [];
+      let verticesCount = 0;
+      let pIndex = -1;
+      let nIndex = -1;
+      let uIndex = -1;
+      let iIndex = -1;
+      const startPoints = [], endPoints = [];
+      function addVertices(pathPoint, ring, ringLen, first, end) {
+          const uvDist = pathPoint.dist / ringLen;
+          const radialSegments = ring.length;
+          // const startRad = ring[0].angle;
+          for (let i = 0; i < radialSegments; i++) {
+              const item = ring[i];
+              if (!item) {
+                  continue;
+              }
+              const isLast = i === radialSegments - 1;
+              const angle = item.angle;
+              const radius = item.radius;
+              const distance = item.distance;
+              normalDir.copy(pathPoint.up).applyAxisAngle(pathPoint.dir, angle).normalize();
+              const v = TEMP_VECTOR3.copy(pathPoint.up);
+              v.applyAxisAngle(pathPoint.dir, angle);
+              v.x *= radius;
+              v.y *= radius;
+              v.z *= radius;
+              const x = pathPoint.pos.x + v.x;
+              const y = pathPoint.pos.y + v.y;
+              const z = pathPoint.pos.z + v.z;
+              points[++pIndex] = x;
+              points[++pIndex] = y;
+              points[++pIndex] = z;
+              // if (i === 0 || i === radialSegments - 1) {
+              //     console.log(i, radialSegments, v.x, v.y, v.z);
+              // }
+              normal[++nIndex] = normalDir.x;
+              normal[++nIndex] = normalDir.y;
+              normal[++nIndex] = normalDir.z;
+              uv[++uIndex] = uvDist;
+              uv[++uIndex] = distance / ringLen;
+              verticesCount++;
+              if (first && !isLast) {
+                  let index = startPoints.length - 1;
+                  startPoints[++index] = x;
+                  startPoints[++index] = y;
+                  startPoints[++index] = z;
+              }
+              if (end && !isLast) {
+                  let index = endPoints.length - 1;
+                  endPoints[++index] = x;
+                  endPoints[++index] = y;
+                  endPoints[++index] = z;
+              }
+          }
+          if (!first) {
+              const begin1 = verticesCount - (radialSegments) * 2;
+              const begin2 = verticesCount - (radialSegments);
+              for (let i = 0; i < radialSegments - 1; i++) {
+                  indices[++iIndex] = begin2 + i;
+                  indices[++iIndex] = begin1 + i;
+                  indices[++iIndex] = begin1 + i + 1;
+                  indices[++iIndex] = begin2 + i;
+                  indices[++iIndex] = begin1 + i + 1;
+                  indices[++iIndex] = begin2 + i + 1;
+              }
+          }
+      }
+      const polygonLen = tpolygon[0].ringLen;
+      tpolygon.forEach(item => {
+          for (let i = 0; i < pathPointList.count; i++) {
+              const pathPoint = pathPointList.array[i];
+              const { ring, ringLen } = item;
+              addVertices(pathPoint, ring, ringLen, i === 0, i === pathPointList.count - 1);
+          }
+      });
+      return {
+          points,
+          normal,
+          uv,
+          // uv2,
+          indices,
+          startPoints,
+          endPoints,
+          polygonLen
+          // count
+      };
+  }
+  function generateStartAndEnd(result, polygon, options) {
+      const { openEndUV } = options;
+      for (let i = 0, len = polygon.length; i < len; i++) {
+          const ring = polygon[i];
+          if (isClosedRing(ring)) {
+              ring.splice(ring.length - 1, 1);
+          }
+      }
+      const pointCount = calPolygonPointsCount(polygon);
+      const flatVertices = [], holes = [];
+      let pIndex = -1;
+      for (let i = 0, len = polygon.length; i < len; i++) {
+          const ring = polygon[i];
+          if (i > 0) {
+              holes.push(flatVertices.length / 2);
+          }
+          for (let j = 0, len1 = ring.length; j < len1; j++) {
+              const c = ring[j];
+              flatVertices[++pIndex] = c[0];
+              flatVertices[++pIndex] = c[1];
+          }
+      }
+      const triangles = earcut(flatVertices, holes, 2);
+      const { points, normal, uv, indices, startPoints, endPoints, polygonLen } = result;
+      pIndex = 0;
+      let uIndex = 0;
+      const aPoints1 = [], auv1 = [], aPoints2 = [], auv2 = [];
+      for (let i = 0; i < pointCount; i++) {
+          const idx = i * 3;
+          const x = startPoints[idx];
+          const y = startPoints[idx + 1];
+          const z = startPoints[idx + 2];
+          aPoints1[pIndex] = x;
+          aPoints1[pIndex + 1] = y;
+          aPoints1[pIndex + 2] = z;
+          if (openEndUV) {
+              auv1[uIndex] = y / polygonLen;
+              auv1[uIndex + 1] = z / polygonLen;
+          }
+          else {
+              auv1[uIndex] = 0;
+              auv1[uIndex + 1] = 0;
+          }
+          const x1 = endPoints[idx];
+          const y1 = endPoints[idx + 1];
+          const z1 = endPoints[idx + 2];
+          aPoints2[pIndex] = x1;
+          aPoints2[pIndex + 1] = y1;
+          aPoints2[pIndex + 2] = z1;
+          if (openEndUV) {
+              auv2[uIndex] = y1 / polygonLen;
+              auv2[uIndex + 1] = z1 / polygonLen;
+          }
+          else {
+              auv2[uIndex] = 0;
+              auv2[uIndex + 1] = 0;
+          }
+          pIndex += 3;
+          uIndex += 2;
+      }
+      const indexOffset = points.length / 3;
+      const indexs = [];
+      for (let i = 0, len = triangles.length; i < len; i++) {
+          indexs[i] = triangles[i] + indexOffset;
+          indexs[i + len] = triangles[i] + indexOffset + pointCount;
+      }
+      const anormal1 = generateNormal(triangles, aPoints1);
+      const anormal2 = generateNormal(triangles, aPoints2);
+      mergeArray(points, aPoints1);
+      mergeArray(points, aPoints2);
+      mergeArray(uv, auv1);
+      mergeArray(uv, auv2);
+      mergeArray(normal, anormal1);
+      mergeArray(normal, anormal2);
+      mergeArray(indices, indexs);
+  }
+
   exports.cylinder = cylinder;
   exports.expandLine = expandLine;
   exports.expandPaths = expandPaths;
   exports.expandTubes = expandTubes;
   exports.extrudePolygons = extrudePolygons;
+  exports.extrudePolygonsOnPath = extrudePolygonsOnPath;
   exports.extrudePolylines = extrudePolylines;
   exports.extrudeSlopes = extrudeSlopes;
   exports.isClockwise = isClockwise;
   exports.leftOnLine = leftOnLine;
   exports.merge = merge;
   exports.plane = plane;
+  exports.polygons = polygons;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 
