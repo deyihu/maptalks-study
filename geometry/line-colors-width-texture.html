@@ -1,0 +1,364 @@
+<html>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>动画 - 点的沿线动画</title>
+<style type="text/css">
+  html,
+  body {
+    margin: 0px;
+    height: 100%;
+    width: 100%;
+  }
+
+  .container {
+    float: left;
+    width: 100%;
+    height: 100%;
+  }
+
+  .pane {
+    background: #34495e;
+    line-height: 28px;
+    color: #fff;
+    z-index: 10;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    cursor: pointer;
+  }
+
+  .m-r-10 {
+    margin-right: 10px;
+  }
+
+  #pane3 {
+    display: none;
+  }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+
+<body>
+  <div id="map" class="container"></div>
+  <div class="pane">
+    <div id="pane1" class="m-r-10">重新播放</div>
+    <div id="pane2" class="m-r-10">播放</div>
+    <div id="pane3" class="m-r-10">暂停</div>
+    <div id="pane4" class="m-r-10">高亮</div>
+  </div>
+
+  <script>
+
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 100;
+    document.body.appendChild(canvas);
+
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 20;
+    ctx.beginPath();
+    const { width, height } = canvas
+    ctx.moveTo(width / 3, 0);
+    ctx.lineTo(width * 3 / 4, height / 2);
+    ctx.lineTo(width / 3, height);
+    ctx.stroke();
+
+    ctx.strokeStyle = '#bdbdbd';
+    ctx.lineWidth = 40;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(width, 0);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0, height);
+    ctx.lineTo(width, height);
+    ctx.stroke();
+
+    const pathURL = canvas.toDataURL();
+
+    const offsetHeight = 0.1;
+
+
+    const map = new maptalks.Map("map", {
+      center: [114.024072, 22.640064],
+      zoom: 12,
+    });
+
+    const sceneConfig = {
+      postProcess: {
+        enable: true,
+        antialias: { enable: true },
+        bloom: {
+          enable: true,
+          threshold: 0,
+          factor: 1,
+          radius: 0.02,
+        },
+      }
+    };
+    const groupLayer = new maptalks.GroupGLLayer('group', [], { sceneConfig });
+    groupLayer.addTo(map);
+    const layer = new maptalks.LineStringLayer('line').addTo(groupLayer);
+    // const layer = new maptalks.VectorLayer('line').addTo(map);
+
+    let list = [
+      { cood: [114.024007, 22.63972], speed: 1 },
+      { cood: [114.023999, 22.639864], speed: 1 },
+      { cood: [114.023991, 22.639867], speed: 1 },
+      { cood: [114.023991, 22.639867], speed: 1 },
+      { cood: [114.023991, 22.639867], speed: 1 },
+      { cood: [114.021353, 22.641103], speed: 24 },
+      { cood: [114.021361, 22.641092], speed: 25 },
+      { cood: [114.022278, 22.640967], speed: 26 },
+      { cood: [114.023632, 22.640069], speed: 1 },
+      { cood: [114.023632, 22.640069], speed: 1 },
+      { cood: [114.023632, 22.640069], speed: 1 },
+      { cood: [114.024075, 22.640396], speed: 1 },
+      { cood: [114.024022, 22.640298], speed: 1 },
+      { cood: [114.023991, 22.640232], speed: 1 },
+      { cood: [114.023999, 22.64018], speed: 29 },
+      { cood: [114.02393, 22.64002], speed: 30 },
+      { cood: [114.023907, 22.639974], speed: 40 },
+      { cood: [114.023938, 22.63989], speed: 35 },
+      { cood: [114.023938, 22.63989], speed: 0 },
+      { cood: [114.023938, 22.63989], speed: 0 },
+      { cood: [114.023249, 22.639928], speed: 0 },
+      { cood: [114.023432, 22.639406], speed: 0 },
+      { cood: [114.023394, 22.639392], speed: 0 },
+      { cood: [114.023555, 22.639466], speed: 0 },
+      { cood: [114.023639, 22.639552], speed: 0 },
+      { cood: [114.023708, 22.63959], speed: 0 },
+      { cood: [114.023754, 22.639662], speed: 0 },
+      { cood: [114.023807, 22.639788], speed: 0 },
+      { cood: [114.023784, 22.639887], speed: 0 },
+      { cood: [114.023777, 22.639922], speed: 0 },
+      { cood: [114.023769, 22.639971], speed: 0 },
+      { cood: [114.023746, 22.64007], speed: 0 },
+      { cood: [114.023731, 22.64007], speed: 0 },
+      { cood: [114.023739, 22.640063], speed: 0 },
+      { cood: [114.023708, 22.640061], speed: 0 },
+      { cood: [114.023731, 22.640053], speed: 0 },
+      { cood: [114.023739, 22.640032], speed: 0 },
+      { cood: [114.023754, 22.640006], speed: 0 },
+      { cood: [114.023777, 22.639981], speed: 0 },
+      { cood: [114.023769, 22.639969], speed: 0 },
+      { cood: [114.023822, 22.639971], speed: 0 },
+      { cood: [114.023807, 22.639979], speed: 0 },
+      { cood: [114.023883, 22.639968], speed: 0 },
+      { cood: [114.023976, 22.639926], speed: 0 },
+      { cood: [114.023946, 22.63993], speed: 0 },
+      { cood: [114.023938, 22.639942], speed: 0 },
+      { cood: [114.023892, 22.639944], speed: 0 },
+      { cood: [114.023892, 22.639944], speed: 0 },
+      { cood: [114.023892, 22.639944], speed: 0 },
+      { cood: [114.024068, 22.640041], speed: 0 },
+      { cood: [114.023822, 22.639937], speed: 0 },
+      { cood: [114.023662, 22.639905], speed: 0 },
+      { cood: [114.023616, 22.639887], speed: 0 },
+      { cood: [114.023632, 22.639863], speed: 0 },
+      { cood: [114.023632, 22.639863], speed: 0 },
+      { cood: [114.023632, 22.639863], speed: 0 },
+      { cood: [114.023868, 22.639921], speed: 0 },
+      { cood: [114.023632, 22.639863], speed: 0 },
+      { cood: [114.023632, 22.639863], speed: 0 },
+      { cood: [114.024045, 22.639867], speed: 0 },
+      { cood: [114.023968, 22.639875], speed: 0 },
+      { cood: [114.023968, 22.639896], speed: 0 },
+      { cood: [114.023968, 22.639896], speed: 0 },
+      { cood: [114.023968, 22.639896], speed: 0 },
+      { cood: [114.023876, 22.640239], speed: 0 },
+      { cood: [114.023968, 22.639896], speed: 0 },
+      { cood: [114.023968, 22.639896], speed: 0 },
+      { cood: [114.024037, 22.639522], speed: 0 },
+      { cood: [114.024052, 22.639823], speed: 0 },
+      { cood: [114.024037, 22.639909], speed: 0 },
+      { cood: [114.023991, 22.63993], speed: 0 },
+      { cood: [114.023953, 22.639944], speed: 0 },
+      { cood: [114.023953, 22.639944], speed: 0 },
+      { cood: [114.023953, 22.639944] },
+    ];
+
+    const coordinates = [
+      [
+        120.61292733869195,
+        31.152901786048382
+      ],
+      [
+        120.64640327465106,
+        31.176256970261484
+      ],
+      [
+        120.68914946979882,
+        31.153048691989834
+      ],
+      [
+        120.708376674042,
+        31.13321433064536
+      ],
+      [
+        120.69567298552418,
+        31.11675600839432
+      ],
+      [
+        120.66236872103156,
+        31.10323453695517
+      ],
+      [
+        120.62614604160913,
+        31.101470724805523
+      ],
+      [
+        120.61653243948756,
+        31.114698517402076
+      ],
+      [
+        120.6254593557433,
+        31.12542637325593
+      ],
+      [
+        120.61533073922234,
+        31.132920457068472
+      ],
+      [
+        120.58975169072028,
+        31.136299948233187
+      ],
+      [
+        120.57550295900434,
+        31.14849450192977
+      ],
+      [
+        120.57876471686704,
+        31.16788501911506
+      ],
+      [
+        120.58700494725696,
+        31.1822784424067
+      ],
+      [
+        120.63730468692884,
+        31.166856833743967
+      ],
+      [
+        120.65395681917516,
+        31.14717227673633
+      ],
+      [
+        120.6613386922328,
+        31.132479644996085
+      ],
+      [
+        120.68193926820764,
+        31.138650827590126
+      ],
+      [
+        120.69515797112483,
+        31.15965922368169
+      ],
+      [
+        120.69378459939317,
+        31.173907023597806
+      ],
+      [
+        120.67215399461959,
+        31.18506875086495
+      ],
+      [
+        120.65515851944036,
+        31.19123650928705
+      ],
+      [
+        120.63593131519718,
+        31.1969633536418
+      ]
+    ];
+    let lineList = [];
+
+    function test1() {
+      const lineWidth = 14;
+      for (let i = 0; i < coordinates.length - 1; i++) {
+        const c1 = [...coordinates[i], offsetHeight], c2 = [...coordinates[i + 1]];
+        let arrow1 = new maptalks.LineString(
+          [c1, c2],
+          {
+            symbol: {
+              lineWidth,
+              // linePatternFile: list[i].speed < 20 ? 'https://public-oss.qizhidao.com/App/202507/324039bda7e5471aba63041778e20582' : 'https://public-oss.qizhidao.com/App/202507/43156b40cddb46de9387b73744f40408',
+              // linePatternGap: 20,
+              // lineCap: "round",
+              lineColor: i % 2 === 0 ? "#f00" : "#0f0",
+              // lineStrokeColor:'#000',
+              // lineStrokeWidth: 2,
+            },
+
+            zIndex: 11,
+          }
+        ).addTo(layer);
+
+      }
+
+      map.setCenter([
+        120.61292733869195,
+        31.152901786048382
+      ])
+
+      let line = new maptalks.LineString(coordinates.map(o => {
+        return [...o, offsetHeight * 2]
+      }), {
+        symbol: {
+          lineWidth,
+          linePatternFile: pathURL,
+          // linePatternGap: 20,
+          lineCap: "round",
+        },
+        zIndex: 13,
+      }).addTo(layer);
+    }
+
+    function test2() {
+      const lineWidth = 10;
+      for (let i = 0; i < list.length - 1; i++) {
+
+        const c1 = [...list[i].cood, offsetHeight], c2 = list[i + 1].cood;
+
+        let arrow1 = new maptalks.LineString([c1, c2],
+          {
+            symbol: {
+              lineWidth,
+              // linePatternFile: list[i].speed < 20 ? 'https://public-oss.qizhidao.com/App/202507/324039bda7e5471aba63041778e20582' : 'https://public-oss.qizhidao.com/App/202507/43156b40cddb46de9387b73744f40408',
+              // linePatternGap: 20,
+              // lineCap: "round",
+              lineColor: list[i].speed < 20 ? "#75BEFF" : "#1BFBB5",
+            },
+
+            zIndex: 11,
+          }
+        ).addTo(layer);
+
+      }
+
+      map.setCenter([114.02370862, 22.63995672]);
+      map.setZoom(19);
+
+      let line = new maptalks.LineString(list.map(o => {
+        return [...o.cood, 0.1]
+      }), {
+        symbol: {
+          lineWidth,
+          linePatternFile: pathURL,
+          // linePatternGap: 1,
+          lineCap: "round",
+        },
+        zIndex: 13,
+      }).addTo(layer);
+    }
+
+
+    test1();
+  </script>
+</body>
+
+</html>
