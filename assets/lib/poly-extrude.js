@@ -1,5 +1,5 @@
 /*!
- * poly-extrude v0.19.0
+ * poly-extrude v0.20.4
   */
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -2229,10 +2229,15 @@
       const { leftPoints, rightPoints } = result;
       const line = result.line;
       const pathUV = options.pathUV;
+      let uvCalPath = line;
+      // let needCalUV = false;
+      if (leftPoints.length > uvCalPath.length) {
+          uvCalPath = leftPoints;
+      }
       if (pathUV) {
-          calLineDistance(line);
-          for (let i = 0, len = line.length; i < len; i++) {
-              leftPoints[i].distance = rightPoints[i].distance = line[i].distance;
+          calLineDistance(uvCalPath);
+          for (let i = 0, len = uvCalPath.length; i < len; i++) {
+              leftPoints[i].distance = rightPoints[i].distance = uvCalPath[i].distance;
           }
       }
       let i = 0, len = leftPoints.length;
@@ -2244,12 +2249,14 @@
           points[idx0] = x1;
           points[idx0 + 1] = y1;
           points[idx0 + 2] = lz + z1;
+          // const p1 = leftPoints[i];
           // top right
           const [x2, y2, z2] = rightPoints[i];
           const idx1 = len * 3 + idx0;
           points[idx1] = x2;
           points[idx1 + 1] = y2;
           points[idx1 + 2] = rz + z2;
+          // const p2 = rightPoints[i];
           // bottom left
           const idx2 = (len * 2) * 3 + idx0;
           points[idx2] = x1;
@@ -2268,8 +2275,8 @@
           }
           // generate path uv
           if (pathUV) {
-              const p = line[i];
-              const uvx = p.distance;
+              const p = uvCalPath[i];
+              let uvx = p.distance;
               const uIndex0 = i * 2;
               uv[uIndex0] = uvx;
               uv[uIndex0 + 1] = 1;
@@ -2419,10 +2426,12 @@
   }
   const TEMPV1 = { x: 0, y: 0 }, TEMPV2 = { x: 0, y: 0 };
   function expandLine(line, options) {
+      options = Object.assign({}, { lineWidth: 1, cutCorner: false }, options);
       let radius = options.lineWidth / 2;
       if (options.isSlope) {
           radius *= 2;
       }
+      const { cutCorner } = options;
       const points = [], leftPoints = [], rightPoints = [];
       const len = line.length;
       const repeatVertex = () => {
@@ -2438,9 +2447,11 @@
           return p1[0] === p2[0] && p1[1] === p2[1];
       };
       let i = 0;
+      let preleftline, prerightline;
       while (i < len) {
+          let p0;
           let p1 = line[i], p2 = line[i + 1];
-          const currentp = p1;
+          const current = p1;
           // last vertex
           if (i === len - 1) {
               p1 = line[len - 2];
@@ -2448,7 +2459,7 @@
               if (equal(p1, p2)) {
                   for (let j = line.indexOf(p1); j >= 0; j--) {
                       const p = line[j];
-                      if (!equal(p, currentp)) {
+                      if (!equal(p, current)) {
                           p1 = p;
                           break;
                       }
@@ -2459,7 +2470,7 @@
               if (equal(p1, p2)) {
                   for (let j = line.indexOf(p2); j < len; j++) {
                       const p = line[j];
-                      if (!equal(p, currentp)) {
+                      if (!equal(p, current)) {
                           p2 = p;
                           break;
                       }
@@ -2476,12 +2487,11 @@
           const rad = Math.atan2(dy, dx);
           const angle = radToDeg(rad);
           if (i === 0 || i === len - 1) {
-              rAngle = angle;
-              rAngle -= 90;
+              rAngle = angle - 90;
           }
           else {
               // 至少3个顶点才会触发
-              let p0 = line[i - 1];
+              p0 = line[i - 1];
               if (equal(p0, p2) || equal(p0, p1)) {
                   for (let j = line.indexOf(p2); j >= 0; j--) {
                       const p = line[j];
@@ -2496,25 +2506,40 @@
                   i++;
                   continue;
               }
-              TEMPV1.x = p0[0] - p1[0];
-              TEMPV1.y = p0[1] - p1[1];
-              TEMPV2.x = p2[0] - p1[0];
-              TEMPV2.y = p2[1] - p1[1];
-              if ((TEMPV1.x === 0 && TEMPV1.y === 0) || (TEMPV2.x === 0 && TEMPV2.y === 0)) {
-                  console.error('has repeat vertex,the index:', i);
+              const dy1 = p1[1] - p0[1], dx1 = p1[0] - p0[0];
+              const rad1 = Math.atan2(dy1, dx1);
+              const angle1 = radToDeg(rad1);
+              // 平行，回头路
+              if (Math.abs(Math.abs(angle1 - angle) - 180) <= 0.0001) {
+                  rAngle = angle - 90;
               }
-              const vAngle = getAngle$1(TEMPV1, TEMPV2);
-              rAngle = angle - vAngle / 2;
+              else {
+                  TEMPV1.x = p0[0] - p1[0];
+                  TEMPV1.y = p0[1] - p1[1];
+                  TEMPV2.x = p2[0] - p1[0];
+                  TEMPV2.y = p2[1] - p1[1];
+                  if ((TEMPV1.x === 0 && TEMPV1.y === 0) || (TEMPV2.x === 0 && TEMPV2.y === 0)) {
+                      console.error('has repeat vertex,the index:', i);
+                  }
+                  const vAngle = getAngle$1(TEMPV1, TEMPV2);
+                  rAngle = angle - vAngle / 2;
+              }
           }
           const rRad = degToRad(rAngle);
-          const p3 = currentp;
+          const p3 = current;
           const x = Math.cos(rRad) + p3[0], y = Math.sin(rRad) + p3[1];
           const p4 = [x, y];
-          const [line1, line2] = translateLine(p1, p2, radius);
-          let op1 = lineIntersection(line1[0], line1[1], p3, p4);
-          let op2 = lineIntersection(line2[0], line2[1], p3, p4);
+          const [leftline, rightline] = translateLine(p1, p2, radius);
+          if (!leftline || !rightline) {
+              console.error('translateLine line eror,the index:', i, line);
+              i++;
+              continue;
+          }
+          let op1 = lineIntersection(leftline[0], leftline[1], p3, p4);
+          let op2 = lineIntersection(rightline[0], rightline[1], p3, p4);
           // 平行，回头路
           if (!op1 || !op2) {
+              console.error('not find Intersection,the index:', i, line);
               const len1 = points.length;
               const point1 = points[len1 - 2];
               const point2 = points[len1 - 1];
@@ -2525,18 +2550,64 @@
               op1 = [point1[0], point1[1]];
               op2 = [point2[0], point2[1]];
           }
-          op1[2] = currentp[2] || 0;
-          op2[2] = currentp[2] || 0;
+          op1[2] = current[2] || 0;
+          op2[2] = current[2] || 0;
           // const [op1, op2] = calOffsetPoint(rRad, radius, p1);
           points.push(op1, op2);
-          if (leftOnLine(op1, p1, p2)) {
-              leftPoints.push(op1);
-              rightPoints.push(op2);
+          let needCut = false;
+          if (cutCorner) {
+              const bufferRadius = radius * 2;
+              if (distance(current, op1) > bufferRadius || distance(current, op2) > bufferRadius) {
+                  needCut = true;
+              }
+          }
+          if (needCut && p0 && preleftline && prerightline) {
+              let cutPoint = op1;
+              if (distance(op1, p0) < distance(op2, p0)) {
+                  cutPoint = op2;
+              }
+              const dy = cutPoint[1] - current[1], dx = cutPoint[0] - current[0];
+              const cutAngle = Math.atan2(dy, dx) / Math.PI * 180;
+              const cutRad = degToRad(cutAngle);
+              const x1 = Math.cos(cutRad) * radius + current[0];
+              const y1 = Math.sin(cutRad) * radius + current[1];
+              const v1 = [x1, y1];
+              const hcutangle = cutAngle + 90;
+              // console.log(i, cutAngle, hcutangle);
+              const hcutRad = degToRad(hcutangle);
+              const x2 = Math.cos(hcutRad) + x1;
+              const y2 = Math.sin(hcutRad) + y1;
+              const v2 = [x2, y2];
+              let preline = preleftline;
+              let currentLine = leftline;
+              let appendArray = leftPoints;
+              let repeatArray = rightPoints;
+              if (!leftOnLine(cutPoint, p1, p2)) {
+                  preline = prerightline;
+                  currentLine = rightline;
+                  appendArray = rightPoints;
+                  repeatArray = leftPoints;
+              }
+              let cross1 = lineIntersection(preline[0], preline[1], v1, v2);
+              let cross2 = lineIntersection(currentLine[0], currentLine[1], v1, v2);
+              cross1[2] = current[2] || 0;
+              cross2[2] = current[2] || 0;
+              const repeatPoint = cutPoint === op1 ? op2 : op1;
+              appendArray.push(cross1, cross2);
+              repeatArray.push(repeatPoint, [...repeatPoint]);
           }
           else {
-              leftPoints.push(op2);
-              rightPoints.push(op1);
+              if (leftOnLine(op1, p1, p2)) {
+                  leftPoints.push(op1);
+                  rightPoints.push(op2);
+              }
+              else {
+                  leftPoints.push(op2);
+                  rightPoints.push(op1);
+              }
           }
+          preleftline = leftline;
+          prerightline = rightline;
           i++;
       }
       return { offsetPoints: points, leftPoints, rightPoints, line };
@@ -2545,8 +2616,13 @@
       const dot = x1 * x2 + y1 * y2;
       const det = x1 * y2 - y1 * x2;
       const angle = Math.atan2(det, dot) / Math.PI * 180;
-      return (angle + 360) % 360;
+      return (angle);
+      // return (angle + 360) % 360;
   };
+  function distance(p1, p2) {
+      const dx = p2[0] - p1[0], dy = p2[1] - p1[1];
+      return Math.sqrt(dx * dx + dy * dy);
+  }
   function leftOnLine(p, p1, p2) {
       const [x1, y1] = p1;
       const [x2, y2] = p2;

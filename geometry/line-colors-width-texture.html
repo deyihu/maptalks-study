@@ -360,7 +360,7 @@
       const res = map.getResolution();
       const width = map.getResolution() / 10000;
       console.log(width);
-      const result = polyextrude.expandLine(tempCoordinates, { lineWidth: width });
+      const result = polyextrude.expandLine(tempCoordinates, { lineWidth: width, cutCorner: true });
       // console.log(result);
       const { leftPoints, rightPoints } = result;
       for (let i = 0, len = leftPoints.length; i < len; i++) {
@@ -413,9 +413,6 @@
     }
 
 
-
-
-
     function test4() {
       const lineWidth = 10;
       map.setCenter([114.02370862, 22.63995672]);
@@ -441,7 +438,7 @@
 
 
 
-    test3();
+    test4();
   </script>
 </body>
 
