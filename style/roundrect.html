@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/randomColor.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const geojson = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            121.49972899590227,
+                            31.239700363828714
+                        ]
+                    },
+                    "properties": {
+                        "name": "东方明珠电视塔东方明珠电视塔",
+                        "_color": "#66ADEB",
+                        "center": [
+                            121.49972899590227,
+                            31.239700363828714,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            121.50215921194581,
+                            31.238243856917727
+                        ]
+                    },
+                    "properties": {
+                        "name": "陆家嘴地铁站陆家嘴地铁站",
+                        "_color": "#66ADEB",
+                        "center": [
+                            121.50215921194581,
+                            31.238243856917727,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            121.50105964668428,
+                            31.236574295326875
+                        ]
+                    },
+                    "properties": {
+                        "name": "上海国金中心",
+                        "_color": "#66ADEB",
+                        "center": [
+                            121.50105964668428,
+                            31.236574295326875,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            121.49855005172478,
+                            31.23802038696572
+                        ]
+                    },
+                    "properties": {
+                        "name": "海关大楼",
+                        "_color": "#66ADEB",
+                        "center": [
+                            121.49855005172478,
+                            31.23802038696572,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            121.49775015649438,
+                            31.237503555311886
+                        ]
+                    },
+                    "properties": {
+                        "name": "万象大厦",
+                        "_color": "#66ADEB",
+                        "center": [
+                            121.49775015649438,
+                            31.237503555311886,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            121.49942932587118,
+                            31.238114356053543
+                        ]
+                    },
+                    "properties": {
+                        "name": "迪士尼",
+                        "_color": "#66ADEB",
+                        "center": [
+                            121.49942932587118,
+                            31.238114356053543,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            121.50237245183345,
+                            31.23947167689525
+                        ]
+                    },
+                    "properties": {
+                        "name": "平安金融大厦",
+                        "_color": "#66ADEB",
+                        "center": [
+                            121.50237245183345,
+                            31.23947167689525,
+                            0
+                        ]
+                    }
+                }
+            ]
+        }
+
+        var map = new maptalks.Map('map', {
+            center: [121.47400292, 31.22976969],
+            zoom: 11,
+            pitch: 55,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+            })
+        });
+
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+        })
+        const layer = new maptalks.VectorLayer('layer', {
+            enableAltitude: true,
+            collision: true
+        }).addTo(map);
+
+
+        const points = maptalks.GeoJSON.toGeometry(geojson);
+        layer.addGeometry(points);
+
+        map.setView({
+            "center": [121.50198126, 31.23754086], "zoom": 17.83240007018888, "pitch": 55.300000000000054, "bearing": -88.92510053514587
+        })
+
+        const canvas = document.createElement('canvas');
+        function measureTextWidth(name, fontSize = 14) {
+            const ctx = canvas.getContext('2d');
+            ctx.font = `${fontSize}px serif`;
+            return ctx.measureText(name).width;
+
+        }
+
+        const fontSize = 16;
+        const textmargin = 6;
+
+
+
+
+
+        points.forEach(point => {
+            const properties = point.getProperties();
+            const { name } = properties;
+            const nameWidth = measureTextWidth(name, fontSize);
+
+            //总宽度
+            const width = nameWidth + textmargin * 4;
+            const height = fontSize + textmargin * 2;
+
+            point.setSymbol([
+                {
+                    markerType: "roundrectangle",
+                    // markerType: "rectangle",
+                    markerFill: "green",
+                    markerFillOpacity: 0.5,
+                    markerWidth: width,
+                    markerHeight: height,
+                    markerLineWidth: 2,
+                    // markerLineDasharray: [5, 5],
+                    markerHorizontalAlignment: 'center',
+                    markerVerticalAlignment: 'top'
+
+                },
+
+                {
+                    textFaceName: '微软雅黑',
+                    textName: name,
+                    textSize: fontSize,
+                    // textDx: textDx,
+                    textFill: '#fff',
+                    textHaloFill: '#000',
+                    textHaloRadius: 2,
+                    textDy: -height / 2
+                }
+            ]);
+        });
+
+
+
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
