@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const url1 = "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}";
+        const url2 = "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}";
+
+        const baseLayer1 = new maptalks.TileLayer('base1', {
+            urlTemplate: url1,
+            subdomains: ["a", "b", "c", "d"],
+            // minZoom: 0,
+            // maxZoom: 14
+        });
+        const baseLayer2 = new maptalks.TileLayer('base2', {
+            urlTemplate: url2,
+            subdomains: ["a", "b", "c", "d"],
+            // minZoom: 14.1,
+            // maxZoom: 100
+        });
+
+        var map = new maptalks.Map('map', {
+            center: [116.45266161, 39.86656647],
+            zoom: 11,
+            zoomControl: true
+        });
+        baseLayer1.addTo(map);
+        baseLayer2.addTo(map);
+
+        function updateUrlTemplate() {
+            const zoom = map.getZoom();
+            if (zoom <= 14) {
+                baseLayer1.options.opacity = 1;
+                baseLayer2.options.opacity = 0.01;
+            } else {
+                baseLayer1.options.opacity = 0.01;
+                baseLayer2.options.opacity = 1;
+            }
+        }
+
+        updateUrlTemplate();
+
+        map.on('zooming zoomend', updateUrlTemplate);
+
+
+
+
+    </script>
+</body>
+
+</html>
