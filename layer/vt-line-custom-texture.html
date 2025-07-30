@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        background-color: black;
+        display: flex;
+
+    }
+
+    .map {
+        width: 50%;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+
+<body>
+
+    <div class="container" id="map">
+    </div>
+
+    <script>
+
+        const canvas = document.createElement('canvas');
+        document.body.appendChild(canvas);
+        canvas.width = 512;
+        canvas.height = 8;
+        const ctx = canvas.getContext('2d');
+
+        const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+
+        // 添加三个色标
+        gradient.addColorStop(0, "green");
+        gradient.addColorStop(0.5, "yellow");
+        gradient.addColorStop(1, "red");
+
+        // 设置填充样式并绘制矩形
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+
+
+        var map = new maptalks.Map('map', {
+            "center": [120.64253197, 31.15197679], "zoom": 14.41637048631893, "pitch": 49.95000000000024, "bearing": 2.999999999999659
+        });
+        const style = [
+
+            {
+                name: 'building-floors',
+                filter: ["all",
+                    ["==", "$type", "LineString"]
+                ],
+                renderPlugin: {
+                    type: "line",
+                    dataConfig: {
+                        type: "line"
+                    },
+                    sceneConfig: {}
+                },
+                symbol: {
+                    lineColor: '#fff',
+                    lineWidth: 6,
+                    linePatternFile: canvas.toDataURL()
+                }
+            },
+        ];
+
+        const layer = new maptalks.GeoJSONVectorTileLayer("geo", {
+            data: { type: 'FeatureCollection', features: [] },
+            style,
+        });
+        const layer1 = new maptalks.LineStringLayer("geo1", {
+
+        });
+
+        const url1 = "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}";
+        const url2 = "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}";
+
+
+        const baseLayer2 = new maptalks.TileLayer('base2', {
+            urlTemplate: url2,
+            subdomains: ["a", "b", "c", "d"],
+            // minZoom: 14.1,
+            // maxZoom: 100
+        });
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true },
+                bloom: {
+                    enable: true,
+                    threshold: 0,
+                    factor: 1,
+                    radius: 0.02,
+                },
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [layer, layer1], { sceneConfig });
+        groupLayer.addTo(map);
+
+
+
+
+
+        function getData2() {
+            fetch('./../assets/data/roads.geojson').then(res => res.json()).then(geojson => {
+                const lines = geojson.features.slice(4, 10).map(f => {
+                    return maptalks.GeoJSON.toGeometry(f, (line) => {
+                        line.setSymbol({
+                            lineWidth: 6,
+                            linePatternFile: canvas.toDataURL(0)
+                        })
+                    });
+                });
+
+                layer1.addGeometry(lines);
+
+                geojson.features = geojson.features.slice(0, 2);
+                layer.setData(geojson);
+
+
+            })
+        }
+
+        getData2();
+
+
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
