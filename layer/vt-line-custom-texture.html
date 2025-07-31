@@ -35,18 +35,25 @@
 
     <script>
 
+        const gradients = [0, 'red', 0.7, 'yellow', 1, 'green']
+
         const canvas = document.createElement('canvas');
         document.body.appendChild(canvas);
         canvas.width = 512;
         canvas.height = 8;
         const ctx = canvas.getContext('2d');
 
+
         const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        for (let i = 0, len = gradients.length; i < len; i += 2) {
+            const stop = gradients[i], color = gradients[i + 1];
+            gradient.addColorStop(stop, color);
+        }
 
         // 添加三个色标
-        gradient.addColorStop(0, "green");
-        gradient.addColorStop(0.5, "yellow");
-        gradient.addColorStop(1, "red");
+        // gradient.addColorStop(0, "green");
+        // gradient.addColorStop(0.5, "yellow");
+        // gradient.addColorStop(1, "red");
 
         // 设置填充样式并绘制矩形
         ctx.fillStyle = gradient;
@@ -65,7 +72,7 @@
                     ["==", "$type", "LineString"]
                 ],
                 renderPlugin: {
-                    type: "line",
+                    type: "line-gradient",
                     dataConfig: {
                         type: "line"
                     },
@@ -74,7 +81,7 @@
                 symbol: {
                     lineColor: '#fff',
                     lineWidth: 6,
-                    linePatternFile: canvas.toDataURL()
+                    lineGradientProperty: 'gradients'
                 }
             },
         ];
@@ -114,12 +121,15 @@
         groupLayer.addTo(map);
 
 
-
-
-
         function getData2() {
             fetch('./../assets/data/roads.geojson').then(res => res.json()).then(geojson => {
-                const lines = geojson.features.slice(4, 10).map(f => {
+                geojson.features.forEach(f => {
+                    f.properties = f.properties || {};
+                    f.properties.gradients = gradients.map(c => {
+                        return c;
+                    })
+                });
+                const lines = geojson.features.slice(10, 20).map(f => {
                     return maptalks.GeoJSON.toGeometry(f, (line) => {
                         line.setSymbol({
                             lineWidth: 6,
@@ -130,7 +140,7 @@
 
                 layer1.addGeometry(lines);
 
-                geojson.features = geojson.features.slice(0, 2);
+                geojson.features = geojson.features.slice(0, 10);
                 layer.setData(geojson);
 
 
