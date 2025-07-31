@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 模型单体化</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        /* background-color: gray; */
+    }
+
+    .tools {
+        /* position: absolute; */
+        z-index: 1;
+        background: white;
+        width: 100%;
+        position: absolute;
+        z-index: 1;
+        top: 0px;
+        display: flex;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.tileclip.js'></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+        const tileActor = maptalks.getTileActor();
+        const imageId = 'suzhou-平面图';
+        const baseLayer = new maptalks.TileLayer('base', {
+            debug: true,
+            urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+            // bufferPixel: 1
+        })
+
+        baseLayer.on('renderercreate', function (e) {
+            //load tile image
+            //   img(Image): an Image object
+            //   url(String): the url of the tile
+            e.renderer.loadTileBitmap = function (url, tile, callback) {
+
+                tileActor.getImageTile({
+                    imageId,
+                    projection: baseLayer.getProjection().code,
+                    tileSize: baseLayer.getTileSize().width,
+                    tileBBOX: baseLayer._getTileBBox(tile),
+                }).then(imagebitmap => {
+                    callback(imagebitmap);
+                    // tileActor.clipTile({
+                    //     tile: imagebitmap,
+                    //     tileBBOX: baseLayer._getTileBBox(tile),
+                    //     projection: baseLayer.getProjection().code,
+                    //     tileSize: baseLayer.getTileSize().width,
+                    //     maskId: imageId
+                    // }).then(image => {
+                    //     callback(image);
+                    // }).catch(error => {
+                    //     //do some things
+                    //     console.error(error);
+                    // })
+                }).catch(error => {
+                    //do some things
+                    console.error(error);
+                })
+            };
+        });
+
+        var map = new maptalks.Map('map', {
+            "center": [120.66017675, 31.21768636], "zoom": 8.745036588062902, "pitch": 0, "bearing": 0
+        });
+
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+        })
+
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true }
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [], { sceneConfig });
+        groupLayer.addTo(map);
+
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
+
+        const bbox = [119.91090091793043, 30.703884814134464, 121.39236135292139, 32.154240573785215];
+
+        const symbol = {
+            polygonOpacity: 0,
+            lineColor: 'red'
+        }
+
+        fetch('./../assets/data/suzhou.geojson').then(res => res.json()).then(geojson => {
+            const polygons = maptalks.GeoJSON.toGeometry(geojson, (geo => {
+                geo.setSymbol(symbol);
+            }));
+            layer.addGeometry(polygons);
+            const c1 = new maptalks.Coordinate(bbox[0], bbox[1]);
+            const c2 = new maptalks.Coordinate(bbox[2], bbox[3]);
+            const m1 = map.getProjection().project(c1).toArray();
+            const m2 = map.getProjection().project(c2).toArray();
+            tileActor.injectImage({
+                imageId,
+                url: './../assets/image/unnamed.jpg',
+                imageBBOX: [...m1, ...m2]
+            }).then(data => {
+                tileActor.injectMask(imageId, geojson.features[0]).then(data => {
+                    baseLayer.addTo(groupLayer);
+                }).catch(error => {
+                    console.error(error);
+                })
+            }).catch(error => {
+                console.error(error);
+            })
+        })
+
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
