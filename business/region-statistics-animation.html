@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        background-color: black;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<!-- <script type='text/javascript' src='./../assets/data/chinacitys.js'></script> -->
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+
+        var map = new maptalks.Map('map', {
+           "center":[120.50847517,31.36255426],"zoom":6.3327630316015675,"pitch":1.05,"bearing":0,
+            zoomControl: true,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+                maxAvailableZoom: 18,
+            })
+        });
+
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
+        let preLevel, preZoom;
+
+        const zooms = [
+            ['等级2', {
+                zoomRangle: [0, 7],
+                offset: 6
+            }],
+            ['等级3', {
+                zoomRangle: [7.01, 11],
+                offset: 0.2
+            }],
+            ['等级4', {
+                zoomRangle: [11.01, 100],
+                offset: 0.05
+            }]
+        ];
+
+        const symbol = {
+            markerType: 'roundrectangle',
+            markerWidth: 100,
+            markerHeight: 30,
+            markerHorizontalAlignment: "center",
+            markerVerticalAlignment: "middle",
+            textFaceName: '微软雅黑',
+            textSize: 16,
+            textFill: '#fff',
+            // textWeight: 'bold',
+            textHaloFill: '#000',
+            textHaloRadius: 2,
+        }
+
+        const duration = 500;
+
+        const canvas = document.createElement('canvas');
+        function measureTextWidth(name, fontSize = 14) {
+            const ctx = canvas.getContext('2d');
+            ctx.font = `${fontSize}px serif`;
+            return ctx.measureText(name).width;
+
+        }
+
+        function getCurrentLevel() {
+            const zoom = map.getZoom();
+            for (let i = 0, len = zooms.length; i < len; i++) {
+                const [minZoom, maxZoom] = zooms[i][1].zoomRangle;
+                if (minZoom <= zoom && zoom <= maxZoom) {
+                    return i;
+                }
+            }
+        }
+
+        function findParent(marker, zoom) {
+            let parent = marker._parentMarker;
+
+            while (parent) {
+                const [minZoom, maxZoom] = parent.options.zoomRangle;
+                if (minZoom <= zoom && zoom <= zoom) {
+                    return parent;
+                }
+                parent = parent._parentMarker;
+            }
+        }
+
+        function isInCurrentLevel(marker) {
+            const [minZoom, maxZoom] = marker.options.zoomRangle;
+            const zoom = map.getZoom();
+            return (minZoom <= zoom && zoom <= zoom);
+        }
+
+        function zoomChange() {
+            const zoom = map.getZoom();
+            const currentLevel = getCurrentLevel();
+            if (typeof preLevel === 'number') {
+                if (currentLevel === preLevel) {
+                    return;
+                }
+                const { showMarkers, hideMarkers } = filterMarkers();
+                //扩散动画
+                if (currentLevel > preLevel) {
+                    const parents = showMarkers.map(marker => {
+                        //从上一个层级里查找父节点
+                        return findParent(marker, preZoom);
+                    });
+                    showMarkers.forEach((marker, index) => {
+                        const parent = parents[index]
+                        if (parent && isInCurrentLevel(marker)) {
+                            const c2 = marker.options.center;
+                            const c1 = parent.getCoordinates();
+                            const offset = c2.sub(c1).toArray();
+                            marker.setCoordinates(c1.copy());
+                            marker.show();
+                            parent.hide();
+                            marker.animate({
+                                // animation translate distance
+                                translate: offset
+                            }, {
+                                duration: duration
+                            }, (frame) => {
+                                // console.log(frame.state.playState);
+                                if (frame.state.playState !== 'running') {
+                                    // console.log(marker.getCoordinates().toArray());
+                                    marker.setCoordinates(c2.copy());
+                                }
+                            });
+                        } else {
+                            marker.show();
+                        }
+                    });
+                    hideMarkers.forEach(marker => {
+                        if (parents.indexOf(marker) === -1) {
+                            marker.hide();
+                        }
+                    })
+                }
+                //收缩动画
+                if (currentLevel < preLevel) {
+                    const parents = hideMarkers.map(marker => {
+                        //从当前层级里查找父节点
+                        return findParent(marker, zoom);
+                    });
+                    hideMarkers.forEach((marker, index) => {
+                        const parent = parents[index];
+                        if (parent && marker.isVisible()) {
+                            const c2 = marker.options.center;
+                            const c1 = parent.getCoordinates();
+                            const offset = c1.sub(c2).toArray();
+                            marker.setCoordinates(c2.copy());
+                            marker.show();
+
+                            marker.animate({
+                                // animation translate distance
+                                translate: offset
+                            }, {
+                                duration: duration
+                            }, (frame) => {
+                                if (frame.state.playState !== 'running') {
+                                    marker.hide();
+                                    parent.show();
+                                }
+                            });
+                        } else {
+                            marker.hide();
+                        }
+                    });
+                    showMarkers.forEach(marker => {
+                        if (parents.indexOf(marker) === -1) {
+                            marker.show();
+                        }
+                    })
+                }
+
+            } else {
+                //第一次
+                const { showMarkers, hideMarkers } = filterMarkers();
+                preLevel = currentLevel;
+                hideMarkers.forEach(marker => {
+                    marker.hide();
+                })
+                showMarkers.forEach(marker => {
+                    marker.show();
+                })
+            }
+            preZoom = zoom;
+            preLevel = currentLevel;
+        }
+
+        function filterMarkers() {
+            const markers = layer.getGeometries();
+            const showMarkers = [], hideMarkers = [];
+            const zoom = map.getZoom();
+            markers.forEach(marker => {
+                const [minZoom, maxZoom] = marker.options.zoomRangle;
+                if (minZoom <= zoom && zoom <= maxZoom) {
+                    showMarkers.push(marker);
+                } else {
+                    hideMarkers.push(marker);
+                }
+            });
+            return {
+                showMarkers,
+                hideMarkers
+            }
+        }
+
+
+        function createMarker(c, info) {
+            const zoomRangle = info.zoomRangle;
+            const level = info.level;
+            const name = info.name;
+            const marker = new maptalks.Marker(c, {
+                center: c.copy(),
+                zIndex: level,
+                properties: {
+                    name
+                },
+                symbol: {
+                    ...symbol,
+                    markerFill: getColor(level),
+                    textName: name,
+                    markerWidth: measureTextWidth(name, symbol.textSize) + 10
+                }
+            });
+            marker.options.zoomRangle = zoomRangle;
+            return marker;
+        }
+
+        function getColor(level) {
+            if (level < 1) {
+                return 'red'
+            }
+            if (level < 2) {
+                return 'yellow'
+            }
+            if (level < 3) {
+                return 'blue'
+            }
+            return 'green'
+        }
+
+
+        function createMarkers(items) {
+            const markers = [];
+            function loop(item, level, parent) {
+                const { center, children, name } = item;
+                const zoomInfo = zooms[level][1];
+                const { zoomRangle } = zoomInfo;
+                const info = {
+                    zoomRangle,
+                    level,
+                    name
+                };
+                const marker = createMarker(new maptalks.Coordinate(center), { zoomRangle, level, name });
+                marker._parentMarker = parent;
+                markers.push(marker);
+
+                if (children) {
+                    level++;
+                    children.forEach(d => {
+                        loop(d, level, marker);
+                    });
+                }
+            }
+            let level = 0;
+            items.forEach(item => {
+                loop(item, level, null);
+            });
+            return markers;
+        }
+
+
+        fetch('./../assets/data/chinacity.json').then(res => res.json()).then(json => {
+            const items = json.children.filter(d => {
+                return d.name === '江苏省'
+            })
+            const points = createMarkers(items);
+            layer.addGeometry(points);
+            zoomChange();
+            map.on('zoomend', zoomChange);
+        })
+
+    </script>
+</body>
+
+</html>
