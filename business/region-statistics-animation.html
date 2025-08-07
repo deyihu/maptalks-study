@@ -40,9 +40,10 @@
         });
 
         const layer = new maptalks.VectorLayer('layer').addTo(map);
+
         let preLevel, preZoom;
 
-        const zooms = [
+        const ZOOMDATCONFIG = [
             ['省', {
                 zoomRangle: [0, 7],
                 offset: 6
@@ -83,8 +84,8 @@
 
         function getCurrentLevel() {
             const zoom = map.getZoom();
-            for (let i = 0, len = zooms.length; i < len; i++) {
-                const [minZoom, maxZoom] = zooms[i][1].zoomRangle;
+            for (let i = 0, len = ZOOMDATCONFIG.length; i < len; i++) {
+                const [minZoom, maxZoom] = ZOOMDATCONFIG[i][1].zoomRangle;
                 if (minZoom <= zoom && zoom <= maxZoom) {
                     return i;
                 }
@@ -116,7 +117,7 @@
                 if (currentLevel === preLevel) {
                     return;
                 }
-                const { showMarkers, hideMarkers } = filterMarkers();
+                const { showMarkers, hideMarkers } = typeMarkers();
                 //扩散动画
                 if (currentLevel > preLevel) {
                     const parents = showMarkers.map(marker => {
@@ -193,8 +194,7 @@
 
             } else {
                 //第一次
-                const { showMarkers, hideMarkers } = filterMarkers();
-                preLevel = currentLevel;
+                const { showMarkers, hideMarkers } = typeMarkers();
                 hideMarkers.forEach(marker => {
                     marker.hide();
                 })
@@ -206,7 +206,7 @@
             preLevel = currentLevel;
         }
 
-        function filterMarkers() {
+        function typeMarkers() {
             const markers = layer.getGeometries();
             const showMarkers = [], hideMarkers = [];
             const zoom = map.getZoom();
@@ -264,7 +264,7 @@
             const markers = [];
             function loop(item, level, parent) {
                 const { center, children, name } = item;
-                const zoomInfo = zooms[level][1];
+                const zoomInfo = ZOOMDATCONFIG[level][1];
                 const { zoomRangle } = zoomInfo;
                 const info = {
                     zoomRangle,
