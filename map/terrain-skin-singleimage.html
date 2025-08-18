@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<head>
+    <title>添加一个矢量瓦片图层</title>
+    <style type="text/css">
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0px;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <link rel="stylesheet" href="./../assets/lib/maptalks/maptalks.css" />
+    <!-- <script type="text/javascript" src="./../assets/lib/maptalks/maptalks-gl.js"></script> -->
+    <script type="text/javascript" src="./../assets/lib/maptalks/maptalks-gl.js"></script>
+    <script type="text/javascript" src="./../assets/lib/lil-gui.min.js"></script>
+    <script type="text/javascript" src="./../assets/lib/maptalks.tileclip.js"></script>
+</head>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+
+
+        const tileActor = maptalks.getTileActor();
+        const imageId = 'suzhou-平面图';
+        const map = new maptalks.Map("map", {
+            // "center": [119.09557457, 30.14442343, 339.73126220703125], "zoom": 11.856275713521464, "pitch": 61.80000000000011, "bearing": -64.07337236948052,
+            "center": [108.95986733, 34.21997952, 430.3062438964844], "zoom": 12.698416480987284, "pitch": 0, "bearing": 1.8437368186266667,
+            // cameraInfiniteFar: true,
+            // heightFactor: 4.2,
+            zoomControl: true,
+            // baseLayer: new maptalks.TileLayer('base', {
+            //     urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            //     subdomains: ["a", "b", "c", "d"],
+            // })
+        });
+
+
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: {
+                    enable: true,
+                },
+            },
+        };
+
+
+        const baseLayer = new maptalks.TileLayer('base', {
+            // debug: true,
+            urlTemplate: "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer/tile/{z}/{y}/{x}",
+            subdomains: ["a", "b", "c", "d"],
+            zIndex: -1
+            // bufferPixel: 1
+        })
+
+        const colors = [[0, "rgb(246,251,255)"], [369, "rgb(224,234,244)"], [738, "rgb(198,219,240)"], [1107, "rgb(157,202,225)"], [1476, "rgb(106,175,214)"], [1845, "rgb(66,146,197)"], [2214, "rgb(33,114,180)"], [2583, "rgb(11,80,157)"], [2952, "rgb(5,49,112)"], [3322, "rgb(5,49,112)"]]
+
+
+
+        baseLayer.on('renderercreate', function (e) {
+            //load tile image
+            //   img(Image): an Image object
+            //   url(String): the url of the tile
+            e.renderer.loadTileBitmap = function (url, tile, callback) {
+
+                tileActor.getImageTile({
+                    imageId,
+                    projection: baseLayer.getProjection().code,
+                    tileSize: baseLayer.getTileSize().width,
+                    tileBBOX: baseLayer._getTileBBox(tile)
+                }).then(imagebitmap => {
+                    // console.log(imagebitmap);
+                    callback(imagebitmap);
+                }).catch(error => {
+                    //do some things
+                    console.error(error);
+                })
+            };
+        });
+
+        const terrain = {
+            type: 'mapbox',
+            //强制指定tileSize
+            // tileSize: 256,
+            maxAvailableZoom: 14,
+
+            requireSkuToken: false,
+            urlTemplate: "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer/tile/{z}/{y}/{x}",
+            subdomains: ['a', 'b', 'c', 'd'],
+            // colors: colors4,
+            exaggeration: 4,
+            shader: "lit",
+            material: {
+                baseColorFactor: [1, 1, 1, 1],
+                outputSRGB: 1,
+                roughnessFactor: 0.69,
+                metallicFactor: 0
+            }
+        };
+        const group = new maptalks.GroupGLLayer('group', [baseLayer], {
+            terrain
+        });
+
+        map.setView({
+            "center": [109.87604379, 34.34128465], "zoom": 6.662001430205193, "pitch": 3.6500000000009507, "bearing": 12.79500954351272
+        });
+
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+        });
+
+        group.on('terrainlayercreated', e => {
+            const terrainLayer = group.getTerrainLayer();
+
+            terrainLayer.getRenderer().loadTileBitmap = function (url, tile, callback, options) {
+                // console.log(url);
+                tileActor.encodeTerrainTile({
+                    url: maptalks.Util.getAbsoluteURL(url),
+                    terrainType: 'arcgis',
+                    // timeout: 5000
+                }).then(imagebitmap => {
+                    callback(null, imagebitmap)
+
+
+                }).catch(error => {
+                    //do some things
+                    console.error(error);
+                })
+            };
+        })
+
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
+
+        const c1 = [
+            105.493503,
+            31.50522400000001
+        ]
+
+        const c2 = [
+            111.347478,
+            39.587009999999985
+        ]
+
+
+        const p1 = new maptalks.Coordinate(c1);
+        const p2 = new maptalks.Coordinate(c2);
+        const m1 = map.getProjection().project(p1).toArray();
+        const m2 = map.getProjection().project(p2).toArray();
+        tileActor.injectImage({
+            imageId,
+            url: './../assets/image/shanxi_06.png',
+            imageBBOX: [...m1, ...m2]
+        }).then(data => {
+            group.addTo(map);
+        }).catch(error => {
+            console.error(error);
+        })
+
+        // fetch('./../assets/data/shanxi-province.geojson').then(res => res.json()).then(geojson => {
+        //     const polygons = maptalks.GeoJSON.toGeometry(geojson);
+        //     layer.addGeometry(polygons);
+
+        //     console.log(layer.getExtent());
+        // })
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
