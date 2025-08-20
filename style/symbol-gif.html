@@ -62,9 +62,6 @@
 
         function update(frame, offset = 0) {
             points.forEach((point, index) => {
-                if (index % gifs.length !== offset) {
-                    return;
-                }
                 if (!point.isVisible()) {
                     point.show();
                 }
