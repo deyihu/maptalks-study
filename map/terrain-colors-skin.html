@@ -123,6 +123,7 @@
                 tileActor.encodeTerrainTile({
                     url: maptalks.Util.getAbsoluteURL(url),
                     terrainType: 'arcgis',
+                    indexedDBCache: true,
                     // timeout: 5000
                 }).then(imagebitmap => {
                     callback(null, imagebitmap)
