@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/gifloop.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            "center": [119.99908885, 31.00126247], "zoom": 16.654551178012714, "pitch": 60.80000000000001, "bearing": 134.96548874000007
+        });
+
+        const baseLayer = new maptalks.TileLayer('base', {
+            // altitude: -offsetHeight,
+            urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+            maxAvailableZoom: 18,
+        }).addTo(map);
+
+        const layer = new maptalks.VectorLayer('layer', { debug: false }).addTo(map);
+
+        //随机生成坐标
+        const randomCoordinates = () => {
+            const coordinates = [];
+            const { x, y } = map.getCenter();
+            while (coordinates.length < 10) {
+                const randomX = x + Math.random() * 0.01 - 0.005;
+                const randomY = y + Math.random() * 0.01 - 0.005;
+                coordinates.push([randomX, randomY, 0]);
+            }
+            return coordinates
+        }
+
+        const points = randomCoordinates().map(c => {
+            const point = new maptalks.Marker(c);
+            point.hide();
+            return point;
+        });
+        layer.addGeometry(points);
+
+        function update(frame, offset = 0) {
+            points.forEach((point, index) => {
+                if (index % gifs.length !== offset) {
+                    return;
+                }
+                if (!point.isVisible()) {
+                    point.show();
+                }
+                point.setSymbol({
+                    markerFile: frame.dataURL,
+                    markerWidth: frame.maxWidth / 4,
+                    markerHeight: frame.maxHeight / 4
+                })
+            })
+        }
+
+
+        const files = ['./../assets/image/xiaohuangren.gif'];
+        const gifs = files.map((file, index) => {
+            const gif = new gifloop.GIF({ loopTime: 17, url: file });
+            gif.on('frame', function (frame) {
+                // console.log(frame);
+                update(frame, index);
+            });
+            return gif;
+        });
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
