@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        background-color: black;
+    }
+
+    .panel {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+        background-color: rgba(255, 255, 255, 0.8);
+        padding: 10px;
+        border-radius: 5px;
+        width: 300px;
+        height: 90%;
+        overflow: scroll;
+    }
+
+    .tree-sub-item {
+        padding-left: 20px;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+
+<body>
+    <div id="map" class="container"></div>
+    <div class="panel"></div>
+
+    <script>
+
+        const map = new maptalks.Map("map", {
+            center: [121.49363786, 31.19593063],
+            zoom: 14,
+            bearing: 0,
+            pitch: 0,
+            zoomControl: true,
+            // // centerCross: true,
+            // baseLayer: new maptalks.TileLayer("base", {
+            //     // debug: true,
+            //     urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            //     subdomains: ["a", "b", "c", "d"],
+
+            //     spatialReference: {
+            //         projection: 'EPSG:3857'
+            //     },
+            // }),
+        });
+
+        map.on('click', e => {
+            // console.log(e.coordinate.toArray());
+        });
+
+        const baseURL = '我去掉了服务器地址';
+
+        let treeData = [];
+
+        function createTree() {
+            const rows = treeData.map(item => {
+                const { name, label, children } = item;
+                const group = document.createElement('div');
+                group.className = 'tree-item';
+                const span = document.createElement('span');
+                span.textContent = label;
+
+                group.appendChild(span);
+
+                children.forEach(subItem => {
+                    const div = document.createElement('div');
+                    div.className = 'tree-sub-item';
+                    const { label } = subItem;
+                    const subName = subItem.name;
+
+                    const input = document.createElement('input');
+                    input.type = 'checkbox';
+                    input.dataset.name = name;
+                    input.dataset.subName = subName;
+                    div.appendChild(input);
+
+                    input.addEventListener('change', (e) => {
+                        updateSymbol(e);
+                    });
+
+                    const span = document.createElement('span');
+                    span.textContent = label;
+
+                    div.appendChild(span);
+
+                    group.appendChild(div);
+                });
+                return group;
+            })
+
+            const panel = document.querySelector('.panel');
+            rows.forEach(element => {
+                panel.appendChild(element);
+            });
+        }
+
+        function updateSymbol(e) {
+            //更新对应的symbol的visible属性
+            console.log(e.target.dataset);
+            // console.log(e.target.checked);
+            const visible = e.target.checked;
+            let { name, subName } = e.target.dataset;
+
+            const styleItem = vt.getStyle().style.filter(item => {
+                return item.name === name;
+            })[0];
+            if (!styleItem) {
+                return;
+            }
+            console.log(styleItem);
+            subName = parseInt(subName);
+            const visibleSymbol = styleItem.symbol.visible;
+            visibleSymbol.stops.forEach(v => {
+                if (v[0] === subName) {
+                    v[1] = visible;
+                }
+            });
+            vt.updateSymbol(name, {
+                visible: JSON.parse(JSON.stringify(visibleSymbol)),
+            });
+
+
+        }
+
+        function createStyle() {
+            const styles = [];
+            //100个大的分类
+            for (let i = 1, len = 100; i <= len; i++) {
+                const styleItem = {
+                    name: `guanxian${i}`,
+                    filter: [
+                        "all",
+                        ["==", "$layer", "road_test"],
+                        ["==", "$type", "LineString"],
+                        ["==", "guanxianty", i]
+                    ],
+                    renderPlugin: {
+                        type: "line",
+                        dataConfig: {
+                            type: "line",
+                        },
+                        sceneConfig: {}
+                    },
+                    symbol: {
+                        //6个子类别
+                        lineColor: {
+                            stops: [
+                                [1, 'red'],
+                                [2, 'blue'],
+                                [3, 'green'],
+                                [4, 'yellow'],
+                                [5, 'purple'],
+                                [6, 'orange']
+                            ],
+                            property: "guanxiansu",
+                            type: "categorical",
+                        },
+                        visible: {
+                            stops: [
+                                [1, false],
+                                [2, false],
+                                [3, false],
+                                [4, false],
+                                [5, false],
+                                [6, false]
+                            ],
+                            property: "guanxiansu",
+                            type: "categorical",
+                        }
+                    },
+                }
+                styles.push(styleItem);
+                //构造树形结构
+                const treeItem = {
+                    name: `guanxian${i}`,
+                    label: '管线类别' + i,
+                    children: new Array(6).fill(0).map((_, j) => {
+                        return {
+                            name: j + 1,
+                            label: `管线类别${i}-${j + 1}`,
+                        }
+                    })
+                }
+                treeData.push(treeItem);
+            }
+            return styles;
+
+        }
+
+        const style = {
+            style: createStyle(),
+        };
+
+        const vt = new maptalks.VectorTileLayer("vt", {
+            urlTemplate: baseURL + "/common/postgis/vt/defaultName/road_test/geom/{z}/{x}/{y}/guanxianty,guanxiansu",
+            style,
+            minZoom: 14,
+            spatialReference: 'preset-vt-3857',
+            // features: true,
+            // pickingGeometry: true,
+        });
+
+
+        const groupGLLayer = new maptalks.GroupGLLayer("gl", [vt], {
+            sceneConfig: {
+                environment: {
+                    enable: true,
+                    mode: 1,
+                    level: 0,
+                    brightness: 0
+                },
+                postProcess: {
+                    enable: true,
+                    bloom: {
+                        enable: true,
+                        threshold: 0,
+                        factor: 0.6,
+                        radius: 1,
+                    },
+                }
+            }
+        }).addTo(map);
+
+        createTree();
+
+
+
+    </script>
+</body>
+
+</html>
