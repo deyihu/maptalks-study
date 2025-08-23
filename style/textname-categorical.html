@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/randomColor.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            center: [121.47400292, 31.22976969],
+            zoom: 11,
+            pitch: 55,
+            // baseLayer: new maptalks.TileLayer('base', {
+            //     urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            //     subdomains: ["a", "b", "c", "d"],
+            // })
+        });
+        const layer = new maptalks.VectorLayer('layer', {
+            enableAltitude: true
+        }).addTo(map);
+
+        const geojson = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            121.55377569937878,
+                            31.18720953362694
+                        ]
+                    },
+                    "properties": {
+                        "type": '1',
+                        "name": "1-61e63130",
+                        "count": 5,
+                        "_color": "",
+                        "center": [
+                            121.55377569937878,
+                            31.18720953362694,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            121.60544368059459,
+                            31.149035734143553
+                        ]
+                    },
+                    "properties": {
+                        "type": '2',
+                        "name": "2-3afa8340",
+                        "_color": "",
+                        "count": 10,
+                        "center": [
+                            121.60544368059459,
+                            31.149035734143553,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            121.52022011010195,
+                            31.142835118388433
+                        ]
+                    },
+                    "properties": {
+                        "type": '3',
+                        "name": "3-700af",
+                        "count": 1,
+                        "_color": "",
+                        "center": [
+                            121.52022011010195,
+                            31.142835118388433,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            121.62698789416424,
+                            31.18476295670925
+                        ]
+                    },
+                    "properties": {
+                        "type": '4',
+                        "name": "4-444f416b",
+                        "count": 20,
+                        "_color": "",
+                        "center": [
+                            121.62698789416424,
+                            31.18476295670925,
+                            0
+                        ]
+                    }
+                }
+            ]
+        };
+        const points = maptalks.GeoJSON.toGeometry(geojson);
+         const funtype = {
+            stops: [
+                ['1', 'type1'],
+                ['2', 'type2'],
+                ['3', 'type3'],
+                ['4', 'type4'],
+                ['5', 'type5']
+            ],
+            property: "type",
+            type: "categorical",
+        }
+        points.forEach(point => {
+            console.log(point.getProperties());
+            point.setSymbol({
+                textName: funtype,
+                textFill:'yellow',
+                textHaloFill:'#000',
+                textHaloRadius: 2
+            })
+        });
+        layer.addGeometry(points);
+
+
+
+
+    </script>
+</body>
+
+</html>
