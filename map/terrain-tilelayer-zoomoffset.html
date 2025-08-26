@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<head>
+    <title>添加一个矢量瓦片图层</title>
+    <style type="text/css">
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0px;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            background-color: black;
+        }
+    </style>
+    <link rel="stylesheet" href="./../assets/lib/maptalks/maptalks.css" />
+    <!-- <script type="text/javascript" src="./../assets/lib/maptalks/maptalks-gl.js"></script> -->
+    <script type="text/javascript" src="./../assets/lib/maptalks/maptalks-gl.js"></script>
+    <script type="text/javascript" src="./../assets/lib/lil-gui.min.js"></script>
+</head>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+        const imgMap = new maptalks.TileLayer('imgMap', {
+            tileSystem: [1, -1, -180, 90],
+            spatialReference: {
+                projection: "EPSG:4326"
+            },
+            maxAvailableZoom: 17,
+            urlTemplate: "https://t{s}.tianditu.gov.cn/img_c/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=img&STYLE=default&TILEMATRIXSET=c&FORMAT=tiles&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&tk=5eeb5d0773fed9320f5df986a3dabd2c",
+            subdomains: ['0', '1', '2', '3', '4', '5', '6', '7']
+        });
+
+        const map = new maptalks.Map('map', {
+           "center":[101.09173719,38.40175255,2433.998046875],"zoom":10.76495957574573,"pitch":41.40000000000002,"bearing":0,
+            spatialReference: {
+                projection: "EPSG:4326"
+            },
+            zoomControl: true
+        });
+
+        // 定义天地图地形
+        const terrain = {
+            type: 'tianditu',
+            // tileSize: 512,
+            maxAvailableZoom: 14,
+            urlTemplate: `https://t{s}.tianditu.gov.cn/mapservice/swdx?T=elv_c&tk=5eeb5d0773fed9320f5df986a3dabd2c&x={x}&y={y}&l={z}`,
+            subdomains: ['0', '1', '2', '3', '4', '5', '6', '7']
+        };
+
+        // tms服务
+        const domTileLayer = new maptalks.TileLayer("mayinghe", {
+            urlTemplate: 'http://47.104.146.146:3000/proxy/mayinghe/{z}/{x}/{y}.png',
+            spatialReference: {
+                projection: "EPSG:4326",
+                // resolutions: [
+                //   0.703125,     // order 0
+                //   0.351562,     // order 1
+                //   0.175781,     // order 2
+                //   0.0878906,    // order 3
+                //   0.0439453,    // order 4
+                //   0.0219727,    // order 5
+                //   0.0109863,    // order 6
+                //   0.00549316,   // order 7
+                //   0.00274658,   // order 8
+                //   0.00137329,   // order 9
+                //   0.000686646,  // order 10
+                //   0.000343323,  // order 11
+                //   0.000171661,  // order 12
+                //   0.0000858307, // order 13
+                //   0.0000429153, // order 14
+                //   0.0000214577, // order 15
+                //   0.0000107288, // order 16
+                //   0.00000536442 // order 17
+                // ],
+            },
+            zoomOffset: -1
+        });
+
+        const groupGLLayer = new maptalks.GroupGLLayer('groupGLLayer', [imgMap, domTileLayer], {
+            terrain,
+            sceneConfig: {
+                environment: {
+                    enable: true,
+                    mode: 1,
+                    level: 0,
+                    brightness: 0,
+                },
+                shadow: {
+                    type: 'esm',
+                    enable: true,
+                    quality: 'high',
+                    opacity: 0.11,
+                    color: [0, 0, 0],
+                    blurOffset: 1,
+                },
+                postProcess: {
+                    enable: true,
+                    antialias: {
+                        enable: true,
+                        taa: true,
+                        jitterRatio: 0.25,
+                    },
+                    ssr: {
+                        enable: true,
+                    },
+                    bloom: {
+                        enable: true,
+                        threshold: 0,
+                        factor: 0.2,
+                        radius: 0.00001,
+                    },
+                    ssao: {
+                        enable: true,
+                        bias: 0.08,
+                        radius: 0.08,
+                        intensity: 1.5,
+                    },
+                    sharpen: {
+                        enable: false,
+                        factor: 0.2,
+                    },
+                },
+                ground: {
+                    enable: false,
+                    renderPlugin: {
+                        type: 'fill',
+                    },
+                    symbol: {
+                        polygonFill: [0.517647, 0.517647, 0.517647, 1],
+                    },
+                },
+            },
+            // terrain,
+        }).addTo(map);
+
+     
+   
+
+
+
+
+    </script>
+</body>
+
+</html>
