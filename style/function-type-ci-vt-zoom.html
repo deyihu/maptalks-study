@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        /* background-color: black; */
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            "center": [120.59023517, 31.13093787], "zoom": 2.761487704257323, "pitch": 0.50000000000002, "bearing": 0.14999999999997726,
+            zoomControl: true,
+            // baseLayer: new maptalks.TileLayer('base', {
+            //     urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            //     subdomains: ["a", "b", "c", "d"],
+            //     maxAvailableZoom: 18,
+            // })
+        });
+
+
+        // threeLayer.addTo(map);
+        // 添加到GroupGLLayer中
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true },
+                bloom: {
+                    enable: true,
+                    threshold: 0,
+                    factor: 1,
+                    radius: 0.02,
+                },
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [], { sceneConfig });
+        groupLayer.addTo(map);
+
+        function addTree(geojson) {
+            const style = {
+                style: [
+                    {
+                        filter: ['all', ['==', '$type', 'Point']],
+                        renderPlugin: {
+                            dataConfig: {
+                                type: "point"
+                            },
+                            sceneConfig: {
+                                // bloom: true
+                            },
+                            type: "icon"
+                        },
+                        symbol: {
+                            markerType: 'ellipse',
+                            markerWidth: 10,
+                            markerHeight: 10,
+                            markerFill: {
+                                type: 'color-interpolate',
+                                // property: 'value',
+                                stops: [
+                                    [0, 'green'],
+                                    [5, 'blue'],
+                                    [10, 'yellow'],
+                                    [20, 'red']
+                                ]
+                            },
+                            markerLineWidth: 0
+                        },
+                    },
+
+                ],
+            };
+
+            const vt = new maptalks.GeoJSONVectorTileLayer("vt", {
+                data: geojson,
+                style,
+            });
+            groupLayer.addLayer(vt);
+        }
+
+        fetch('./../assets/data/ne_50m_populated_places_simple.geojson').then(res => res.json()).then(geojson => {
+            addTree(geojson);
+        })
+
+
+
+        const data = {
+            type: 'FeatureCollection',
+            features: [
+                { type: 'Feature', geometry: { type: 'Point', coordinates: [0, 0] } }
+            ]
+        };
+        // addTree(data);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
