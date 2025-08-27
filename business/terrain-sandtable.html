@@ -25,11 +25,15 @@
 <script type='text/javascript' src='./../assets/lib/tilebelt.js'></script>
 <script type='text/javascript' src='./../assets/lib/colorin.js'></script>
 <script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.tileclip.js'></script>
 
 <body>
     <div id="map" class="container"></div>
 
     <script>
+
+        const tileActor = maptalks.getTileActor();
+
         const map = new maptalks.Map("map", {
             centerCross: true,
             "center": [120.05409411, 30.16489579], "zoom": 13.309955844160632, "pitch": 71.55000000000047, "bearing": -34.94999999999868
@@ -185,6 +189,35 @@
             });
         }
 
+
+        function loadTiles(tile, callback) {
+            const [x, y, z] = tile;
+            const tiles = [
+                { x, y, z },
+                { x: x + 1, y, z },
+                { x, y: y + 1, z }
+            ]
+            const temp = [];
+            const isEnd = () => {
+                return temp.length === tiles.length;
+            }
+            tiles.forEach(tile => {
+                const { x, y, z } = tile;
+                const url = `./../assets/data/tile-rgb/${z}/${x}/${y}.png`
+                const img = new Image();
+                img.onload = () => {
+                    temp.push(1);
+                    tile.image = img;
+                    if (isEnd()) {
+                        callback(tiles);
+                    }
+                }
+                img.crossOrigin = '';
+                img.src = url;
+            });
+        }
+
+
         function addTerrainTile() {
             const minx = 6826, maxx = 6830, miny = 3372, maxy = 3377;
             const tiles = [];
@@ -204,8 +237,8 @@
                 const image = `./../assets/data/tile-rgb/${z}/${x}/${y}.png`;
                 const terrain = threeLayer.toTerrain(bbox, {
                     flaserBoundary: false,
-                    bufferPixel: 0.2,
-                    image,
+                    bufferPixel: 0,
+                    // image,
                     texture,
                     imageWidth: TILESIZE,
                     imageHeight: TILESIZE,
@@ -217,14 +250,30 @@
                     terrain.getObject3d().material.map = null;
                     terrain.getObject3d().material.needsUpdate = true;
                 });
-                terrain.on('dataload', () => {
-                    //update normal
-                    const geometry = terrain.getObject3d().geometry;
-                    const index = geometry.index.array;
-                    const position = geometry.attributes.position.array;
-                    const normal = generateNormal(index, position);
-                    geometry.setAttribute('normal', new THREE.BufferAttribute(normal, 3));
-                });
+
+                loadTiles(tile, (tiles) => {
+                    tileActor.terrainTileFixBoundary({
+                        tiles,
+                        returnUint32Buffer: true,
+                        returnBlobURL: true
+                    }).then(buffer => {
+                        const data = new Uint32Array(buffer);
+                        terrain.updateData(data);
+                        //update normal
+                        const geometry = terrain.getObject3d().geometry;
+                        geometry.computeVertexNormals();
+                    }).catch(error => {
+                        console.error(error);
+                    })
+                })
+                // terrain.on('dataload', () => {
+                //     //update normal
+                //     const geometry = terrain.getObject3d().geometry;
+                //     const index = geometry.index.array;
+                //     const position = geometry.attributes.position.array;
+                //     const normal = generateNormal(index, position);
+                //     geometry.setAttribute('normal', new THREE.BufferAttribute(normal, 3));
+                // });
                 threeLayer.addMesh(terrain);
                 terrains.push(terrain);
             });
