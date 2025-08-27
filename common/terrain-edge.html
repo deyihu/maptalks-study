@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+<script type="text/javascript" src="//at.alicdn.com/t/font_3330503_allx40pxkxd.js"></script>
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.three.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.tileclip.js'></script>
+<script type='text/javascript' src='./../assets/lib/tilebelt.js'></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+
+
+        const tileActor = maptalks.getTileActor();
+        var baseLayer = new maptalks.TileLayer('tile', {
+            urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+            subdomains: ['a', 'b', 'c', 'd'],
+            debug: true,
+            debugOutline: 'red'
+            // attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+        });
+
+
+        var map = new maptalks.Map("map", {
+            "center": [107.58032190999756, 33.87946033063278], "zoom": 11.5, "pitch": 58.40000000000002, "bearing": -0.6000000000000227,
+            centerCross: true,
+            doubleClickZoom: false,
+            baseLayer: baseLayer,
+            zoomControl: true,
+            heightFactor: 1
+        });
+        baseLayer.hide();
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            forceRenderOnMoving: true,
+            forceRenderOnRotating: true
+            // animation: true
+        });
+
+
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            map.setView({
+                "center": [118.21555656, 30.05222992], "zoom": 12.531879028508625, "pitch": 49.400000000000006, "bearing": 14.219275594748979
+            });
+            test1();
+            test2();
+            animation();
+        }
+
+        function loadTiles(tile, callback) {
+            const [x, y, z] = tile;
+            const tiles = [
+                { x, y, z },
+                { x: x + 1, y, z },
+                { x, y: y + 1, z }
+            ]
+            const temp = [];
+            const isEnd = () => {
+                return temp.length === tiles.length;
+            }
+            tiles.forEach(tile => {
+                const { x, y, z } = tile;
+                const url = `./../assets/data/tile-rgb/${z}/${x}/${y}.png`;
+                const img = new Image();
+                img.onload = () => {
+                    temp.push(1);
+                    tile.image = img;
+                    if (isEnd()) {
+                        callback(tiles);
+                    }
+                }
+                img.crossOrigin = '';
+                img.src = url;
+            });
+        }
+
+
+
+
+        const TILESIZE = 256;
+        function test1() {
+            const minx = 6782, maxx = 6785, miny = 3376, maxy = 3379;
+            const tiles = [];
+            for (let x = minx; x <= maxx; x++) {
+                for (let y = miny; y <= maxy; y++) {
+                    tiles.push([x, y, 13]);
+                }
+            }
+            tiles.forEach(tile => {
+                const [x, y, z] = tile;
+                const bbox = tilebelt.tileToBBOX(tile);
+                const texture = `https://webst01.is.autonavi.com/appmaptile?style=6&x=${x}&y=${y}&z=${z}`;
+                const url = `./../assets/data/tile-rgb/${z}/${x}/${y}.png`;
+                const terrain = threeLayer.toTerrain(bbox,
+                    {
+                        texture,
+                        image: url,
+                        imageWidth: TILESIZE,
+                        imageHeight: TILESIZE,
+                        flaserBoundary: false,
+                        bufferPixel: 0
+                    }, new THREE.MeshBasicMaterial());
+                threeLayer.addMesh(terrain);
+
+            });
+        }
+
+        function test2() {
+            const minx = 6788, maxx = 6791, miny = 3376, maxy = 3379;
+            const tiles = [];
+            for (let x = minx; x <= maxx; x++) {
+                for (let y = miny; y <= maxy; y++) {
+                    tiles.push([x, y, 13]);
+                }
+            }
+            tiles.forEach(tile => {
+                const [x, y, z] = tile;
+                const bbox = tilebelt.tileToBBOX(tile);
+                const texture = `https://webst01.is.autonavi.com/appmaptile?style=6&x=${x}&y=${y}&z=${z}`;
+                const url = `./../assets/data/tile-rgb/${z}/${x}/${y}.png`;
+                const terrain = threeLayer.toTerrain(bbox,
+                    {
+                        texture,
+                        image: null,
+                        imageWidth: TILESIZE,
+                        imageHeight: TILESIZE,
+                        flaserBoundary: false,
+                        bufferPixel: 0
+                    }, new THREE.MeshBasicMaterial());
+                loadTiles(tile, (tiles) => {
+                    tileActor.terrainTileFixBoundary({
+                        tiles,
+                        returnUint32Buffer: true,
+                        returnBlobURL: true
+                    }).then(buffer => {
+                        const data = new Uint32Array(buffer);
+                        terrain.updateData(data);
+                    }).catch(error => {
+                        console.error(error);
+                    })
+                })
+
+                threeLayer.addMesh(terrain);
+
+            });
+        }
+
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true }
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [threeLayer], { sceneConfig });
+        groupLayer.addTo(map);
+
+        function animation() {
+            // layer animation support Skipping frames
+            threeLayer._needsUpdate = !threeLayer._needsUpdate;
+            if (threeLayer._needsUpdate && !threeLayer.isRendering()) {
+                threeLayer.redraw();
+            }
+            requestAnimationFrame(animation);
+
+        }
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
