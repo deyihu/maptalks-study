@@ -73,6 +73,7 @@
             //   url(String): the url of the tile
             e.renderer.loadTileBitmap = function (url, tile, callback) {
                 tileActor.encodeTerrainTile({
+                    indexedDBCache: true,
                     url: maptalks.Util.getAbsoluteURL(url),
                     terrainType: 'arcgis',
                     terrainColors: colors,
