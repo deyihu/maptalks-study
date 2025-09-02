@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+
+    .marker-template {
+        display: none;
+    }
+
+    .markerDiv {
+
+        /* background: #1b82c19e; */
+
+
+        width: 200px;
+        height: 150px;
+        /* border: 1px solid #000; */
+        display: flex;
+
+    }
+
+    .marker-left {
+        width: 30%;
+    }
+
+    .marker-right {
+        width: 70%;
+        background: #1b82c19e;
+        border: 2px solid #000;
+        height: 100px;
+        border-radius: 6px;
+    }
+
+    /* .text-marker-hover {
+        background-color: black;
+        color: white;
+        background-color: #2695bbb3;
+        border: 2px solid #43fff3
+    } */
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+    <div id="marker-template">
+        <div class="markerDiv">
+            <div class="marker-left">
+                <svg viewBox="0 0 60 150" xmlns="http://www.w3.org/2000/svg">
+                    <!-- 具有默认填充的折线示例 -->
+                    <!-- <polyline points="0,100 50,25 50,75 100,0" /> -->
+
+                    <!-- 具有描边但无填充的相同的多段线形状示例 -->
+                    <polyline points="60,100 30,100 0 150" fill="none" stroke="black" stroke-width="2" />
+                </svg>
+            </div>
+            <div class="marker-right">
+                <h1>Hello World</h1>
+
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+
+
+        const markerTemplate = document.querySelector('#marker-template').innerHTML;
+
+        var map = new maptalks.Map('map', {
+            center: [119.47201791, 30.12828901],
+            zoom: 9,
+            pitch: 60,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+            })
+        });
+
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
+
+        const center = map.getCenter();
+
+        const markerSize = 40;
+
+        const point = new maptalks.Marker(center, {
+            symbol: {
+                markerFile: './../assets/icon/giant.png',
+                markerWidth: markerSize,
+                markerHeight: markerSize
+            }
+        }).addTo(layer);
+
+
+
+
+        function getMarkerContent(data) {
+            const div = document.createElement('div');
+            div.className = 'text-marker';
+            div.innerHTML = '<h1>hello world</h1>';
+            return div;
+        }
+
+
+        const marker = new maptalks.ui.UIMarker(center, {
+            collision: true,
+            collisionBufferSize: 2,
+            collisionWeight: 1,
+            // collisionFadeIn: true,
+            verticalAlignment: "top",
+            horizontalAlignment: 'right',
+            // dx: 100,
+            dy: -markerSize + 4,
+            altitude: 0,
+            // minZoom: 2,
+            // maxZoom: 10,
+            // animation: 'fade',
+            content: markerTemplate
+        });
+        marker.addTo(map);
+
+
+
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
