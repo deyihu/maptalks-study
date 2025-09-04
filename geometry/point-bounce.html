@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+<script type="text/javascript" src="//at.alicdn.com/t/font_3330503_allx40pxkxd.js"></script>
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/easing.js'></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const map = new maptalks.Map("map", {
+           "center":[120.3721516,31.09448821],"zoom":12.091780351103525,"pitch":66.60000000000008,"bearing":-7.499999999999544,
+            centerCross: true,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+            })
+        });
+
+        const layer = new maptalks.VectorLayer('layer', { collision: true, collisionDelay: 250, debug: false }).addTo(map);
+
+        const geojson = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            120.27538845399894,
+                            31.107683124052038
+                        ]
+                    },
+                    "properties": {
+                        "name": "西山岛",
+                        "_color": "#66ADEB",
+                        "center": [
+                            120.27538845399894,
+                            31.107683124052038,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            120.38474871004807,
+                            31.07769061088102
+                        ]
+                    },
+                    "properties": {
+                        "name": "东山",
+                        "_color": "#66ADEB",
+                        "center": [
+                            120.38474871004807,
+                            31.07769061088102,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            120.29479614382483,
+                            31.027086702820636
+                        ]
+                    },
+                    "properties": {
+                        "name": "三山岛",
+                        "_color": "#66ADEB",
+                        "center": [
+                            120.29479614382483,
+                            31.027086702820636,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            120.29435891181046,
+                            31.176308618639514
+                        ]
+                    },
+                    "properties": {
+                        "name": "阴山岛",
+                        "_color": "#66ADEB",
+                        "center": [
+                            120.29435891181046,
+                            31.176308618639514,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            120.26930769137137,
+                            31.17020856530436
+                        ]
+                    },
+                    "properties": {
+                        "name": "横山岛",
+                        "_color": "#66ADEB",
+                        "center": [
+                            120.26930769137137,
+                            31.17020856530436,
+                            0
+                        ]
+                    }
+                }
+            ]
+        };
+
+        const markerSize = 40;
+        const symbol = {
+            markerFile: './../assets/icon/island.png',
+            markerWidth: markerSize,
+            markerHeight: markerSize
+        }
+
+        const points = maptalks.GeoJSON.toGeometry(geojson, (p => {
+            p.setSymbol(symbol);
+        }));
+        layer.addGeometry(points);
+
+
+
+        function animation() {
+            const player = maptalks.animate(
+                {
+                    markerDy: [-50, 0]
+                },
+                {
+                    duration: 1000,
+                    easing: easingFuncs.bounceOut,
+                    repeat: true
+                }, (frame => {
+                    const markerDy = frame.styles.markerDy;
+                    points.forEach(point => {
+                        point.updateSymbol({
+                            markerDy
+                        })
+                    });
+                }))
+            player.play();
+        }
+
+        animation();
+
+    </script>
+</body>
+
+</html>
