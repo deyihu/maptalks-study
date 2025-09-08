@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/randomColor.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            center: [121.47400292, 31.22976969],
+            zoom: 11,
+            pitch: 55,
+            // baseLayer: new maptalks.TileLayer('base', {
+            //     urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            //     subdomains: ["a", "b", "c", "d"],
+            // })
+        });
+        const layer = new maptalks.VectorLayer('layer', {
+            enableAltitude: true
+        }).addTo(map);
+        var geoJson = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "lines": [0, 1]
+                    },
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [
+                                2.357919216156006,
+                                48.87621773324153
+                            ],
+                            [
+                                2.357339859008789,
+                                48.874834693731664
+                            ],
+                            [
+                                2.362983226776123,
+                                48.86855408432749
+                            ],
+                            [
+                                2.362382411956787,
+                                48.86796126699168
+                            ],
+                            [
+                                2.3633265495300293,
+                                48.86735432768131
+                            ]
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "lines": [2, 3]
+                    },
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [
+                                2.351503372192383,
+                                48.86443950493823
+                            ],
+                            [
+                                2.361609935760498,
+                                48.866775611250205
+                            ],
+                            [
+                                2.3633265495300293,
+                                48.86735432768131
+                            ]
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "lines": [1, 2]
+                    },
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [
+                                2.369627058506012,
+                                48.86619159489603
+                            ],
+                            [
+                                2.3724031448364253,
+                                48.8626397112042
+                            ],
+                            [
+                                2.3728322982788086,
+                                48.8616233285001
+                            ],
+                            [
+                                2.372767925262451,
+                                48.86080456075567
+                            ]
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "lines": [0]
+                    },
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [
+                                2.3647427558898926,
+                                48.86653565369396
+                            ],
+                            [
+                                2.3647642135620117,
+                                48.86630981023694
+                            ],
+                            [
+                                2.3666739463806152,
+                                48.86314789481612
+                            ],
+                            [
+                                2.3673176765441895,
+                                48.86066339254944
+                            ]
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "lines": [0, 1, 2, 3]
+                    },
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [
+                                2.3633265495300293,
+                                48.86735432768131
+                            ],
+                            [
+                                2.3647427558898926,
+                                48.86653565369396
+                            ]
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "lines": [1, 2, 3]
+                    },
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [
+                                2.3647427558898926,
+                                48.86653565369396
+                            ],
+                            [
+                                2.3650002479553223,
+                                48.86660622956524
+                            ],
+                            [
+                                2.365509867668152,
+                                48.866987337550164
+                            ],
+                            [
+                                2.369627058506012,
+                                48.86619159489603
+                            ]
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "lines": [3]
+                    },
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [
+                                2.369627058506012,
+                                48.86619159489603
+                            ],
+                            [
+                                2.372349500656128,
+                                48.865702850895744
+                            ]
+                        ]
+                    }
+                }
+            ]
+        };
+
+        var lineColors = ['red', '#08f', '#0c0', '#f80'];
+        const lines = maptalks.GeoJSON.toGeometry(geoJson);
+        layer.addGeometry(lines);
+
+
+        lines.forEach((line, index) => {
+            const props = line.getProperties();
+
+            const colorIdx = index % lineColors.length;
+            line.setSymbol({
+                lineColor: lineColors[colorIdx],
+                lineWidth: 6,
+                lineStrokeColor: '#000',
+                lineStrokeWidth: 4,
+                lineJoin: 'round',
+                // lineCap: 'round',
+            })
+        });
+
+        map.fitExtent(layer.getExtent());
+
+
+
+    </script>
+</body>
+
+</html>
