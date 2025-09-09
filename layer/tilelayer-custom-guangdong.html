@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/gcoord.js'></script>
+
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        function test1() {
+            //地图和图层采用同一个投影信息
+            //切图参数
+            const RES = 0.000005370443490158943;
+            //原点
+            const ORIGIN = [-400, 400];
+            const resolutions = [];
+            let i = 0;
+            while (i <= 2) {
+                resolutions.push(RES / Math.pow(2, i));
+                i++;
+            }
+            const spatialReference = {
+                projection: 'EPSG:4490',
+                resolutions: resolutions
+            }
+
+            var map = new maptalks.Map('map', {
+                center: [113.46578141501932, 23.03317116278418],
+                zoom: 0,
+                zoomControl: true
+
+            });
+
+
+            map.setSpatialReference(spatialReference);
+            const tileLayer = new maptalks.TileLayer('tilelayer,', {
+                debug: 1,
+                urlTemplate: "https://guangdong.tianditu.gov.cn/guangzhou/ServiceAccess/MapService-T/TDTDT/1e85e146b0728d2fb3a5312c75089400/tile/{z}/{y}/{x}",
+                tileSystem: [1, -1].concat(ORIGIN),
+                spatialReference
+
+            });
+            map.setBaseLayer(tileLayer);
+
+        }
+
+        function test2() {
+            //地图全球标准的4490,图层进行补位,和全球切图相比，该切特前面缺少了18个层级
+            //切图参数
+            const RES = 0.000005370443490158943;
+            //原点
+            const ORIGIN = [-400, 400];
+            const resolutions = [];
+            let i = 0;
+            while (i <= 2) {
+                resolutions.push(RES / Math.pow(2, i));
+                i++;
+            }
+            let zoomOffset = 18;
+            let zoom = 1;
+            while (zoom <= zoomOffset) {
+                const res = resolutions[0];
+                resolutions.splice(0, 0, res * 2);
+                zoom++;
+            }
+            const spatialReference = {
+                projection: 'EPSG:4490',
+                resolutions: resolutions
+            }
+
+            console.log(spatialReference);
+
+            var map = new maptalks.Map('map', {
+                center: [113.46578141501932, 23.03317116278418],
+                zoom: 18,
+                zoomControl: true,
+                spatialReference: {
+                    projection: 'EPSG:4490',
+                }
+
+            });
+
+            const tileLayer = new maptalks.TileLayer('tilelayer,', {
+                debug: 1,
+                urlTemplate: "https://guangdong.tianditu.gov.cn/guangzhou/ServiceAccess/MapService-T/TDTDT/1e85e146b0728d2fb3a5312c75089400/tile/{z}/{y}/{x}",
+                tileSystem: [1, -1].concat(ORIGIN),
+                spatialReference,
+                zoomOffset: -zoomOffset
+
+            });
+            map.setBaseLayer(tileLayer);
+
+        }
+
+        function test3() {
+            //地图全球标准的3857,图层进行补位,和全球切图相比，该切特前面缺少了18个层级
+            //切图参数
+            const RES = 0.000005370443490158943;
+            //原点
+            const ORIGIN = [-400, 400];
+            const resolutions = [];
+            let i = 0;
+            while (i <= 2) {
+                resolutions.push(RES / Math.pow(2, i));
+                i++;
+            }
+            let zoomOffset = 18;
+            let zoom = 1;
+            while (zoom <= zoomOffset) {
+                const res = resolutions[0];
+                resolutions.splice(0, 0, res * 2);
+                zoom++;
+            }
+            const spatialReference = {
+                projection: 'EPSG:4490',
+                resolutions: resolutions
+            }
+
+            console.log(spatialReference);
+
+            var map = new maptalks.Map('map', {
+                center: [113.46578141501932, 23.03317116278418],
+                zoom: 18,
+                zoomControl: true,
+                spatialReference: {
+                    projection: 'EPSG:3857',
+                }
+
+            });
+
+            const tileLayer = new maptalks.TileLayer('tilelayer,', {
+                debug: 1,
+                urlTemplate: "https://guangdong.tianditu.gov.cn/guangzhou/ServiceAccess/MapService-T/TDTDT/1e85e146b0728d2fb3a5312c75089400/tile/{z}/{y}/{x}",
+                tileSystem: [1, -1].concat(ORIGIN),
+                spatialReference,
+                zoomOffset: -zoomOffset
+
+            });
+            map.setBaseLayer(tileLayer);
+
+        }
+
+        test3();
+
+
+
+    </script>
+</body>
+
+</html>
