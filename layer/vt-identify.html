@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        /* background-color: black; */
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/easing.js'></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const map = new maptalks.Map("map", {
+            center: [121.49363786, 31.19593063],
+            zoom: 14,
+            bearing: 0,
+            pitch: 0,
+            zoomControl: true
+        });
+
+        map.on('click', e => {
+            const result = layer.identify(e.coordinate);
+            console.log(result);
+            animation(result);
+        });
+        const style = {
+            style: [
+                {
+                    filter: true,
+                    renderPlugin: {
+                        dataConfig: {
+                            type: "point",
+                        },
+                        sceneConfig: {
+                            // minZoom: 8,
+                            // maxZoom: 12
+                        },
+                        type: "icon",
+                    },
+                    symbol: {
+                        // textName:'{name}',
+                        markerWidth: 40,
+                        markerHeight: 40,
+                        markerFile: './../assets/icon/island.png'
+                    },
+                }
+            ]
+
+        };
+
+        const layer = new maptalks.GeoJSONVectorTileLayer("geo", {
+            // debug: true,
+            // debugTile:true,
+            data: "./../assets/data/citys.geojson",
+            style,
+            features: true,
+            pickingGeometry: true,
+        });
+
+        layer.on("dataload", (e) => {
+            map.fitExtent(e.extent);
+        });
+
+        const groupGLLayer = new maptalks.GroupGLLayer("gl", [layer], {
+            sceneConfig: {
+                environment: {
+                    enable: true,
+                    mode: 1,
+                    level: 0,
+                    brightness: 0
+                },
+                postProcess: {
+                    enable: true,
+                    bloom: {
+                        enable: true,
+                        threshold: 0,
+                        factor: 0.6,
+                        radius: 1,
+                    },
+                }
+            }
+        }).addTo(map);
+
+        const layer1 = new maptalks.VectorLayer('layer', { collision: false, collisionDelay: 250, debug: false }).addTo(map);
+
+        let player;;
+
+
+        function animation(data) {
+            if (!data || !data.length) {
+                return;
+            }
+            layer1.clear();
+            if (player) {
+                player.cancel();
+            }
+
+            const points = data.map(d => {
+                const coordinates = d.data.feature.geometry.coordinates;
+                const symbol = d.data.symbol;
+                return new maptalks.Marker(coordinates, {
+                    symbol: {
+                        ...symbol,
+                        markerFile: './../assets/icon/钻石.png'
+                    }
+                })
+            });
+            layer1.addGeometry(points);
+            player = maptalks.animate(
+                {
+                    markerDy: [-50, 0]
+                },
+                {
+                    duration: 1000,
+                    easing: easingFuncs.bounceOut,
+                    repeat: true
+                }, (frame => {
+                    const markerDy = frame.styles.markerDy;
+                    points.forEach(point => {
+                        point.updateSymbol({
+                            markerDy
+                        })
+                    });
+                }))
+            player.play();
+        }
+
+
+
+    </script>
+</body>
+
+</html>
