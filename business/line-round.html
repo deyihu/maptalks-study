@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        background-color: black;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/geolib.js'></script>
+<script type='text/javascript' src='./../assets/lib/lineseg.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/poly-extrude.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const geojson = { "type": "FeatureCollection", "features": [{ "type": "Feature", "geometry": { "type": "LineString", "coordinates": [[120.61502454175789, 30.968727056491446], [120.61540269734489, 30.968668695108832], [120.61509260976356, 30.966723295275166], [120.61543294979185, 30.96667141740368], [120.61565228003231, 30.96862978750064], [120.61593967827842, 30.96862978750064], [120.6156144644736, 30.966626024242977], [120.61586404716103, 30.966619539504002], [120.61612875607193, 30.968597364481674], [120.61634052320065, 30.968584395270994], [120.61603799873104, 30.966574146318642], [120.61624976585976, 30.966561176833164], [120.61645396987673, 30.968571426058585], [120.61668086322892, 30.968551972236614], [120.61640102809454, 30.96650929887356]] }, "properties": { "name": "01_401d52f9", "_color": "#8176e8", "center": [120.61588774491116, 30.967683025540047, 0] } }, { "type": "Feature", "geometry": { "type": "LineString", "coordinates": [[120.60984538025617, 30.968260650483327], [120.61013210748855, 30.96822845707563], [120.60994436941974, 30.96704900020075], [120.61023451007158, 30.967010952962212], [120.61038128710719, 30.968190410307074], [120.61071238879221, 30.968175776930522], [120.61055195807884, 30.966999246116536], [120.61085575240843, 30.96696997899606], [120.61100024552489, 30.968133721488098], [120.61130632377359, 30.96809502549589], [120.61113906622136, 30.966958272145344], [120.6114394471315, 30.966940711866602], [120.61158281074769, 30.968090903302297], [120.6119207392716, 30.96803822308129], [120.61176713539709, 30.96688510429594], [120.61209141024324, 30.966847056992087], [120.61221429334283, 30.96804407644062], [120.6125283279307, 30.967994322874937], [120.61234400328131, 30.966814863107764], [120.61269899890235, 30.966797302802636], [120.61287649671289, 30.968070416553132], [120.61312908975094, 30.968047003120144], [120.61275702703271, 30.965167107077935], [120.61249760715579, 30.965205155051205], [120.6126716915469, 30.96646658311972], [120.61242933876713, 30.966478290030683], [120.61230304224809, 30.96529003124463], [120.61187636481894, 30.965339786219477], [120.61203338211286, 30.966519264207847], [120.611616944942, 30.966566091817363], [120.61144968738978, 30.96539539469011], [120.61095132815254, 30.965448076369263], [120.61111175886589, 30.96662462629693], [120.61068508143674, 30.966665600411297], [120.61051441046507, 30.96550953829151], [120.6100433585833, 30.965530025590148], [120.61022768323268, 30.966709501228596], [120.60991706206427, 30.966727061549857], [120.60977369844807, 30.96555929315201], [120.60950403831283, 30.96557978043996], [120.60968153612336, 30.966753402025716]] }, "properties": { "name": "01_6d4a970c", "_color": "#ffa5cf", "center": [120.61128637033059, 30.966833563059836, 0] } }] }
+        var map = new maptalks.Map('map', {
+            "center": [120.69506775, 31.31810776], "zoom": 15.644776188745714, "pitch": 0.500000000000043, "bearing": -4.800697303009656
+        });
+
+        const baseLayer = new maptalks.TileLayer('base', {
+            urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+            maxAvailableZoom: 18,
+        });
+
+        // 添加到GroupGLLayer中
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true },
+                bloom: {
+                    enable: true,
+                    threshold: 0,
+                    factor: 1,
+                    radius: 0.02,
+                },
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [baseLayer], { sceneConfig });
+        groupLayer.addTo(map);
+
+        map.setView(
+            {
+                "center": [120.61351017, 30.96616805], "zoom": 17.280725950430362, "pitch": 0, "bearing": 5.099302696990094
+            }
+        )
+
+
+
+        const lineLayer = new maptalks.LineStringLayer('line').addTo(groupLayer);
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
+        const offsetSize = 0.00002;
+        const lines = [];
+        geojson.features.slice(0, 1).forEach(f => {
+            const coordinates = f.geometry.coordinates;
+            const line1 = new maptalks.LineString(coordinates, {
+
+            }).addTo(layer);
+            const result = polyextrude.polylineRound(coordinates, { roundSize: offsetSize });
+            const line2 = new maptalks.LineString(result, {
+                symbol: {
+                    lineWidth: 4,
+                    lineColor: '#24F0AE',
+                    lineStrokeColor: 'black',
+                    lineStrokeWidth: 2,
+                }
+            }).addTo(layer);
+        });
+        geojson.features.slice(1, Infinity).forEach(f => {
+            const coordinates = f.geometry.coordinates;
+            // const line1 = new maptalks.LineString(coordinates, {
+
+            // }).addTo(layer);
+            const result = polyextrude.polylineRound(coordinates, { roundSize: offsetSize });
+            const line2 = new maptalks.LineString(result, {
+                symbol: {
+                    lineColor: '#24F0AE',
+                    lineWidth: 16,
+                    lineStrokeColor: 'black',
+                    lineStrokeWidth: 2,
+                    linePatternFile: "./../assets/image/path-arrow.jpg",
+                }
+            }).addTo(lineLayer);
+        });
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
