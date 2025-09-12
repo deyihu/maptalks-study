@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        background-color: black;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/poly-extrude.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+
+        var map = new maptalks.Map('map', {
+            "center": [120.69506775, 31.31810776], "zoom": 15.644776188745714, "pitch": 0.500000000000043, "bearing": -4.800697303009656
+        });
+
+        const baseLayer = new maptalks.TileLayer('base', {
+            urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+            maxAvailableZoom: 18,
+        });
+
+        // 添加到GroupGLLayer中
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true },
+                bloom: {
+                    enable: true,
+                    threshold: 0,
+                    factor: 1,
+                    radius: 0.02,
+                },
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [baseLayer], { sceneConfig });
+        groupLayer.addTo(map);
+
+        map.setView(
+            {
+               "center":[121.51531935,24.99904153],"zoom":15.022534737261996,"pitch":0,"bearing":5.099302696990094
+            }
+        )
+
+
+        let list = [
+            { lon: 121504413, lat: 24993508 },
+            { lon: 121504413, lat: 24993508 },
+            { lon: 121504413, lat: 24993508 },
+            { lon: 121504413, lat: 24993508 },
+            { lon: 121502683, lat: 24993680 },
+            { lon: 121502683, lat: 24993680 },
+            { lon: 121502683, lat: 24993680 },
+            { lon: 121502683, lat: 24993680 },
+            { lon: 121499684, lat: 24993722 },
+            { lon: 121499684, lat: 24993722 },
+            { lon: 121499684, lat: 24993722 },
+            { lon: 121496006, lat: 24993871 },
+            { lon: 121496006, lat: 24993871 },
+            { lon: 121496006, lat: 24993871 },
+            { lon: 121496006, lat: 24993871 },
+            { lon: 121496006, lat: 24993871 },
+            { lon: 121496006, lat: 24993871 },
+            { lon: 121496006, lat: 24993871 },
+            { lon: 121495590, lat: 24993086 },
+            { lon: 121495590, lat: 24993086 },
+            { lon: 121495590, lat: 24993086 },
+            { lon: 121494794, lat: 24992457 },
+            { lon: 121494794, lat: 24992457 },
+            { lon: 121494269, lat: 24991862 },
+            { lon: 121494269, lat: 24991862 },
+            { lon: 121493371, lat: 24990769 },
+            { lon: 121493371, lat: 24990769 },
+            { lon: 121493371, lat: 24990769 },
+            { lon: 121493371, lat: 24990769 },
+            { lon: 121493371, lat: 24990769 },
+            { lon: 121493371, lat: 24990769 },
+            { lon: 121493371, lat: 24990769 },
+            { lon: 121494269, lat: 24991862 },
+            { lon: 121494269, lat: 24991862 },
+            { lon: 121494269, lat: 24991862 },
+            { lon: 121494794, lat: 24992457 },
+            { lon: 121494794, lat: 24992457 },
+            { lon: 121496006, lat: 24993871 },
+            { lon: 121495590, lat: 24993086 },
+            { lon: 121496006, lat: 24993871 },
+            { lon: 121496006, lat: 24993871 },
+            { lon: 121496006, lat: 24993871 },
+            { lon: 121496338, lat: 24993931 },
+            { lon: 121496006, lat: 24993871 },
+            { lon: 121497375, lat: 24994870 },
+            { lon: 121497375, lat: 24994870 },
+            { lon: 121497375, lat: 24994870 },
+            { lon: 121498527, lat: 24995864 },
+            { lon: 121498858, lat: 24996233 },
+            { lon: 121498527, lat: 24995864 },
+            { lon: 121498527, lat: 24995864 },
+            { lon: 121503789, lat: 24994111 },
+            { lon: 121504146, lat: 24994552 },
+            { lon: 121504336, lat: 24994633 },
+            { lon: 121504443, lat: 24994654 },
+            { lon: 121504443, lat: 24994654 },
+            { lon: 121504183, lat: 24995258 },
+            { lon: 121503873, lat: 24995455 },
+            { lon: 121503340, lat: 24995719 },
+            { lon: 121503401, lat: 24995964 },
+            { lon: 121503180, lat: 24997021 },
+            { lon: 121503584, lat: 24997642 },
+            { lon: 121504116, lat: 24998414 },
+            { lon: 121504290, lat: 24998682 },
+            { lon: 121504252, lat: 24998907 },
+            { lon: 121503926, lat: 24999341 },
+            { lon: 121503766, lat: 24999479 },
+            { lon: 121503561, lat: 24999609 },
+            { lon: 121503735, lat: 24999797 },
+            { lon: 121503834, lat: 24999830 },
+            { lon: 121504610, lat: 24999924 },
+            { lon: 121505667, lat: 25000009 },
+            { lon: 121506062, lat: 25000078 },
+            { lon: 121506519, lat: 25000428 },
+            { lon: 121507309, lat: 25001118 },
+            { lon: 121507682, lat: 25001531 },
+            { lon: 121508229, lat: 25002016 },
+            { lon: 121508891, lat: 25002588 },
+            { lon: 121509553, lat: 25003185 },
+            { lon: 121510328, lat: 25003845 },
+            { lon: 121511423, lat: 25004636 },
+            { lon: 121512130, lat: 25005220 },
+            { lon: 121512206, lat: 25005300 },
+            { lon: 121512396, lat: 25005453 },
+            { lon: 121512343, lat: 25005517 },
+            { lon: 121511621, lat: 25006231 },
+            { lon: 121510944, lat: 25006965 },
+            { lon: 121510556, lat: 25007521 },
+            { lon: 121511256, lat: 25008023 },
+            { lon: 121511811, lat: 25008436 },
+            { lon: 121512061, lat: 25008624 },
+            { lon: 121512077, lat: 25008654 },
+            { lon: 121512009, lat: 25008776 },
+            { lon: 121511780, lat: 25009000 },
+            { lon: 121511324, lat: 25009478 },
+            { lon: 121510891, lat: 25009995 },
+            { lon: 121510800, lat: 25010127 },
+            { lon: 121510747, lat: 25010211 },
+            { lon: 121510595, lat: 25010355 },
+            { lon: 121510595, lat: 25010355 },
+            { lon: 121510419, lat: 25010498 },
+            { lon: 121510306, lat: 25010632 },
+            { lon: 121509887, lat: 25011003 },
+            { lon: 121509872, lat: 25011064 },
+            { lon: 121510419, lat: 25012043 },
+            { lon: 121511180, lat: 25012783 },
+            { lon: 121511948, lat: 25013404 },
+            { lon: 121512777, lat: 25013927 },
+            { lon: 121513522, lat: 25014333 },
+            { lon: 121514518, lat: 25014742 },
+            { lon: 121515636, lat: 25015072 },
+            { lon: 121516427, lat: 25015224 },
+            { lon: 121516511, lat: 25015236 },
+            { lon: 121516784, lat: 25015223 },
+            { lon: 121517894, lat: 25015260 },
+            { lon: 121518495, lat: 25015317 },
+            { lon: 121520023, lat: 25015141 },
+            { lon: 121520966, lat: 25015000 },
+            { lon: 121522289, lat: 25014494 },
+            { lon: 121523415, lat: 25013805 },
+            { lon: 121524366, lat: 25012966 },
+            { lon: 121525233, lat: 25011799 },
+            { lon: 121526008, lat: 25010655 },
+            { lon: 121526791, lat: 25009433 },
+            { lon: 121527399, lat: 25008516 },
+            { lon: 121527718, lat: 25008000 },
+            { lon: 121527940, lat: 25007662 },
+            { lon: 121528517, lat: 25006796 },
+            { lon: 121529133, lat: 25005884 },
+            { lon: 121529795, lat: 25004883 },
+            { lon: 121530419, lat: 25003864 },
+            { lon: 121530670, lat: 25003391 },
+            { lon: 121530768, lat: 25003054 },
+            { lon: 121530159, lat: 25002814 },
+            { lon: 121530054, lat: 25002770 },
+            { lon: 121530023, lat: 25002736 },
+            { lon: 121529809, lat: 25002607 },
+            { lon: 121529088, lat: 25002180 },
+            { lon: 121528958, lat: 25002113 },
+            { lon: 121528905, lat: 25002150 },
+            { lon: 121528684, lat: 25002322 },
+            { lon: 121528487, lat: 25002385 },
+            { lon: 121528273, lat: 25002062 },
+            { lon: 121528273, lat: 25002062 },
+            { lon: 121527992, lat: 25001668 },
+        ];
+
+        const coordinates = list.map(c => {
+            const { lon, lat } = c;
+            return [lon / 1000000, lat / 1000000];
+        })
+
+
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
+        const offsetSize = 0.00002;
+        const lines = [];
+
+        const line1 = new maptalks.LineString(coordinates, {
+
+        }).addTo(layer);
+        const result = polyextrude.polylineRound(coordinates, { roundSize: offsetSize });
+        const line2 = new maptalks.LineString(result, {
+            symbol: {
+                lineWidth: 4,
+                lineColor: '#24F0AE',
+                lineStrokeColor: 'black',
+                lineStrokeWidth: 2,
+            }
+        }).addTo(layer);
+
+
+        // const coordinates = f.geometry.coordinates;
+        // // const line1 = new maptalks.LineString(coordinates, {
+
+        // // }).addTo(layer);
+        // const result = polyextrude.polylineRound(coordinates, { roundSize: offsetSize });
+        // const line2 = new maptalks.LineString(result, {
+        //     symbol: {
+        //         lineColor: '#24F0AE',
+        //         lineWidth: 16,
+        //         lineStrokeColor: 'black',
+        //         lineStrokeWidth: 2,
+        //         linePatternFile: "./../assets/image/path-arrow.jpg",
+        //     }
+        // }).addTo(lineLayer);
+
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
