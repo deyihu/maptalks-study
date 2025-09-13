@@ -1,5 +1,5 @@
 /*!
- * poly-extrude v0.22.0
+ * poly-extrude v0.22.1
   */
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -7069,20 +7069,21 @@
       }
       const len = line.length;
       const { roundSize, steps } = options;
-      const pts = [line[0]];
+      const points = [line[0]];
       let pre = line[0];
+      let idx = 0;
       for (let i = 1; i < len; i++) {
           const p1 = line[i - 1], p2 = line[i], p3 = line[i + 1];
-          if (pointEqual(pre, p2)) {
+          if (!p3 || !p1 || !p2) {
               continue;
           }
-          if (!p3) {
+          if (pointEqual(pre, p2)) {
               continue;
           }
           const d1 = pointDistance(p2, p1), d2 = pointDistance(p2, p3);
           if (d1 < roundSize || d2 < roundSize) {
               pre = p2;
-              pts.push(p2);
+              points[++idx] = p2;
               continue;
           }
           const dx1 = p2[0] - p1[0], dy1 = p2[1] - p1[1];
@@ -7097,16 +7098,22 @@
               x: p2[0] + percent2 * dx2,
               y: p2[1] + percent2 * dy2
           };
+          const d3 = pointDistance([c1.x, c1.y], [c2.x, c2.y]);
+          if (d3 < roundSize / 10) {
+              pre = p2;
+              points[++idx] = p2;
+              continue;
+          }
           const be = new bezier.Bezier([c1, { x: p2[0], y: p2[1] }, c2]);
           const path = be.getLUT(steps);
           for (let j = 0, len1 = path.length; j < len1; j++) {
               const p = path[j];
-              pts.push([p.x, p.y]);
+              points[++idx] = [p.x, p.y];
           }
           pre = p2;
       }
-      pts.push(line[len - 1]);
-      return pts;
+      points.push(line[len - 1]);
+      return points;
   }
 
   exports.cylinder = cylinder;
