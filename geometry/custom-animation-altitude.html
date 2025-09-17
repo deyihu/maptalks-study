@@ -53,50 +53,60 @@
         const alitutde = 5000;
         let isDown = false;
 
-        var targetStyles = {
-            'symbol': {
-                'alitutde': alitutde
-            }
-        };
 
-        // animate by maptalks.animation.Animation
-        var player = maptalks.animate(targetStyles, {
-            duration: 2000,
-            easing: 'out',
-            // repeat: true
-        },
-            // callback of each frame
-            function step(frame) {
-    
-      
-                layer.getGeometries().forEach(p => {
-                    const alt = frame.styles.symbol.alitutde;
-                    // console.log(alt);
-                    p.setAltitude(!isDown ? alt : alitutde - alt);
-                });
-                if (frame.state.playState === 'finished') {
-                    isDown = !isDown;
+
+        let player;
+        function start() {
+            var targetStyles = {
+                'symbol': {
+                    'alitutde': isDown ? [alitutde, 0] : [0, alitutde]
                 }
-                // console.log(isDown)
-       
-            }
-        );
+            };
+            // animate by maptalks.animation.Animation
+            player = maptalks.animate(targetStyles, {
+                duration: 1000,
+                easing: 'out',
+                // repeat: true
+            },
+                // callback of each frame
+                function step(frame) {
+                    const alt = frame.styles.symbol.alitutde;
+                    console.log(alt);
 
-        function play() {
-            cancel();
+                    layer.getGeometries().forEach(p => {
+                        // const alt = frame.styles.symbol.alitutde;
+                        // console.log(alt);
+                        // console.log(alt);
+                        p.setAltitude(alt);
+                    });
+                    // if (frame.state.playState === 'finished') {
+                    // }
+
+                }
+            );
             player.play();
 
         }
 
-        function pause() {
-            player.pause();
+
+        function play() {
+            if (player) {
+                player.finish();
+            }
+            start();
+            isDown = !isDown;
+
         }
-        function cancel() {
-            player.cancel();
-        }
-        function finish() {
-            player.finish();
-        }
+
+        // function pause() {
+        //     player.pause();
+        // }
+        // function cancel() {
+        //     player.cancel();
+        // }
+        // function finish() {
+        //     player.finish();
+        // }
 
         // setTimeout(function () {
         //     player.play();
