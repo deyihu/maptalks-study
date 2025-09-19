@@ -34,18 +34,16 @@
             }),
         });
 
-        let isdblclick = false;
+
         function clickHandler(e) {
-            if (isdblclick) {
-                isdblclick = false;
+            if (e.domEvent.detail === 2) {
                 return;
             }
             console.log('click', e);
-            isdblclick = false;
+
         }
 
         function dblClickHandler(e) {
-            isdblclick = true;
             console.log('dblclick', e);
         }
 
