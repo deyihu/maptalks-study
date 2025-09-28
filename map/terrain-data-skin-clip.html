@@ -81,7 +81,7 @@
                         tileBBOX: baseLayer._getTileBBox(tile),
                         projection: baseLayer.getProjection().code,
                         maskId,
-                        bufferSize: tile.z - 2
+                        bufferSize: tile.z
                     }).then(image => {
                         callback(image);
                     }).catch(error => {
@@ -119,7 +119,7 @@
             // colors: colors,
             exaggeration: 4,
         };
-        const group = new maptalks.GroupGLLayer('group', [baseLayer1, baseLayer], {
+        const group = new maptalks.GroupGLLayer('group', [baseLayer], {
             terrain
         });
 
