@@ -20,7 +20,7 @@
         display: none;
     }
 
-    #infowindow {
+    .infowindow {
         text-align: center;
         width: 300px;
         font-size: 16px
@@ -35,7 +35,7 @@
 
     <div id="map" class="container"></div>
     <div class="infowindow-template">
-        <div id="infowindow">
+        <div class="infowindow">
             <h1>《滕王阁序》</h1>
             <div>
                 　　滕王高阁临江渚，佩玉鸣鸾罢歌舞。<br>
@@ -46,6 +46,7 @@
 
                 　　阁中帝子今何在？槛外长江空自流。
             </div>
+            <button class="btn">click me {count}</button>
         </div>
 
     </div>
@@ -55,7 +56,7 @@
         var map = new maptalks.Map('map', {
             center: [116.33607780651141,
                 39.89606849343474],
-            zoom: 17,
+            zoom: 13,
             pitch: 60,
             baseLayer: new maptalks.TileLayer('base', {
                 urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
@@ -67,20 +68,35 @@
         }).addTo(map);
 
 
-        const center = map.getCenter().toArray();
-        const point = new maptalks.Marker(center, {
-            symbol: {
-                markerType: 'ellipse',
-                markerWidth: 40,
-                markerHeight: 40,
-                markerFill: '#fff'
-            }
-        });
-        point.addTo(layer);
-        point.setInfoWindow({
-            content: document.getElementById('infowindow')
-        });
-        point.openInfoWindow();
+        const template = document.querySelector('.infowindow').innerHTML;
+        const c1 = map.getCenter();
+
+        const c2 = c1.add(0.1, 0);
+        [c1, c2].forEach(c => {
+            const point = new maptalks.Marker(c, {
+                // symbol: {
+                //     markerType: 'ellipse',
+                //     markerWidth: 40,
+                //     markerHeight: 40,
+                //     markerFill: '#fff'
+                // }
+            });
+            point.addTo(layer);
+            const div = document.createElement('div');
+            div.className = 'infowindow';
+            let count = 0;
+            div.innerHTML = template.replace('{count}', count);
+
+            div.querySelector('.btn').addEventListener('click', e => {
+                count++;
+                e.target.textContent = `click me ${count}`;
+            })
+            point.setInfoWindow({
+                content: div
+            });
+            point.openInfoWindow();
+        })
+
 
 
     </script>
