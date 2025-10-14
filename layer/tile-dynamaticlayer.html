@@ -30,7 +30,7 @@
         const tileActor = maptalks.getTileActor();
 
         var map = new maptalks.Map('map', {
-            "center": [-117.45478051, 33.90165999], "zoom": 16.599986725708177, "pitch": 0, "bearing": 0
+            "center": [-117.45478051, 33.90165999], "zoom": 4.599986725708177, "pitch": 0, "bearing": 0
 
         });
 
@@ -40,7 +40,7 @@
         })
 
         const baseLayer = new maptalks.TileLayer('base', {
-            urlTemplate: "https://sampleserver6.arcgisonline.com/arcgis/rest/services/PoolPermits/MapServer/export?f=image&imageSR=3857&transparent=true",
+            urlTemplate: "https://sampleserver6.arcgisonline.com/arcgis/rest/services/USA/MapServer/export?f=image&imageSR=3857&transparent=true",
             subdomains: ["a", "b", "c", "d"],
             maxAvailableZoom: 18,
             debug: true,
@@ -61,7 +61,9 @@
                 // const code = projection.code.split(':')[1];
                 const size = baseLayer.getTileSize();
                 const code = 4326;
-                url += `&bbox=${bboxStr}&bboxSR=${code}&size=${size.width},${size.height}`;
+                //https://sampleserver6.arcgisonline.com/arcgis/rest/services/USA/MapServer?f=json
+                // https://developers.arcgis.com/javascript/latest/sample-code/layers-mapimagelayer-definitionexpression/
+                url += `&bbox=${bboxStr}&bboxSR=${code}&size=${size.width},${size.height}&Layers=show:0,1,2,3&layerDefs=${encodeURIComponent('{"0":"pop2000 > 260000"}')}`;
 
                 //get Tile data
                 tileActor.getTile({
