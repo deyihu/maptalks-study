@@ -45,29 +45,37 @@
         const groupLayer = new maptalks.GroupGLLayer('group', [tileLayer, layer, layer1]).addTo(map);
 
         const center = map.getCenter().toArray();
+        const initModelHeight = 25;
         const model = new maptalks.GLTFMarker(center, {
             symbol: {
                 url: "./../assets/data/alien.gltf",
-                modelHeight: 50, //model height,Unit is meters
+                modelHeight: initModelHeight, //model height,Unit is meters
                 scaleX: 1,
                 scaleY: 1,
                 scaleZ: 1,
+                // translationX: 12
                 // rotationZ: 180
             }
         });
         model.addTo(layer);
 
         let point;
+        //耳朵相对于中心点的偏移量
+        const offsetX = -0.00005, offsetY = 0;
         function syncPoint() {
             const coordinates = model.getCoordinates()
             const altitude = coordinates.z || 0;
             const symbol = model.getSymbol();
             const modelHeight = symbol.modelHeight;
+            const scale = modelHeight / initModelHeight;
             const scaleZ = symbol.scaleZ;
 
-            const alt = altitude + (modelHeight * scaleZ);
+            //耳朵相对于高度的占比
+            const alt = altitude + (modelHeight * scaleZ * 0.72);
 
             const c = coordinates.copy();
+            c.x += offsetX * symbol.scaleX * scale;
+            c.y += offsetY;
             c.z = alt;
             if (!point) {
                 point = new maptalks.Marker(c, {
@@ -100,7 +108,7 @@
             requestAnimationFrame(animation);
         }
 
-        animation();
+        // animation();
 
 
 
@@ -117,9 +125,9 @@
         gui.add(params, 'modelHeight', 1, 100).onChange(() => {
             model.updateSymbol({ ...params })
         })
-        gui.add(params, 'scaleZ', 1, 5).onChange(() => {
-            model.updateSymbol({ ...params })
-        })
+        // gui.add(params, 'scaleZ', 1, 5).onChange(() => {
+        //     model.updateSymbol({ ...params })
+        // })
         gui.add(params, 'scaleX', 1, 5).onChange(() => {
             model.updateSymbol({ ...params })
         })
