@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>线数据三维样式 - 设置纹理</title>
+<style type='text/css'>
+    html,
+    body {
+        width: 100%;
+        height: 100%;
+        margin: 0px;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+        var r = "./../assets/image/dawnmountain-";
+        const map = new maptalks.Map("map", {
+            center: [116.45266161, 39.86656647],
+            zoom: 17.8,
+            bearing: -54,
+            pitch: 80.8,
+            lights: {
+                directional: {
+                    direction: [1, 0, -1],
+                    color: [1, 1, 1]
+                },
+                ambient: {
+                    resource: {
+                        url: {
+                            front: `${r}zpos.png`,
+                            back: `${r}zneg.png`,
+                            left: `${r}xneg.png`,
+                            right: `${r}xpos.png`,
+                            top: `${r}ypos.png`,
+                            bottom: `${r}yneg.png`,
+                        },
+                        prefilterCubeSize: 512,
+                        asynchronous: true,
+                        crossOrigin: ''
+                    },
+                    exposure: 0.8,
+                    hsv: [0, 0.34, 0],
+                    orientation: 1
+                }
+            },
+        });
+
+        const baseLayer = new maptalks.TileLayer('tile', {
+            urlTemplate: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            subdomains: ['a', 'b', 'c', 'd'],
+            attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+        });
+
+
+        const groupLayer = new maptalks.GroupGLLayer("group", [baseLayer], {
+            sceneConfig: {
+                environment: {
+                    enable: true,
+                    mode: 1,
+                    level: 0,
+                    brightness: 0
+                },
+                shadow: {
+                    type: "esm",
+                    enable: true,
+                    quality: "high",
+                    opacity: 0.11,
+                    color: [0, 0, 0],
+                    blurOffset: 1
+                },
+                postProcess: {
+                    enable: true,
+                    antialias: {
+                        enable: true,
+                        taa: true,
+                        jitterRatio: 0.25
+                    },
+                    ssr: {
+                        enable: true
+                    },
+                    bloom: {
+                        enable: true,
+                        threshold: 0,
+                        factor: 0.2,
+                        radius: 0.105
+                    },
+                    ssao: {
+                        enable: true,
+                        bias: 0.08,
+                        radius: 0.08,
+                        intensity: 1.5
+                    },
+                    sharpen: {
+                        enable: false,
+                        factor: 0.2
+                    }
+                },
+                ground: {
+                    enable: false,
+                    renderPlugin: {
+                        type: "fill"
+                    },
+                    symbol: {
+                        polygonFill: [0.517647, 0.517647, 0.517647, 1]
+                    }
+                }
+            }
+        });
+        groupLayer.addTo(map);
+    </script>
+</body>
+
+</html>
