@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        /* background-color: black; */
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const map = new maptalks.Map("map", {
+            "center": [120.61112722, 31.4746955], "zoom": 9.57144211649588, "pitch": 0, "bearing": 0
+        });
+
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+        });
+
+        const geojson = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            120.52242657949331,
+                            31.434126248097318
+                        ]
+                    },
+                    "properties": {
+                        "name": "01_8a61d5c0",
+                        "_color": "",
+                        "center": [
+                            120.52242657949331,
+                            31.434126248097318,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            120.7041914412969,
+                            31.283887848890288
+                        ]
+                    },
+                    "properties": {
+                        "name": "02_38c9d9ab",
+                        "_color": "",
+                        "center": [
+                            120.7041914412969,
+                            31.283887848890288,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            120.7624494098237,
+                            31.643659212546932
+                        ]
+                    },
+                    "properties": {
+                        "name": "03_22940090",
+                        "_color": "",
+                        "center": [
+                            120.7624494098237,
+                            31.643659212546932,
+                            0
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            120.47465504530133,
+                            31.70712118594668
+                        ]
+                    },
+                    "properties": {
+                        "name": "04_5eaeb920",
+                        "_color": "",
+                        "center": [
+                            120.47465504530133,
+                            31.70712118594668,
+                            0
+                        ]
+                    }
+                }
+            ]
+        };
+
+        geojson.features.forEach((f, index) => {
+            // f.id = 'id' + (index++);
+            // f.geometry.id = 'id' + (index++);
+            f.properties.id = 'id' + (index++);
+        });
+
+        const layer = new maptalks.GeoJSONVectorTileLayer("geo", {
+            featureIdProperty: 'id',
+            features: true,
+            pickingGeometry: true,
+            data: geojson,
+            debugTileData: true
+        });
+
+
+
+        const groupGLLayer = new maptalks.GroupGLLayer("gl", [layer], {
+            sceneConfig: {
+                environment: {
+                    enable: true,
+                    mode: 1,
+                    level: 0,
+                    brightness: 0
+                },
+                postProcess: {
+                    enable: true,
+                    bloom: {
+                        enable: true,
+                        threshold: 0,
+                        factor: 0.6,
+                        radius: 1,
+                    },
+                }
+            }
+        }).addTo(map);
+
+
+
+    </script>
+</body>
+
+</html>
