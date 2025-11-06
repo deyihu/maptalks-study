@@ -130,6 +130,12 @@
             debugTileData: true
         });
 
+        layer.on('dataload', e => {
+            console.log(e);
+            const feature = layer.getGeometryById('id0');
+            console.log(feature);
+        });
+
 
 
         const groupGLLayer = new maptalks.GroupGLLayer("gl", [layer], {

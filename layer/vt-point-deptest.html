@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.min.css' />
+
+<script type='text/javascript' src='https://cdn.jsdelivr.net/npm/maptalks-gl/dist/maptalks-gl.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            "center": [114.14235211, 22.37037543], "zoom": 12.140404392119882, "pitch": 55.85000000000001, "bearing": -1.4999999999998863,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+            })
+        });
+
+        const defaultAltitude = 1000;
+
+        const style = [
+            {
+                name: 'building',
+                filter: ["all",
+                    ["==", "$type", "Polygon"]
+                ],
+                renderPlugin: {
+                    type: "lit",
+                    dataConfig: {
+                        type: "3d-extrusion",
+                        altitudeProperty: "height",
+                        // minHeightProperty: "bottomHeight",
+                        altitudeScale: 1,
+                        defaultAltitude: defaultAltitude,
+                        topThickness: 1,
+                        top: true,
+                        side: true
+                    },
+                    sceneConfig: {}
+                },
+                symbol: {
+                    polygonOpacity: 1,
+                    material: {
+                        baseColorFactor: [1, 1, 1, 1],
+                        roughnessFactor: 1,
+                        metallicFactor: 1
+                    }
+                }
+            },
+            {
+                name: 'label',
+                filter: [
+                    "all",
+                    ["==", "$type", "Point"],
+                ],
+                renderPlugin: {
+                    dataConfig: {
+                        type: "point",
+                    },
+                    sceneConfig: {
+                        collision: true,
+                        fading: true,
+                        // WebGL深度测试函数，可选的值有 always, never, <, <=, !=, >, >=
+                        // depthFunc: '<'
+                    },
+                    type: "icon",
+                },
+                symbol: {
+                    // markerType: 'ellipse',
+                    // markerWidth: 10,
+                    // markerHeight: 10,
+
+                    textFaceName: "Microsoft YaHei,sans-serif",
+                    textFill: [0, 0, 0, 1],
+                    textHaloFill: [1, 1, 1, 1],
+                    textHaloOpacity: 1,
+                    textHaloRadius: 1,
+                    textName: "{name}",
+                    textSize: 12,
+                    textDy: -10
+                },
+            }
+        ];
+
+        let layer;
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true }
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [], { sceneConfig });
+        groupLayer.addTo(map);
+
+        const fetch1 = fetch('./../assets/data/hk.json').then(res => res.json())
+        const fetch2 = fetch('./../assets/data/hklabel.geojson').then(res => res.json());
+        Promise.all([fetch1, fetch2]).then((data) => {
+            const [data1, data2] = data;
+            data2.features.forEach(f => {
+                f.geometry.coordinates.push(defaultAltitude);
+            });
+            data1.features = data1.features.concat(data2.features);
+
+            layer = new maptalks.GeoJSONVectorTileLayer("geo", {
+                data: data1,
+                style,
+            });
+            groupLayer.addLayer(layer);
+        })
+
+
+
+    </script>
+</body>
+
+</html>
