@@ -131,7 +131,12 @@
         });
 
         layer.on('dataload', e => {
-            console.log(e);
+            // console.log(e);
+            const feature = layer.getGeometryById('id0');
+            console.log(feature);
+        });
+        layer.on('tileload', e => {
+            // console.log(e);
             const feature = layer.getGeometryById('id0');
             console.log(feature);
         });
