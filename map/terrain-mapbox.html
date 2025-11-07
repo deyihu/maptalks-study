@@ -43,7 +43,7 @@
         const baseLayer = new maptalks.TileLayer('base', {
             // debug: true,
             urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
-            urlTemplate: "https://wtb.maptiles.arcgis.com/arcgis/rest/services/World_Topo_Base/MapServer/tile/{z}/{y}/{x}",
+            // urlTemplate: "https://wtb.maptiles.arcgis.com/arcgis/rest/services/World_Topo_Base/MapServer/tile/{z}/{y}/{x}",
             subdomains: ["a", "b", "c", "d"],
             // bufferPixel: 1
         })
@@ -83,7 +83,7 @@
             urlTemplate: './../assets/data/tile-rgb/{z}/{x}/{y}.png',
             subdomains: ['a', 'b', 'c', 'd'],
             // colors: colors4,
-            exaggeration: 2,
+            exaggeration: 1,
         };
         const group = new maptalks.GroupGLLayer('group', [baseLayer], {
             terrain
