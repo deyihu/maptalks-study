@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+
+<body>
+    <script type="text/javascript" src="https://maptalks.com/api/transcoders.draco.js"></script>
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const map = new maptalks.Map("map", {
+            center: { "x": 102.85024793, "y": 37.6875352 },
+            zoom: 15,
+            bearing: 0,
+            pitch: 20.8,
+            spatialReference: {
+                projection: 'EPSG:4326',
+            },
+            lights: {
+                directional: {
+                    direction: [1, 0, -1],
+                    color: [1, 1, 1]
+                }
+            }
+        });
+        // let url4 = 'http://localhost:8080/geoserver/ne/gwc/service/wmts?REQUEST=GetTile&SERVICE=WMTS&VERSION=1.0.0&LAYER=ne:ceshi&STYLE=&TILEMATRIX=EPSG:4326:{z}&TILEMATRIXSET=EPSG:4326&FORMAT=application/vnd.mapbox-vector-tile&TILECOL={x}&TILEROW={y}'
+        // /**start**/
+        // const vt = new maptalks.VectorTileLayer("vt", {
+        //   urlTemplate: url4
+        // });
+        const vt = new maptalks.GeoJSONVectorTileLayer("vt", {
+            featureIdProperty: "id",
+            features: true,
+            pickingGeometry: true,
+            debugTileData: true,
+            data: "./../assets/data/2.geojson",
+        });
+        const style = {
+            style: [
+                {
+                    filter: ["all",
+                        ["==", "$type", "Polygon"]
+                    ],
+                    renderPlugin: {
+                        type: "lit",
+                        dataConfig: {
+                            type: "3d-extrusion",
+                            altitudeProperty: "height",
+                            minHeightProperty: "min_height",
+                            altitudeScale: 500,
+                            defaultAltitude: 1,
+                            topThickness: 0,
+                            top: false,
+                            side: true
+                        },
+                        sceneConfig: {
+                            cullFace: false
+                        }
+                    },
+                    symbol: {
+                        polygonOpacity: 0.66,
+                        material: {
+                            baseColorFactor: [0, 0.6431372, 0.8274509, 1],
+                            hsv: [0, -0.383, 0.021],
+                            roughnessFactor: 1,
+                            metallicFactor: 0,
+                            uvScale: [0.01, 0.01],
+                            emissiveTexture: "./../assets/image/webp16.webp",
+                            emitColorFactor: 3.83
+                        }
+                    }
+                },
+                {
+                    filter: ["all",
+                        ["==", "$type", "Polygon"]
+                    ],
+                    renderPlugin: {
+                        type: "lit",
+                        dataConfig: {
+                            type: "3d-extrusion",
+                            altitudeProperty: "height1",
+                            minHeightProperty: "height",
+                            altitudeScale: 500,
+                            defaultAltitude: 1,
+                            topThickness: 10,
+                            top: true,
+                            side: false
+                        },
+                        sceneConfig: {
+                            cullFace: false
+                        }
+                    },
+                    symbol: {
+                        // polygonOpacity: 0.66,
+                        material: {
+                            baseColorFactor: [1, 1, 1, 1],
+                            hsv: [0, -0.383, 0.021],
+                            roughnessFactor: 1,
+                            metallicFactor: 0,
+                            uvScale: [0.01, 0.01],
+                             emissiveTexture: "./../assets/image/webp16.webp",
+                            emitColorFactor: 3.83
+                        }
+                    }
+                }
+            ]
+        };
+        vt.setStyle(style);
+        /**end**/
+
+        const groupLayer = new maptalks.GroupGLLayer("group", [vt], {
+            sceneConfig: {
+                environment: {
+                    enable: true,
+                    mode: 1,
+                    level: 0,
+                    brightness: 0
+                },
+                shadow: {
+                    type: "esm",
+                    enable: true,
+                    quality: "high",
+                    opacity: 0.11,
+                    color: [0, 0, 0],
+                    blurOffset: 1
+                },
+                postProcess: {
+                    enable: true,
+                    antialias: {
+                        enable: true,
+                        taa: true,
+                        jitterRatio: 0.25
+                    },
+                    ssr: {
+                        enable: true
+                    },
+                    bloom: {
+                        enable: true,
+                        threshold: 0,
+                        factor: 0.2,
+                        radius: 0.105
+                    },
+                    ssao: {
+                        enable: true,
+                        bias: 0.08,
+                        radius: 0.08,
+                        intensity: 1.5
+                    },
+                    sharpen: {
+                        enable: false,
+                        factor: 0.2
+                    }
+                },
+                ground: {
+                    enable: true,
+                    renderPlugin: {
+                        type: "fill"
+                    },
+                    symbol: {
+                        polygonFill: [0.517647, 0.517647, 0.517647, 1]
+                    }
+                }
+            }
+        });
+        groupLayer.addTo(map);
+
+        // const point = new maptalks.Marker({ "x": 102.85024793, "y": 37.6875352 }, {
+        //   visible: true,
+        //   editable: true,
+        //   cursor: "pointer",
+        //   shadowBlur: 0,
+        //   shadowColor: "black",
+        //   draggable: false,
+        //   dragShadow: false, // display a shadow during dragging
+        //   drawOnAxis: null, // force dragging stick on a axis, can be: x, y
+        //   symbol: {
+        //     textFaceName: "sans-serif",
+        //     textName: "MapTalks",
+        //     textFill: "#34495e",
+        //     textHorizontalAlignment: "right",
+        //     textSize: 40,
+        //   },
+        // });
+
+        // new maptalks.VectorLayer("vector", point).addTo(map);
+
+    </script>
+</body>
+
+</html>
