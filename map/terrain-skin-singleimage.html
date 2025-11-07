@@ -58,7 +58,7 @@
 
         const baseLayer = new maptalks.TileLayer('base', {
             // debug: true,
-            urlTemplate: "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer/tile/{z}/{y}/{x}",
+            urlTemplate: "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png",
             subdomains: ["a", "b", "c", "d"],
             zIndex: -1
             // bufferPixel: 1
@@ -96,7 +96,7 @@
             maxAvailableZoom: 14,
 
             requireSkuToken: false,
-            urlTemplate: "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer/tile/{z}/{y}/{x}",
+            urlTemplate: "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png",
             subdomains: ['a', 'b', 'c', 'd'],
             // colors: colors4,
             exaggeration: 4,
@@ -127,7 +127,7 @@
                 // console.log(url);
                 tileActor.encodeTerrainTile({
                     url: maptalks.Util.getAbsoluteURL(url),
-                    terrainType: 'arcgis',
+                    terrainType: 'mapzen',
                     indexedDBCache: true,
                     // timeout: 5000
                 }).then(imagebitmap => {

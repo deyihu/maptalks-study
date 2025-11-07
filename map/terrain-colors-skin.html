@@ -58,13 +58,13 @@
 
         const baseLayer = new maptalks.TileLayer('base', {
             // debug: true,
-            urlTemplate: "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer/tile/{z}/{y}/{x}",
+            urlTemplate: "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png",
             subdomains: ["a", "b", "c", "d"],
             zIndex: -1
             // bufferPixel: 1
         })
 
-        const colors =[[0,"rgb(246,251,255)"],[369,"rgb(224,234,244)"],[738,"rgb(198,219,240)"],[1107,"rgb(157,202,225)"],[1476,"rgb(106,175,214)"],[1845,"rgb(66,146,197)"],[2214,"rgb(33,114,180)"],[2583,"rgb(11,80,157)"],[2952,"rgb(5,49,112)"],[3322,"rgb(5,49,112)"]]
+        const colors = [[0, "rgb(246,251,255)"], [369, "rgb(224,234,244)"], [738, "rgb(198,219,240)"], [1107, "rgb(157,202,225)"], [1476, "rgb(106,175,214)"], [1845, "rgb(66,146,197)"], [2214, "rgb(33,114,180)"], [2583, "rgb(11,80,157)"], [2952, "rgb(5,49,112)"], [3322, "rgb(5,49,112)"]]
 
 
         baseLayer.on('renderercreate', function (e) {
@@ -77,7 +77,7 @@
                 tileActor.encodeTerrainTile({
                     indexedDBCache: true,
                     url: maptalks.Util.getAbsoluteURL(url),
-                    terrainType: 'arcgis',
+                    terrainType: 'mapzen',
                     // timeout: 5000
                 }).then(imagebitmap => {
                     tileActor.colorTerrainTile({
@@ -104,7 +104,7 @@
             maxAvailableZoom: 14,
 
             requireSkuToken: false,
-            urlTemplate: "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer/tile/{z}/{y}/{x}",
+            urlTemplate: "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png",
             subdomains: ['a', 'b', 'c', 'd'],
             // colors: colors4,
             exaggeration: 4,
@@ -114,7 +114,7 @@
         });
 
         map.setView({
-          "center":[112.952482,39.02245739,1702.4000244140625],"zoom":10.987120922700901,"pitch":67.85000000000093,"bearing":115.39370916489929
+            "center": [112.952482, 39.02245739, 1702.4000244140625], "zoom": 10.987120922700901, "pitch": 67.85000000000093, "bearing": 115.39370916489929
         })
         group.on('terrainlayercreated', e => {
             const terrainLayer = group.getTerrainLayer();
@@ -123,7 +123,7 @@
                 // console.log(url);
                 tileActor.encodeTerrainTile({
                     url: maptalks.Util.getAbsoluteURL(url),
-                    terrainType: 'arcgis',
+                    terrainType: 'mapzen',
                     indexedDBCache: true,
                     // timeout: 5000
                 }).then(imagebitmap => {
