@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type="text/javascript" src="https://maptalks.com/api/transcoders.draco.js"></script>
+<script type="text/javascript" src="./../assets/lib/gcoord.js"></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+        const map = new maptalks.Map("map", {
+            center: [108.95965, 34.2189],
+            zoom: 18,
+            bearing: 0,
+            pitch: 45,
+            lights: {
+                directional: {
+                    direction: [-1, -1, -1],
+                    color: [1, 1, 1]
+                },
+                ambient: {
+                    // resource: {
+                    //     url: {
+                    //         front: "/resources/hdr/923/front.jpg",
+                    //         back: "/resources/hdr/923/back.jpg",
+                    //         left: "/resources/hdr/923/left.jpg",
+                    //         right: "/resources/hdr/923/right.jpg",
+                    //         top: "/resources/hdr/923/top.jpg",
+                    //         bottom: "/resources/hdr/923/bottom.jpg"
+                    //     }
+                    // },
+                    // exposure: 1.426,
+                    // hsv: [0, 0, 0],
+                    // orientation: 302.553
+                }
+            }
+        });
+
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+        });
+
+        const baseLayer = new maptalks.TileLayer('base', {
+            urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+            attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+        });
+
+        function offset(z) {
+            //坐标转换的第三方库 https://github.com/hujiulong/gcoord
+
+            const center = map.getCenter();
+            const res = map.getGLRes();
+            // 坐标由 WGS84 转为 GCJ02
+            const c = gcoord.transform(center.toArray(), gcoord.WGS84, gcoord.AMap);
+            const coord = map.coordToPointAtRes(new maptalks.Coordinate(c), res);
+            const offset = map.coordToPointAtRes(center, res)._sub(coord);
+            return offset.toArray();
+        }
+
+        const layer = new maptalks.Geo3DTilesLayer("3dtiles", {
+            offset,
+            services: [{
+                url: "https://resource.dvgis.cn/data/3dtiles/dayanta/tileset.json",
+                maximumScreenSpaceError: 16.0,
+                heightOffset: -400
+            }]
+        });
+        layer.once("loadtileset", (e) => {
+
+            const extent = layer.getExtent(e.index);
+            map.fitExtent(extent, 0, {
+                animation: false
+            });
+        });
+        const groupGLLayer = new maptalks.GroupGLLayer("gl", [baseLayer, layer], {
+            sceneConfig: {
+                environment: {
+                    enable: true,
+                    mode: 1,
+                    level: 0,
+                    brightness: 0.915
+                },
+                postProcess: {
+                    enable: true
+                },
+                ground: {
+                    enable: false,
+                    renderPlugin: {
+                        type: "lit"
+                    },
+                    symbol: {
+                        polygonOpacity: 1,
+                        material: {
+                            baseColorFactor: [0.48235, 0.48235, 0.48235, 1],
+                            hsv: [0, 0, -0.532],
+                            roughnessFactor: 0.22,
+                            metallicFactor: 0.58
+                        }
+                    }
+                }
+            }
+        }).addTo(map);
+    </script>
+</body>
+
+</html>
