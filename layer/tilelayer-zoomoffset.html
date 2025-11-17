@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            "center": [122.04, 40.16], "zoom": 13, "pitch": 0, "bearing": 0,
+            // seamlessZoom: false,
+            // cameraInfiniteFar: true,
+            zoomControl: true,
+
+            // debugSky: true
+        });
+
+        const baseLayer = new maptalks.TileLayer('ID', {
+            crossOrigin: '',
+            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+        }).addTo(map);
+
+        const layer = new maptalks.TileLayer('base', {
+            renderer: 'canvas',
+            //other server url
+            tileSystem: [1, -1, -180, 90],
+            urlTemplate: "https://zhyj.yjgl.ln.gov.cn:18004/e-server/htc/service/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=DM-1989410786631487489&STYLE=栅格&TILEMATRIXSET=EPSG:4326&FORMAT=image/png&TILEMATRIX=EPSG:4326:{z}&TILEROW={y}&TILECOL={x}",
+            subdomains: ["t0", "t1", "t2", "t3"],
+            maxAvailableZoom: 18,
+            debug: true,
+            zoomOffset: -1,
+            spatialReference: {
+                projection: 'EPSG:4326', // 设定投影坐标系
+            },
+        }).addTo(map);
+
+
+
+    </script>
+</body>
+
+</html>
