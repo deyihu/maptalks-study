@@ -42,6 +42,7 @@
         }).addTo(map);
 
         const layer = new maptalks.TileLayer('base', {
+            //服务端有点问题，这里使用canvas来渲染，应该配置服务端支持跨域，然后这里注释掉
             renderer: 'canvas',
             //other server url
             tileSystem: [1, -1, -180, 90],
