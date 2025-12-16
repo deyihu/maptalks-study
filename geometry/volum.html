@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        /* background-color: black; */
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/poly-extrude.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+
+        var map = new maptalks.Map('map', {
+            "center": [120.69506775, 31.31810776], "zoom": 15.644776188745714, "pitch": 0.500000000000043, "bearing": -4.800697303009656
+        });
+
+        const baseLayer = new maptalks.TileLayer('base', {
+            urlTemplate: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+            maxAvailableZoom: 18,
+        }).addTo(map);
+
+
+        map.setView({
+            "center": [0.38675452, 0.17028208], "zoom": 8.828690652474597, "pitch": 70.20000000000016, "bearing": 3.7937368186267126
+        })
+
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
+        // const layer = new maptalks.PolygonLayer('layer').addTo(map);
+
+        const symbol = {
+            polygonFill: '#000',
+            polygonOpacity: 0.2,
+            lineColor: 'black'
+        }
+
+        const leftc = [-1, 0], rightc = [1, 0], topc = [0, 1], bottomc = [0, -1];
+        const leftch = [-0.5, 0, 30000], rightch = [0.5, 0, 30000], topch = [0, 0.5, 30000], bottomch = [0, -0.5, 30000];
+
+        const c1 = [leftc, topc, rightc, bottomc];
+        const polygon = new maptalks.Polygon([c1], {
+            symbol: {
+                ...symbol
+            }
+        }).addTo(layer);
+
+        const c2 = [leftc, topc, topch, leftch];
+        const polygon1 = new maptalks.Polygon([c2], {
+            symbol: {
+                ...symbol
+            }
+        }).addTo(layer);
+
+        const c3 = [topc, rightc, rightch, topch];
+        const polygon2 = new maptalks.Polygon([c3], {
+            symbol: {
+                ...symbol
+            }
+        }).addTo(layer);
+
+        const c4 = [rightc, bottomc, bottomch, rightch];
+        const polygon3 = new maptalks.Polygon([c4], {
+            symbol: {
+                ...symbol
+            }
+        }).addTo(layer);
+
+        const c5 = [bottomc, leftc, leftch, bottomch];
+        const polygon4 = new maptalks.Polygon([c5], {
+            symbol: {
+                ...symbol
+            }
+        }).addTo(layer);
+
+        const c6 = [leftch, topch, rightch, bottomch];
+        const polygon5 = new maptalks.Polygon([c6], {
+            symbol: {
+                ...symbol,
+                polygonFill: 'red'
+            }
+        }).addTo(layer);
+
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
