@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<head>
+    <title>添加一个矢量瓦片图层</title>
+    <style type="text/css">
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0px;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+        }
+
+        .map {
+            width: 33%;
+            border-right: 1px solid gray;
+        }
+    </style>
+    <link rel="stylesheet" href="./../assets/lib/maptalks/maptalks.css" />
+    <script type="text/javascript" src="./../assets/lib/maptalks/maptalks-gl.js"></script>
+    <script type="text/javascript" src="./../assets/lib/maptalks.tileclip.js"></script>
+    <script type="text/javascript" src="./../assets/lib/maptalks.mapsync.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="map" id="map1"></div>
+        <div class="map" id="map2"></div>
+        <div class="map" id="map3"></div>
+    </div>
+
+    <script>
+
+
+        const tileActor = maptalks.getTileActor();
+
+
+        function createMap(mapId) {
+            const map = new maptalks.Map(mapId, {
+                "center": [108.95986733, 34.21997952], "zoom": 12.698416480987284, "pitch": 0, "bearing": 1.8437368186266667,
+                zoomControl: true,
+                spatialReference: {
+                    projection: 'EPSG:4326',
+                    // projection: 'EPSG:3857',
+                    // cameraInfiniteFar: true,
+                    // heightFactor: 4.2,
+                }
+
+            });
+
+
+            const baseLayer = new maptalks.TileLayer('base', {
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+                spatialReference: {
+                    projection: 'EPSG:3857',
+                    // projection: 'EPSG:3857',
+                    // cameraInfiniteFar: true,
+                    // heightFactor: 4.2,
+                }
+            }).addTo(map);
+
+            map.setView({
+                "center": [118.69948803, 29.116985, 1917.9000244140625], "zoom": 12.787814088530652, "pitch": 66.95000000000083, "bearing": -24.68437274881751
+            })
+
+            return map;
+        }
+
+
+
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: {
+                    enable: true,
+                },
+            },
+        };
+
+        const colors4 = [[0, "rgb(255,255,227)"], [181, "rgb(249,252,183)"], [363, "rgb(218,239,162)"], [544, "rgb(173,222,143)"], [726, "rgb(121,197,123)"], [907, "rgb(64,171,93)"], [1089, "rgb(36,132,68)"], [1271, "rgb(3,102,55)"], [1452, "rgb(0,70,41)"], [1634, "rgb(0,70,41)"]]
+
+        const terrainOptions = {
+            type: 'tianditu',
+            maxAvailableZoom: 14,
+            requireSkuToken: false,
+            subdomains: ['1', '2', '3', '4', '5'],
+            tileSystem: [1, -1, -180, 90],
+            // colors: colors4,
+            exaggeration: 2,
+            shader: "lit",
+            material: {
+                baseColorFactor: [1, 1, 1, 1],
+                outputSRGB: 1,
+                roughnessFactor: 0.69,
+                metallicFactor: 0
+            }
+        }
+
+        function testtdt(map) {
+            const tdtkey = '81f5d2faf4bd7ee6b55f7cd535e81518';
+            const terrain = {
+                ...terrainOptions,
+                urlTemplate: 'https://t{s}.tianditu.gov.cn/mapservice/swdx?T=elv_c&x={x}&y={y}&l={z}&tk=' + tdtkey,
+
+            };
+            const group = new maptalks.GroupGLLayer('group', [], {
+                terrain
+            });
+
+
+            group.on('terrainlayercreated', e => {
+                const terrainLayer = group.getTerrainLayer();
+                terrainLayer.getRenderer().loadTileBitmap = function (url, tile, callback, options) {
+                    // console.log(url);
+                    tileActor.encodeTerrainTile({
+                        url: maptalks.Util.getAbsoluteURL(url),
+                        terrainType: 'tianditu',
+                        indexedDBCache: true,
+                        // timeout: 5000
+                    }).then(imagebitmap => {
+                        callback(null, imagebitmap)
+
+
+                    }).catch(error => {
+                        //do some things
+                        // console.error(error);
+                        callback(null, maptalks.getBlankTile())
+                    })
+                };
+            })
+
+            group.addTo(map);
+        }
+
+        function testqgisgray(map) {
+            const terrain = {
+                ...terrainOptions,
+                urlTemplate: "http://localhost/geoserver/deyihu/gwc/service/wmts?layer=deyihu:huangshan-gray&style=&tilematrixset=EPSG%3A4326&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image%2Fpng&TileMatrix=EPSG%3A4326%3A{z}&TileCol={x}&TileRow={y}",
+
+            };
+            const group = new maptalks.GroupGLLayer('group', [], {
+                terrain
+            });
+
+            group.on('terrainlayercreated', e => {
+                const terrainLayer = group.getTerrainLayer();
+                terrainLayer.getRenderer().loadTileBitmap = function (url, tile, callback, options) {
+                    const { x, y, z } = tile;
+                    const url1 = terrainLayer.options.urlTemplate.replace("{x}", x).replace('{y}', y).replace('{z}', z - 1);
+                    tileActor.encodeTerrainTile({
+                        url: maptalks.Util.getAbsoluteURL(url1),
+                        terrainType: 'qgis-gray',
+                        indexedDBCache: true,
+                        minHeight: 31,
+                        maxHeight: 1459
+                    }).then(imagebitmap => {
+                        callback(null, imagebitmap)
+
+
+                    }).catch(error => {
+                        //do some things
+                        // console.error(error);
+                        callback(null, maptalks.getBlankTile())
+                    })
+                };
+            })
+
+            group.addTo(map);
+        }
+
+
+        function testMerge(map) {
+
+            const tdtkey = '81f5d2faf4bd7ee6b55f7cd535e81518';
+            const terrain = {
+                ...terrainOptions,
+                urlTemplate: 'https://t{s}.tianditu.gov.cn/mapservice/swdx?T=elv_c&x={x}&y={y}&l={z}&tk=' + tdtkey,
+
+            };
+            const urlTemplate2 = "http://localhost/geoserver/deyihu/gwc/service/wmts?layer=deyihu:huangshan-gray&style=&tilematrixset=EPSG%3A4326&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image%2Fpng&TileMatrix=EPSG%3A4326%3A{z}&TileCol={x}&TileRow={y}";
+            const group = new maptalks.GroupGLLayer('group', [], {
+                terrain
+            });
+
+            function encodeMapBox(height, out) {
+                const value = Math.floor((height + 10000) * 10);
+                const r = value >> 16;
+                const g = value >> 8 & 0x0000FF;
+                const b = value & 0x0000FF;
+                if (out) {
+                    out[0] = r;
+                    out[1] = g;
+                    out[2] = b;
+                    return out;
+                } else {
+                    return [r, g, b];
+                }
+            }
+
+            let canvas = new OffscreenCanvas(1, 1);
+            function mergeTile(images) {
+                const { width, height } = images[0];
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                images.forEach(image => {
+                    ctx.drawImage(image, 0, 0);
+                    image.close();
+                });
+                return canvas.transferToImageBitmap();
+            }
+
+            // function createTestTile(tileSize) {
+
+            //     canvas.width = tileSize;
+            //     canvas.height = tileSize;
+            //     const ctx = canvas.getContext('2d');
+            //     ctx.clearRect(0, 0, canvas.width, canvas.height);
+            //     const [r, g, b] = encodeMapBox(1000);
+            //     ctx.fillStyle = `rgb(${r},${g},${b})`;
+            //     ctx.rect(0, 0, canvas.width, canvas.height);
+            //     ctx.fill();
+            //     return canvas.transferToImageBitmap();
+            // }
+
+
+            group.on('terrainlayercreated', e => {
+                const terrainLayer = group.getTerrainLayer();
+                terrainLayer.getRenderer().loadTileBitmap = function (url, tile, callback, options) {
+                    const { x, y, z } = tile;
+                    const url2 = urlTemplate2.replace("{x}", x).replace('{y}', y).replace('{z}', z - 1);
+                    const promise1 = tileActor.encodeTerrainTile({
+                        url: maptalks.Util.getAbsoluteURL(url),
+                        terrainType: 'tianditu',
+                        indexedDBCache: true,
+                    })
+                    const promise2 = tileActor.encodeTerrainTile({
+                        url: maptalks.Util.getAbsoluteURL(url2),
+                        terrainType: 'qgis-gray',
+                        indexedDBCache: true,
+                        minHeight: 31,
+                        maxHeight: 1459
+                    })
+
+                    Promise.allSettled([promise1, promise2]).then(result => {
+                        console.log(result);
+
+                        const [item1, item2] = result;
+                        image1 = item1.value || maptalks.getBlankTile();
+                        let image2 = item2.value || maptalks.getBlankTile();
+                        const image = mergeTile([image1, image2]);
+                        callback(null, image);
+
+
+                    }).catch(error => {
+                        console.error(error);
+                    })
+
+                };
+            })
+
+            group.addTo(map);
+        }
+        const map1 = createMap('map1');
+        testtdt(map1);
+        const map2 = createMap('map2');
+        testqgisgray(map2);
+        const map3 = createMap('map3');
+        testMerge(map3);
+
+
+        const mapSyncControl = new maptalks.MapSync([map1, map2, map3]);
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
