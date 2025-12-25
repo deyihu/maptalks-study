@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/maptalks.tileclip.js'></script>
+
+<body>
+    <!-- <script type="text/javascript" src="https://maptalks.com/api/transcoders.draco.js"></script> -->
+    <!-- <button onclick="test()">update road visible</button> -->
+    <div id="map" class="container"></div>
+
+    <script>
+        const tileActor = maptalks.getTileActor();
+        const map = new maptalks.Map("map", {
+            "center": [-74.01078805, 40.70515655], "zoom": 17.132722268556165, "pitch": 65.25000000000011, "bearing": -15.149999999999295,
+            centerCross: true,
+            // spatialReference: {
+            //     projection: 'EPSG:4326'
+            // },
+        });
+
+
+
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+        });
+
+        const baseLayer = new maptalks.TileLayer("base", {
+            // debug: true,
+            urlTemplate: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+            subdomains: ["a", "b", "c", "d"],
+            maxAvailableZoom: 18,
+
+            // spatialReference: {
+            //     projection: 'EPSG:3857'
+            // },
+        });
+
+        const groupGLLayer = new maptalks.GroupGLLayer("gl", [], {
+
+        }).addTo(map);
+
+
+        const style = [
+            {
+                name: 'building-floors',
+                filter: ["all",
+                    ["==", "$type", "Polygon"],
+                    ["==", "$layer", "building"],
+                ],
+                renderPlugin: {
+                    type: "lit",
+                    dataConfig: {
+                        type: "3d-extrusion",
+                        altitudeProperty: "height",
+                        minHeightProperty: "bottomHeight",
+                        altitudeScale: 1,
+                        defaultAltitude: 10,
+                        topThickness: 1,
+                        top: true,
+                        side: true
+                    },
+                    sceneConfig: {}
+                },
+                symbol: {
+                    // topPolygonFill: "#6190e8",
+                    // bottomPolygonFill: "#a7bfe8",
+                    polygonFill: {
+                        property: "buildingColor",
+                        type: "identity",
+                    }
+                }
+            },
+
+        ];
+        const vtLayer = new maptalks.VectorTileLayer("vt", {
+            style,
+            // debug: true,
+            // debugTileData: true,
+            urlTemplate: "https://tile.maptalks.com/test/planet-single/{z}/{x}/{y}.mvt",
+        });
+
+        vtLayer.on('renderercreate', function (e) {
+            e.renderer.loadTileArrayBuffer = function (url, tile, callback, options) {
+                console.log(options.command);
+                const { x, y, z } = tile;
+                tileActor.getVTTile({
+                    url: [maptalks.Util.getAbsoluteURL(url)],
+                    customProperties: (layerName, layer, feature, featureIndex) => {
+                        if (layerName === 'building') {
+                            feature.properties = feature.properties || {};
+                            const height = feature.properties.height || 0;
+                            const h = parseFloat(height);
+                            if (h < 10) {
+                                feature.properties.buildingColor = '#F0F9E9';
+                            }
+                            if (h >= 10 && h < 50) {
+                                feature.properties.buildingColor = '#A6DCB6';
+                            }
+                            if (h >= 50 && h < 100) {
+                                feature.properties.buildingColor = '#3C9FC8';
+                            }
+                            if (h > 100) {
+                                feature.properties.buildingColor = '#084586'
+                            }
+                        }
+                    },
+                    // indexedDBCache: true
+                }).then(buffer => {
+                    callback(null, buffer);
+                }).catch(error => {
+                    console.log(error);
+                    callback(error);
+                })
+            };
+        });
+        groupGLLayer.addLayer(vtLayer);
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
