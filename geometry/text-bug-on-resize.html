@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 加载倾斜摄影数据</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        width: 30%;
+        height: 100%;
+        background-color: gray;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+<script type="text/javascript" src="//at.alicdn.com/t/font_3330503_allx40pxkxd.js"></script>
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+
+<body>
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            center: [120, 31],
+            zoom: 4.7,
+            minZoom: 2,
+            pitch: 0,
+
+        });
+
+        const layer = new maptalks.PointLayer('layer');
+
+        const groupLayer = new maptalks.GroupGLLayer('group', [layer]).addTo(map);
+
+        const center = map.getCenter();
+
+        const point = new maptalks.Marker(center, {
+            symbol: {
+                textName: 'hello'
+            }
+        }).addTo(layer);
+
+        const container = map.getContainer();
+
+        setTimeout(() => {
+            container.style.width = '80%';
+        }, 2000);
+
+
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
