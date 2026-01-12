@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/randomColor.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            "center": [114.40618395, 28.97017677], "zoom": 11.989159806217408, "pitch": 78.15000000000003, "bearing": -1.5,
+            debugSky: true,
+            baseLayer: new maptalks.TileLayer('base', {
+                urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+                subdomains: ["a", "b", "c", "d"],
+            })
+        });
+        const layer = new maptalks.VectorLayer('layer', {
+            // enableAltitude: true
+        }).addTo(map);
+
+
+
+        fetch('./../assets/data/area.geojson').then(res => res.json()).then(geojson => {
+            const polygons = maptalks.GeoJSON.toGeometry(geojson);
+            polygons.forEach(polygon => {
+                polygon.config({
+                    groundClip: true
+                })
+                polygon.setSymbol({
+                    polygonFill: randomColor(),
+                    polygonOpacity: 0.7
+                });
+            });
+            layer.addGeometry(polygons);
+        })
+
+
+
+
+
+    </script>
+</body>
+
+</html>
