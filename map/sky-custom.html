@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<meta charset='UTF-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1' />
+<title>3dtiles功能示例 - 模型单体化</title>
+<style type='text/css'>
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        /* background-color: gray; */
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+        const map = new maptalks.Map("map", {
+            center: [123, 41],
+            zoom: 10,
+            pitch: 80,
+            bearing: 0
+        });
+
+
+
+
+
+
+        class SkyLayer extends maptalks.Layer {
+
+            //设置天空盒图片
+            setSky(skyUrl) {
+                this.skyUrl = skyUrl;
+                this.loading = false;
+                this.skyImage = null;
+                this._loadImage();
+
+            }
+
+            getSky() {
+                return this.skyUrl;
+            }
+
+            //设置天空盒底部偏移量
+            setBottomY(y) {
+                this.bottomY = y;
+                const renderer = this.getRenderer();
+                renderer.setToRedraw();
+            }
+
+            _loadImage() {
+                if (this.loading) {
+                    return this;
+                }
+                const image = new Image();
+                image.onload = () => {
+                    this.skyImage = image;
+                    this.loading = false;
+                    const renderer = this.getRenderer();
+                    renderer.setToRedraw();
+                    this.fire('skyload', { skyUrl: this.skyUrl });
+
+                };
+                image.onerror = () => {
+                    this.fire('skyloaderror', { skyUrl: this.skyUrl });
+                }
+                image.src = this.skyUrl;
+                this.loading = true;
+            }
+        }
+
+        // 定义默认的图层配置属性
+        SkyLayer.mergeOptions({
+            zIndex: -Infinity,
+            forceRenderOnMoving: true,
+            forceRenderOnZooming: true,
+            forceRenderOnRotating: true
+        });
+
+        class SkyLayerRenderer extends maptalks.renderer.CanvasRenderer {
+            checkResources() {
+                // HelloLayer只是绘制文字, 没有外部图片, 所以返回空数组
+                return [];
+            }
+
+            draw() {
+                this._drawSky();
+                this.completeRender();
+            }
+
+            drawOnInteracting(evtParam) {
+                this._drawSky();
+                this.completeRender();
+            }
+
+            _drawSky() {
+                const layer = this.layer;
+                if (!layer) {
+                    return;
+                }
+                this.prepareCanvas();
+                const ctx = this.context;
+                ctx.canvas._drawn = false;
+                const skyImage = this.layer.skyImage;
+                const bottomY = this.layer.bottomY || 0;
+                if (this.layer.skyImage) {
+                    const map = layer.getMap();
+                    const height = map.getGroundExtent().ymin;
+                    if (height > 0) {
+                        const width = map.width;
+                        //将整个地图的旋转角度变成360
+                        const bearing = 180 + map.getBearing();
+                        const imageWidth = skyImage.width;
+                        const imageHeight = skyImage.height;
+                        //计算天空盒左边的切割坐标
+                        const left = bearing / 360 * imageWidth;
+                        //天空盒四等分,left,right,front,back
+                        const w = imageWidth / 4;
+                        const y = imageHeight - bottomY - height;
+                        ctx.drawImage(skyImage, left, y, w, height, 0, 0, width, height + 2);
+                        //溢出的地方,空白的地方,补起来，即补天空盒最左边的
+                        if (left + w > imageWidth) {
+                            const realwidth = imageWidth - left;
+                            const needwidth = w - realwidth;
+                            const wscale = needwidth / w;
+                            const x = (1 - wscale) * width;
+                            ctx.drawImage(skyImage, 0, y, w * wscale, height, x - 1, 0, (width - x), height + 2);
+                        }
+                    }
+
+                }
+                return true;
+            }
+        }
+
+        SkyLayer.registerRenderer('canvas', SkyLayerRenderer);
+
+
+
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: {
+                    enable: true,
+                },
+            },
+        };
+
+        const colors4 = [
+            [0, '#F0F9E9'],
+            [200, '#D7EFD1'],
+            [400, '#A6DCB6'],
+            [650, '#8FD4BD'],
+            [880, '#67C1CB'],
+            [1100, '#3C9FC8'],
+            [1300, '#1171B1'],
+            [1450, '#085799'],
+            [1600, '#084586'],
+        ];
+
+
+
+
+        const terrain = {
+            type: 'mapbox',
+            //强制指定tileSize
+            // tileSize: 256,
+            maxAvailableZoom: 14,
+
+            requireSkuToken: false,
+            urlTemplate: './../assets/data/tile-rgb/{z}/{x}/{y}.png',
+            subdomains: ['a', 'b', 'c', 'd'],
+            // colors: colors4,
+            exaggeration: 2,
+        };
+
+        const baseLayer = new maptalks.TileLayer("base", {
+            // debug: true,
+            urlTemplate: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+            subdomains: ["a", "b", "c", "d"],
+            maxAvailableZoom: 18,
+        });
+        const groupLayer = new maptalks.GroupGLLayer("group", [baseLayer], {
+            terrain
+        }).addTo(map);
+
+
+
+        // map.setView({
+        //     "center": [120.06864866, 30.12911788, 430.3062438964844], "zoom": 12.814714048170666, "pitch": 56.45000000000009, "bearing": 2.7148818684635216
+        // })
+
+        map.setView({
+            "center": [118.25079334, 30.1210681, 430.3062438964844], "zoom": 11.892086520379873, "pitch": 80.64999999999992, "bearing": 112.90705084326646
+        })
+
+        const skyLayer = new SkyLayer('sky').addTo(map);
+
+
+        skyLayer.setBottomY(200);
+
+        function updateSky(skyUrl) {
+            skyLayer.setSky(`./../assets/image/${skyUrl}.png`);
+        }
+
+        initGui();
+        updateSky('sky1');
+
+        function initGui() {
+            var params = {
+                bottomY: 200,
+                skyUrl: 'sky1',
+                switchSky: function () {
+                    const skyUrl = params.skyUrl === 'sky1' ? 'sky2' : 'sky1';
+                    params.skyUrl = skyUrl;
+                    updateSky(params.skyUrl);
+
+                }
+            };
+            var gui = new lil.GUI();
+            gui.add(params, 'bottomY', 0, 600, 1).onChange(function () {
+                skyLayer.setBottomY(params.bottomY);
+
+            });
+            gui.add(params, 'switchSky');
+        }
+
+
+
+    </script>
+</body>
+
+</html>
