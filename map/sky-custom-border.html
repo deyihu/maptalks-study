@@ -116,35 +116,19 @@
                 ctx.canvas._drawn = false;
                 const skyImage = this.layer.skyImage;
                 const bottomY = this.layer.bottomY || 0;
-                if (this.layer.skyImage) {
-                    const map = layer.getMap();
-                    const height = map.getGroundExtent().ymin;
-                    if (height > 0) {
-                        const width = map.width;
-                        //将整个地图的旋转角度变成360
-                        const bearing = 180 + map.getBearing();
-                        const imageWidth = skyImage.width;
-                        const imageHeight = skyImage.height;
-                        //计算天空盒左边的切割坐标
-                        const left = bearing / 360 * imageWidth;
-                        //天空盒四等分,left,right,front,back
-                        const w = imageWidth / 4;
-                        //图片底部坐标
-                        const y = imageHeight - bottomY - height;
-                        ctx.drawImage(skyImage, left, y, w, height, 0, 0, width, height + 2);
-                        //溢出的地方,空白的地方,补起来，即补天空盒最左边的
-                        if (left + w > imageWidth) {
-                            //图片最右边实际绘制的区域
-                            const realwidth = imageWidth - left;
-                            //需要补充的宽度
-                            const needwidth = w - realwidth;
-                            const wscale = needwidth / w;
-                            const x = (1 - wscale) * width;
-                            ctx.drawImage(skyImage, 0, y, w * wscale, height, x - 1, 0, (width - x), height + 2);
-                        }
-                    }
+                const map = layer.getMap();
+                const height = map.getGroundExtent().ymin;
+                if (height > 0) {
+                    const width = map.width;
+                    ctx.strokeStyle = 'red';
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.rect(0, 0, width, height);
+                    ctx.stroke();
 
                 }
+
+
                 return true;
             }
         }
@@ -153,43 +137,6 @@
 
 
 
-        const sceneConfig = {
-            postProcess: {
-                enable: true,
-                antialias: {
-                    enable: true,
-                },
-            },
-        };
-
-        const colors4 = [
-            [0, '#F0F9E9'],
-            [200, '#D7EFD1'],
-            [400, '#A6DCB6'],
-            [650, '#8FD4BD'],
-            [880, '#67C1CB'],
-            [1100, '#3C9FC8'],
-            [1300, '#1171B1'],
-            [1450, '#085799'],
-            [1600, '#084586'],
-        ];
-
-
-
-
-        const terrain = {
-            type: 'mapbox',
-            //强制指定tileSize
-            // tileSize: 256,
-            maxAvailableZoom: 14,
-
-            requireSkuToken: false,
-            urlTemplate: './../assets/data/tile-rgb/{z}/{x}/{y}.png',
-            subdomains: ['a', 'b', 'c', 'd'],
-            // colors: colors4,
-            exaggeration: 2,
-        };
-
         const baseLayer = new maptalks.TileLayer("base", {
             // debug: true,
             urlTemplate: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -197,7 +144,7 @@
             maxAvailableZoom: 18,
         });
         const groupLayer = new maptalks.GroupGLLayer("group", [baseLayer], {
-            terrain
+
         }).addTo(map);
 
 
@@ -211,35 +158,10 @@
         })
 
         const skyLayer = new SkyLayer('sky').addTo(map);
+        skyLayer.setZIndex(-1000);
 
 
-        skyLayer.setBottomY(200);
 
-        function updateSky(skyUrl) {
-            skyLayer.setSky(`./../assets/image/${skyUrl}.png`);
-        }
-
-        initGui();
-        updateSky('sky1');
-
-        function initGui() {
-            var params = {
-                bottomY: 200,
-                skyUrl: 'sky1',
-                switchSky: function () {
-                    const skyUrl = params.skyUrl === 'sky1' ? 'sky2' : 'sky1';
-                    params.skyUrl = skyUrl;
-                    updateSky(params.skyUrl);
-
-                }
-            };
-            var gui = new lil.GUI();
-            gui.add(params, 'bottomY', 0, 600, 1).onChange(function () {
-                skyLayer.setBottomY(params.bottomY);
-
-            });
-            gui.add(params, 'switchSky');
-        }
 
 
 
