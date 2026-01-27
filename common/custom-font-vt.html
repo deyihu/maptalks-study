@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+   
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+<script type='text/javascript' src='./../assets/lib/randomColor.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const map = new maptalks.Map("map", {
+            "center": [121.48130748990341, 31.181899201199773], "zoom": 15.522397459912927, "pitch": 62.400000000000205, "bearing": -1.910073863921184,
+            centerCross: true,
+            // spatialReference: {
+            //     projection: 'EPSG:4326'
+            // },
+        });
+
+
+
+        map.on('click', e => {
+            console.log(e.coordinate.toArray());
+        });
+
+        const baseLayer = new maptalks.TileLayer("base", {
+            // debug: true,
+            urlTemplate: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+            subdomains: ["a", "b", "c", "d"],
+            maxAvailableZoom: 18,
+
+            // spatialReference: {
+            //     projection: 'EPSG:3857'
+            // },
+        });
+
+        const groupGLLayer = new maptalks.GroupGLLayer("gl", [baseLayer], {
+
+        }).addTo(map);
+
+        function test() {
+
+            const style = [
+                {
+                    name: 'building-floors',
+                    filter: ["all",
+                        ["==", "$type", "Point"],
+                    ],
+                    renderPlugin: {
+                        type: "text",
+                        dataConfig: {
+                            type: "point",
+                        },
+                        sceneConfig: {}
+                    },
+                    symbol: {
+                        textName: String.fromCharCode(parseInt('e606', 16)),
+                        textFaceName: 'myfont',
+                        textFill: 'red',
+                        textSize: 44,
+                        // textHaloFill: '#000',
+                        // textHaloRadius: 1
+                    }
+                },
+
+            ];
+            const vtLayer = new maptalks.GeoJSONVectorTileLayer("vt", {
+                workerGlyph: false,
+                // sdfURL: "./../assets/fonts/{fontstack}/{range}.pbf",
+                style,
+                debug: true,
+                // debugTileData: true,
+                data: './../assets/data/shanghai-poi.geojson'
+            });
+
+
+            groupGLLayer.addLayer(vtLayer);
+        }
+
+
+
+        // 定义字体
+        const font = new FontFace("myfont", "url(//at.alicdn.com/t/c/font_1945507_qod6g7djsrp.woff2?t=1747963828009)");
+
+        // 把字体添加到 document.font（FontFaceSet）中
+        document.fonts.add(font);
+
+        // 加载字体
+        font.load();
+
+        // 等待到所有的字体都加载完毕
+        document.fonts.ready.then(() => {
+            // 使用该字体渲染文字（如：在 canvas 中绘制）
+            test();
+        });
+
+
+
+
+    </script>
+</body>
+
+</html>
