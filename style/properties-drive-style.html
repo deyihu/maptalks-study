@@ -164,7 +164,16 @@
 
         function updateName() {
             const p = points[points.length - 1];
-            p.setProperties(Object.assign({}, p.getProperties(), { name: 'new name' }));
+            const properties = p.getProperties();
+            if (Object.hasOwn(properties, 'name')) {
+                delete properties.name;
+            } else {
+                properties.name = 'hello'
+            }
+            p.setProperties(properties);
+
+
+
         }
 
 
