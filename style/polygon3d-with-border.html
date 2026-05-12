@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        /* background-color: black; */
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+
+<body>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        var map = new maptalks.Map('map', {
+            "center": [116.67851178, 38.26942666], "zoom": 8.004821499778677, "pitch": 54.95000000000014, "bearing": -6.899999999999977,
+            zoomControl: true,
+        });
+
+
+        // GroupGLLayer能实现抗锯齿等后处理，也能加入其他三维图层，让子图层都融合到同一个三维空间中
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true },
+                bloom: {
+                    enable: true,
+                    threshold: 0,
+                    factor: 1,
+                    radius: 0.02,
+                },
+            }
+        };
+
+        const tileLayer = new maptalks.TileLayer("base", {
+            urlTemplate: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+            subdomains: ["a", "b", "c", "d"],
+            // attribution: "&copy; <a href='http://osm.org'>OpenStreetMap</a> contributors, &copy; <a href='https://carto.com/'>CARTO</a>",
+        });
+        const groupLayer = new maptalks.GroupGLLayer('group', [tileLayer], { sceneConfig });
+        groupLayer.addTo(map);
+
+        const defaultHeight = 10000;
+
+        function addTree(geojson) {
+            const style = {
+                style: [
+                    {
+                        name: 'area',
+                        filter: ["all",
+                            ["==", "$type", "Polygon"],
+                            ["==", "type", "area"],
+                        ],
+                        renderPlugin: {
+                            type: "lit",
+                            dataConfig: {
+                                type: "3d-extrusion",
+                                altitudeProperty: "height",
+                                minHeightProperty: "bottomHeight",
+                                altitudeScale: 1,
+                                defaultAltitude: defaultHeight,
+                                topThickness: 1,
+                                top: true,
+                                side: true
+                            },
+                            sceneConfig: {}
+                        },
+                        symbol: {
+                            polygonFill: 'blue'
+                        }
+                    },
+                    {
+                        name: 'area-border',
+                        filter: ["all",
+                            ["==", "$type", "LineString"],
+                            ["==", "type", "border"],
+                        ],
+                        renderPlugin: {
+                            type: "line",
+                            dataConfig: {
+                                type: "line",
+
+                            },
+                            sceneConfig: {}
+                        },
+                        symbol: {
+                            lineColor: 'red',
+                            lineWidth: 4
+                        }
+                    },
+
+                ],
+            };
+
+            const vt = new maptalks.GeoJSONVectorTileLayer("vt", {
+                data: geojson,
+                style,
+            });
+            groupLayer.addLayer(vt);
+        }
+
+        function polygon2Line(feature) {
+            const geometry = feature.geometry;
+            const properties = feature.properties || {};
+            const { type, coordinates } = geometry;
+            const coords = [];
+            if (type === 'Polygon') {
+                coords.push(...coordinates);
+            } else {
+                coordinates.forEach(coord => {
+                    coord.forEach(c => {
+                        coords.push(c);
+                    });
+                });
+            }
+            const props = { ...properties, type: 'border' };
+
+            const fillAlitude = (coordinates) => {
+                if (Array.isArray(coordinates[0])) {
+                    coordinates.forEach(c => {
+                        fillAlitude(c);
+                    });
+                } else {
+                    coordinates[2] = defaultHeight
+                }
+            };
+            fillAlitude(coords);
+            return {
+                type: 'Feature',
+                geometry: {
+                    type: "MultiLineString",
+                    coordinates: coords
+                },
+                properties: props
+
+            }
+        }
+
+        fetch('./../assets/data/hebei.geojson').then(res => res.json()).then(geojson => {
+            geojson.features.forEach(f => {
+                f.properties.type = 'area';
+            })
+
+            const lines = geojson.features.map(f => polygon2Line(f));
+            geojson.features.push(...lines);
+            addTree(geojson);
+        })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
