@@ -10,8 +10,8 @@ const merc = new SphericalMercator({
     size: TILESIZE,
     antimeridian: true
 });
-const TILEURL = 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-// const TILEURL = 'https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}';
+// const TILEURL = 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+const TILEURL = 'https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}';
 
 
 function getTileImages(tiles, callback) {
@@ -145,8 +145,10 @@ function clipCanvas(ctx, polygons) {
             }
         });
     });
+    // ctx.lineWidth = 2;
+    // ctx.strokeStyle = 'red';
     // ctx.stroke();
-    ctx.clip();
+    ctx.clip('evenodd');
     return [minx, miny, maxx, maxy];
 }
 
@@ -169,13 +171,13 @@ function rectClipCanvas(canvas, bbox) {
 }
 
 const limits = {
-    min_zoom: 10,
-    max_zoom: 10
+    min_zoom: 9,
+    max_zoom: 9
 };
 
 function getGeometry() {
     let geometry;
-    const p = path.join(__dirname, './assets/data/beijing.geojson');
+    const p = path.join(__dirname, './assets/data/hebei-area.geojson');
     let geojson = fs.readFileSync(p).toString();
     geojson = JSON.parse(geojson);
     const features = geojson.features || [];
