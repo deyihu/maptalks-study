@@ -56,6 +56,7 @@
         const groupLayer = new maptalks.GroupGLLayer('group', [tileLayer], { sceneConfig });
         groupLayer.addTo(map);
 
+        //默认高度
         const defaultHeight = 10000;
 
         function addTree(geojson) {
@@ -115,6 +116,10 @@
             groupLayer.addLayer(vt);
         }
 
+        /**
+         * polygon to multilinestring
+         * 
+         **/
         function polygon2Line(feature) {
             const geometry = feature.geometry;
             const properties = feature.properties || {};
@@ -157,6 +162,7 @@
                 f.properties.type = 'area';
             })
 
+            //构造边线的数据集
             const lines = geojson.features.map(f => polygon2Line(f));
             geojson.features.push(...lines);
             addTree(geojson);
