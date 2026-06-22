@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Interactions - Draw tool to draw geometries</title>
+<style type="text/css">
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        background-color: #2B2D2C;
+    }
+
+    html,
+    body {
+        margin: 0px;
+        height: 100%;
+        width: 100%;
+        overflow-x: hidden;
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+
+    .panel {
+        position: absolute;
+        z-index: 1;
+        width: 200px;
+        height: 90%;
+        max-height: 100%;
+        /* border: 1px solid gray; */
+        padding: 10px;
+        margin-top: 20px;
+        overflow: hidden;
+    }
+
+    .panel-left {
+        left: 200px;
+    }
+
+    .panel-right {
+        right: 200px;
+    }
+
+    .panel .item {
+        height: 80px;
+        background-color: #3b3b3bb5;
+        backdrop-filter: blur(10px);
+        margin-bottom: 20px;
+        border: 2px solid #100e0e;
+        box-shadow: 0 0 15px #141414;
+        border-radius: 10px;
+        padding-top: 15px;
+        padding-left: 10px;
+    }
+
+    .panel .item .title {
+        color: #fff;
+        text-align: center;
+        font-size: 20px;
+        font-weight: bold;
+        line-height: 30px;
+        display: flex;
+    }
+
+    .panel .item .content {
+        color: #fff;
+        text-align: center;
+        font-size: 20px;
+        font-weight: bold;
+    }
+
+    .panel .item .title img {
+        height: 30px;
+        margin-right: 6px;
+    }
+</style>
+<link rel='stylesheet' href='./../assets/lib/maptalks/maptalks.css' />
+
+<script type='text/javascript' src='./../assets/lib/maptalks/maptalks-gl.js'></script>
+<script type='text/javascript' src='./../assets/lib/lil-gui.min.js'></script>
+
+
+<body>
+    <div class="panel panel-left">
+        <div class="item">
+            <div class="title"><img src="./../assets/icon/足球.png" /><span>介绍</span></div>
+        </div>
+
+    </div>
+
+    <div id="map" class="container"></div>
+
+    <script>
+
+        const VectorLayer = maptalks.VectorLayer;
+
+        const options = {
+            'geometryEvents': false,
+            'hitDetect': false,
+            'enableAltitude': true,
+            'forceRenderOnMoving': true,
+            'forceRenderOnZooming': true,
+            'forceRenderOnRotating': true,
+        };
+
+        class LinkLineLayer extends VectorLayer {
+
+        }
+        LinkLineLayer.mergeOptions(options);
+
+
+        const OverlayLayerCanvasRenderer = maptalks.renderer.OverlayLayerCanvasRenderer;
+
+        const LineString = maptalks.LineString;
+
+        class LinkLineLayerCanvasRenderer extends OverlayLayerCanvasRenderer {
+
+            draw() {
+                this._drawLines();
+                return this;
+
+            }
+
+
+            drawOnInteracting() {
+                this._drawLines();
+                return this;
+            }
+
+            _drawLines() {
+                const layer = this.layer;
+                if (!layer) {
+                    return this;
+                }
+                const map = this.layer.getMap();
+                if (!map) {
+                    return this;
+                }
+                this.prepareCanvas();
+                if (!this.context) {
+                    return this;
+                }
+                const lines = this.layer._geoList.filter(g => {
+                    if (g instanceof LineString) {
+                        g._getPainter();
+                        return true;
+                    }
+                    return false;
+                });
+                lines.forEach(line => {
+                    this._drawLinkLine(line);
+                });
+                this.completeRender();
+                return this;
+            }
+
+            _drawLinkLine(line) {
+                const map = this.layer.getMap();
+                const coords = line.getCoordinates();
+                if (!coords || !coords.length) {
+                    return this;
+                }
+                if (!line._painter) {
+                    return this;
+                }
+                const symbolizer = line._painter.symbolizers;
+                const lineSymbol = symbolizer[0];
+                if (!lineSymbol) {
+                    return this;
+                }
+                const altitude = line._painter.getAltitude();
+                const { lineColor, lineWidth, shadowBlur, shadowColor, vertexs, offsetX, offsetY } = lineSymbol.symbol || {};
+                const renderPoints = line._painter.getRenderPoints()[0][0];
+                const glRes = map.getGLRes();
+                const pixel = map._pointAtResToContainerPoint(renderPoints, glRes, altitude);
+                const ctx = this.context;
+                ctx.strokeStyle = lineColor || '#000';
+                ctx.lineWidth = lineWidth || 1;
+                if (shadowBlur) {
+                    ctx.shadowBlur = shadowBlur;
+                    ctx.shadowColor = shadowColor || '#fff';
+                } else {
+                    ctx.shadowBlur = 0;
+                    // delete ctx.shadowColor;
+                }
+                // ctx.shadowColor = shadowColor;
+                ctx.beginPath();
+                ctx.moveTo(pixel.x + (offsetX || 0), pixel.y + (offsetY || 0));
+                if (Array.isArray(vertexs)) {
+                    for (let i = vertexs.length - 1; i >= 0; i--) {
+                        const vertex = vertexs[i];
+                        if (Array.isArray(vertex)) {
+                            const [x, y] = vertex;
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                }
+                ctx.stroke();
+                return this;
+
+            }
+        }
+
+        LinkLineLayer.registerRenderer('canvas', LinkLineLayerCanvasRenderer);
+
+
+
+        var map = new maptalks.Map('map', {
+            "center": [119.15110114, 32.92097946], "zoom": 8.218472659732232, "pitch": 0, "bearing": 0, maxPitch: 0,
+            dragRotatePitch: false, dragRotate: false,
+            // baseLayer: new maptalks.TileLayer('base', {
+            //     urlTemplate: 'https://t4.tianditu.gov.cn/DataServer?T=img_w&X={x}&Y={y}&L={z}&tk=81f5d2faf4bd7ee6b55f7cd535e81518',
+            //     subdomains: ["a", "b", "c", "d"],
+            //     maxAvailableZoom: 18,
+            // })
+        });
+
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
+
+        const linkLayer = new LinkLineLayer('link').addTo(map);
+
+
+        const subAreaSymbol = {
+            polygonFill: "#478CF6",
+            polygonOpacity: 1,
+            lineColor: "#fff",
+            lineWidth: 0.5,
+            //阴影很耗时
+            shadowColor: "#317EF5",
+            shadowBlur: 20,
+        }
+
+        const labelSymbol = {
+            markerFile: './../assets/icon/足球.png',
+            markerWidth: 40,
+            markerHeight: 40
+        }
+
+        const lineSymbol = {
+            lineColor: '#fff',
+            lineWidth: 1,
+        }
+
+        fetch('./../assets/data/jiangsu.geojson').then(res => res.json()).then(geojson => {
+            const polygons = maptalks.GeoJSON.toGeometry(geojson, p => {
+                p.setSymbol(subAreaSymbol);
+            });
+            layer.addGeometry(polygons);
+            // initGui();
+            fetch('./../assets/data/jiangsu-city-center.geojson').then(res => res.json()).then(geojson => {
+                const polygons = maptalks.GeoJSON.toGeometry(geojson, p => {
+                    const name = p.getProperties().name;
+                    p.setSymbol([
+                        {
+                            markerType: 'ellipse',
+                            markerWidth: 44,
+                            markerHeight: 44,
+                            markerFill: '#fff',
+                            markerLineColor: '#000',
+                            markerDy: 2,
+                            markerVerticalAlignment: 'top'
+                        },
+                        Object.assign({}, labelSymbol, {
+                            markerFile: `./../assets/icon/${name}.png`
+                        })
+                    ]
+                    );
+                    p.on('click', e => {
+                        pointClick(e);
+                    })
+                });
+                layer.addGeometry(polygons);
+                updateLink();
+
+            })
+        })
+
+        let linkLine;
+
+        function pointClick(e) {
+            const coordinate = e.target.getCenter();
+            if (!linkLine) {
+                const symbol = Object.assign({}, lineSymbol, { vertexs: [] });
+                linkLine = new maptalks.LineString([coordinate], {
+                    symbol,
+                    properties: {
+                        // name: title
+                    }
+                }).addTo(linkLayer);
+            } else {
+                linkLine.setCoordinates([coordinate]);
+            }
+            updateLink();
+        }
+
+
+
+
+
+        function updateLink(e) {
+            if (!linkLine) {
+                return;
+            }
+            const center = map.coordinateToContainerPoint(map.getCenter());
+
+            const itemDom = document.querySelector('.panel .item ');
+
+
+            const rect = itemDom.getBoundingClientRect();
+            // console.log(rect);
+            const { bottom, right, left, top } = rect;
+            let y = (top + bottom) / 2;
+            let x = right;
+            const p1 = new maptalks.Point(right, y);
+            const p2 = new maptalks.Point(left, y);
+
+            if (p1.distanceTo(center) > p2.distanceTo(center)) {
+                x = p2.x;
+                y = p2.y;
+            }
+            const vs = [x, y];
+            const symbol = Object.assign({}, lineSymbol, { vertexs: [vs] });
+
+
+
+            linkLine.setSymbol(symbol);
+
+
+        }
+
+        map.on('resize', updateLink);
+
+
+
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
